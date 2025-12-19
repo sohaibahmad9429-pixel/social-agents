@@ -1,0 +1,220 @@
+"""
+Credentials API Router
+Platform connection status and disconnect functionality
+"""
+
+import logging
+from typing import Literal
+from datetime import datetime
+
+from fastapi import APIRouter, HTTPException
+
+from src.services.supabase_service import get_supabase_client
+
+
+router = APIRouter(prefix="/api/v1/credentials", tags=["Credentials"])
+logger = logging.getLogger(__name__)
+
+
+# ================== CONSTANTS ==================
+
+VALID_PLATFORMS = ["twitter", "linkedin", "facebook", "instagram", "tiktok", "youtube"]
+
+Platform = Literal["twitter", "linkedin", "facebook", "instagram", "tiktok", "youtube"]
+
+
+# ================== HELPER FUNCTIONS ==================
+
+async def get_user_workspace(user_id: str) -> tuple[str, str]:
+    """
+    Get user's workspace ID and role.
+    Returns (workspace_id, role) tuple.
+    """
+    supabase = get_supabase_client()
+    
+    result = supabase.table("users").select(
+        "workspace_id, role"
+    ).eq("id", user_id).single().execute()
+    
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    
+    return result.data.get("workspace_id"), result.data.get("role", "viewer")
+
+
+# ================== ENDPOINTS ==================
+
+@router.get("/status")
+async def get_connection_status(user_id: str):
+    """
+    GET /api/v1/credentials/status
+    Get connection status for all platforms.
+    
+    Returns which platforms are connected for the user's workspace.
+    """
+    try:
+        workspace_id, _ = await get_user_workspace(user_id)
+        
+        if not workspace_id:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        
+        supabase = get_supabase_client()
+        
+        # Get all credentials for the workspace
+        result = supabase.table("social_credentials").select(
+            "platform, provider_account_id, account_name, created_at, expires_at"
+        ).eq("workspace_id", workspace_id).execute()
+        
+        # Build status map
+        status = {}
+        connected_credentials = result.data or []
+        
+        for platform in VALID_PLATFORMS:
+            cred = next(
+                (c for c in connected_credentials if c.get("platform") == platform),
+                None
+            )
+            
+            if cred:
+                status[platform] = {
+                    "connected": True,
+                    "accountId": cred.get("provider_account_id"),
+                    "accountName": cred.get("account_name"),
+                    "connectedAt": cred.get("created_at"),
+                    "expiresAt": cred.get("expires_at")
+                }
+            else:
+                status[platform] = {
+                    "connected": False
+                }
+        
+        return status
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting connection status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check status")
+
+
+@router.delete("/{platform}/disconnect")
+async def disconnect_platform(user_id: str, platform: str):
+    """
+    DELETE /api/v1/credentials/{platform}/disconnect
+    Disconnect a platform account.
+    
+    Requires admin role.
+    """
+    try:
+        # Validate platform
+        if platform not in VALID_PLATFORMS:
+            raise HTTPException(status_code=400, detail="Invalid platform")
+        
+        workspace_id, role = await get_user_workspace(user_id)
+        
+        # Only admins can disconnect
+        if role != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Only workspace admins can manage account connections"
+            )
+        
+        supabase = get_supabase_client()
+        
+        # Delete credential
+        supabase.table("social_credentials").delete().eq(
+            "workspace_id", workspace_id
+        ).eq("platform", platform).execute()
+        
+        # Log activity
+        supabase.table("activity_logs").insert({
+            "workspace_id": workspace_id,
+            "user_id": user_id,
+            "action": "disconnect",
+            "resource_type": "credential",
+            "resource_id": platform,
+            "details": {"platform": platform},
+            "created_at": datetime.now().isoformat()
+        }).execute()
+        
+        return {
+            "success": True,
+            "message": f"{platform} disconnected successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error disconnecting platform: {e}")
+        raise HTTPException(status_code=500, detail="Failed to disconnect")
+
+
+@router.get("/{platform}")
+async def get_platform_credential(user_id: str, platform: str):
+    """
+    GET /api/v1/credentials/{platform}
+    Get credential details for a specific platform.
+    """
+    try:
+        # Validate platform
+        if platform not in VALID_PLATFORMS:
+            raise HTTPException(status_code=400, detail="Invalid platform")
+        
+        workspace_id, _ = await get_user_workspace(user_id)
+        
+        supabase = get_supabase_client()
+        
+        result = supabase.table("social_credentials").select(
+            "platform, provider_account_id, account_name, account_type, created_at, expires_at, scopes"
+        ).eq("workspace_id", workspace_id).eq("platform", platform).single().execute()
+        
+        if not result.data:
+            return {
+                "connected": False,
+                "platform": platform
+            }
+        
+        cred = result.data
+        
+        return {
+            "connected": True,
+            "platform": platform,
+            "accountId": cred.get("provider_account_id"),
+            "accountName": cred.get("account_name"),
+            "accountType": cred.get("account_type"),
+            "connectedAt": cred.get("created_at"),
+            "expiresAt": cred.get("expires_at"),
+            "scopes": cred.get("scopes")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Not found is OK
+        if "PGRST116" in str(e):
+            return {"connected": False, "platform": platform}
+        logger.error(f"Error getting platform credential: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get credential")
+
+
+# ================== INFO ENDPOINT ==================
+
+@router.get("/")
+async def get_credentials_api_info():
+    """Get Credentials API service information"""
+    return {
+        "service": "Credentials",
+        "version": "1.0.0",
+        "endpoints": {
+            "/status": {
+                "GET": "Get connection status for all platforms"
+            },
+            "/{platform}": {
+                "GET": "Get credential details for a platform"
+            },
+            "/{platform}/disconnect": {
+                "DELETE": "Disconnect a platform (admin only)"
+            }
+        },
+        "supported_platforms": VALID_PLATFORMS
+    }

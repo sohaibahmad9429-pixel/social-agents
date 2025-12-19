@@ -10,6 +10,8 @@ from .v1 import (
     webhooks_router,
     canva_router,
     workspace_router,
+    posts_router,
+    credentials_router,
     facebook_router,
     instagram_router,
     linkedin_router,
@@ -29,6 +31,8 @@ __all__ = [
     "webhooks_router",
     "canva_router",
     "workspace_router",
+    "posts_router",
+    "credentials_router",
     "facebook_router",
     "instagram_router",
     "linkedin_router",
@@ -36,6 +40,7 @@ __all__ = [
     "tiktok_router",
     "youtube_router"
 ]
+
 
 
 

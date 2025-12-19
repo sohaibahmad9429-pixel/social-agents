@@ -104,6 +104,8 @@ from .api import (
     webhooks_router,
     canva_router,
     workspace_router,
+    posts_router,
+    credentials_router,
     facebook_router,
     instagram_router,
     linkedin_router,
@@ -121,6 +123,8 @@ app.include_router(storage_router)
 app.include_router(webhooks_router)
 app.include_router(canva_router)
 app.include_router(workspace_router)
+app.include_router(posts_router)
+app.include_router(credentials_router)
 app.include_router(facebook_router)
 app.include_router(instagram_router)
 app.include_router(linkedin_router)

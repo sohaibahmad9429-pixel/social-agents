@@ -9,6 +9,8 @@ from .storage import router as storage_router
 from .webhooks import router as webhooks_router
 from .canva import router as canva_router
 from .workspace import router as workspace_router
+from .posts import router as posts_router
+from .credentials import router as credentials_router
 from .social import facebook_router, instagram_router, linkedin_router, twitter_router, tiktok_router, youtube_router
 
 __all__ = [
@@ -22,6 +24,8 @@ __all__ = [
     "webhooks_router",
     "canva_router",
     "workspace_router",
+    "posts_router",
+    "credentials_router",
     "facebook_router",
     "instagram_router",
     "linkedin_router",
@@ -29,6 +33,7 @@ __all__ = [
     "tiktok_router",
     "youtube_router"
 ]
+
 
 
 
