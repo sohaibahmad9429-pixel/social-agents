@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     TIKTOK_CLIENT_SECRET: Optional[str] = Field(default=None, description="TikTok Client Secret")
     YOUTUBE_CLIENT_ID: Optional[str] = Field(default=None, description="YouTube/Google Client ID")
     YOUTUBE_CLIENT_SECRET: Optional[str] = Field(default=None, description="YouTube/Google Client Secret")
+    
+    # Twitter API Keys (alternative naming for OAuth 1.0a)
+    TWITTER_API_KEY: Optional[str] = Field(default=None, description="Twitter API Key (OAuth 1.0a)")
+    TWITTER_API_SECRET: Optional[str] = Field(default=None, description="Twitter API Secret (OAuth 1.0a)")
+    
+    # Canva Integration
+    CANVA_CLIENT_ID: Optional[str] = Field(default=None, description="Canva Client ID")
+    CANVA_CLIENT_SECRET: Optional[str] = Field(default=None, description="Canva Client Secret")
 
     
     # Model Configuration Defaults
