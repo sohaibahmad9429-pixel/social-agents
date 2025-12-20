@@ -199,7 +199,7 @@ export type {
 import * as content from './api/content';
 import * as media from './api/media';
 import * as storage from './api/storage';
-import * as workspace from './api/workspace';
+import * as workspaceApi from './api/workspace';
 import * as posts from './api/posts';
 import * as credentials from './api/credentials';
 import * as canva from './api/canva';
@@ -215,7 +215,7 @@ export const api = {
     content,
     media,
     storage,
-    workspace,
+    workspace: workspaceApi,
     posts,
     credentials,
     canva,
@@ -230,7 +230,7 @@ export {
     content as contentApi,
     media as mediaApi,
     storage as storageApi,
-    workspace as workspaceApi,
+    workspaceApi,
     posts as postsApi,
     credentials as credentialsApi,
     canva as canvaApi,

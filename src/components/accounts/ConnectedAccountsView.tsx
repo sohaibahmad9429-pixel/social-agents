@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { PLATFORMS } from '@/constants'
 import type { Platform } from '@/types'
+import { useAuth } from '@/contexts/AuthContext'
+import { credentialsApi } from '@/lib/python-backend'
 
 interface ConnectedAccountsViewProps {
   connectedAccounts: Record<Platform, boolean>
@@ -22,6 +24,7 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
   connectedAccounts,
   onUpdateAccounts,
 }) => {
+  const { user } = useAuth()
   const [connectingPlatform, setConnectingPlatform] = useState<Platform | null>(null)
   const [errors, setErrors] = useState<Record<Platform, string | undefined>>({
     twitter: undefined,
@@ -52,6 +55,18 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
     youtube: 60000, // 60 seconds
   }
 
+  // Helper function to map Python backend response to expected format
+  const mapCredentialsStatus = (data: any): Record<Platform, any> => {
+    return {
+      twitter: { isConnected: data.twitter?.connected ?? false, ...data.twitter },
+      linkedin: { isConnected: data.linkedin?.connected ?? false, ...data.linkedin },
+      facebook: { isConnected: data.facebook?.connected ?? false, ...data.facebook },
+      instagram: { isConnected: data.instagram?.connected ?? false, ...data.instagram },
+      tiktok: { isConnected: data.tiktok?.connected ?? false, ...data.tiktok },
+      youtube: { isConnected: data.youtube?.connected ?? false, ...data.youtube },
+    }
+  }
+
   useEffect(() => {
     loadConnectionStatus()
 
@@ -64,6 +79,8 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
       // Success - reload status with retry mechanism
       // Database transaction might still be in progress, so retry multiple times
       const retryLoadStatus = async () => {
+        if (!user) return
+
         const maxRetries = 4
         const retryDelays = [1500, 1000, 2000, 3000] // milliseconds between retries
 
@@ -75,21 +92,20 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
 
           try {
             setIsLoading(true)
-            const response = await fetch('/api/credentials/status')
-            if (!response.ok) throw new Error('Failed to load status')
-
-            const status = await response.json()
+            // Use Python backend API
+            const data = await credentialsApi.getConnectionStatus(user.id)
+            const mappedStatus = mapCredentialsStatus(data)
 
             // Check if the platform we're looking for is now connected
-            const platformConnected = status[successPlatform]?.isConnected
+            const platformConnected = mappedStatus[successPlatform as Platform]?.isConnected
 
             if (platformConnected) {
               // Found credentials! Update state and we're done
-              setStatusInfo(status)
+              setStatusInfo(mappedStatus)
               onUpdateAccounts(
                 Object.fromEntries(
-                  Object.entries(status).map(([platform, info]: [string, any]) => [
-                    platform,
+                  Object.entries(mappedStatus).map(([p, info]: [string, any]) => [
+                    p,
                     info.isConnected,
                   ])
                 ) as Record<Platform, boolean>
@@ -98,11 +114,11 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
               break // Exit retry loop
             } else if (attempt === maxRetries - 1) {
               // Last attempt failed - show what we got
-              setStatusInfo(status)
+              setStatusInfo(mappedStatus)
               onUpdateAccounts(
                 Object.fromEntries(
-                  Object.entries(status).map(([platform, info]: [string, any]) => [
-                    platform,
+                  Object.entries(mappedStatus).map(([p, info]: [string, any]) => [
+                    p,
                     info.isConnected,
                   ])
                 ) as Record<Platform, boolean>
@@ -110,6 +126,7 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
               setConnectingPlatform(null)
             }
           } catch (err) {
+            console.error('Failed to load status in retry:', err)
             if (attempt === maxRetries - 1) {
               // All retries failed
               setConnectingPlatform(null)
@@ -138,46 +155,29 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
       window.history.replaceState({}, document.title, window.location.pathname)
       return
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   const loadConnectionStatus = async () => {
+    if (!user) return
+
     try {
       setIsLoading(true)
-      const response = await fetch('/api/credentials/status')
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        // If workspace initialization failed, retry once after a short delay
-        if (response.status === 500 && errorData.error?.includes('initialize workspace')) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          const retryResponse = await fetch('/api/credentials/status')
-          if (!retryResponse.ok) throw new Error('Failed to load status after retry')
-          const retryStatus = await retryResponse.json()
-          setStatusInfo(retryStatus)
-          onUpdateAccounts(
-            Object.fromEntries(
-              Object.entries(retryStatus).map(([platform, info]: [string, any]) => [
-                platform,
-                info.isConnected,
-              ])
-            ) as Record<Platform, boolean>
-          )
-          return
-        }
-        throw new Error(errorData.error || 'Failed to load status')
-      }
+      // Use Python backend API
+      const data = await credentialsApi.getConnectionStatus(user.id)
+      const mappedStatus = mapCredentialsStatus(data)
 
-      const status = await response.json()
-      setStatusInfo(status)
+      setStatusInfo(mappedStatus)
       onUpdateAccounts(
         Object.fromEntries(
-          Object.entries(status).map(([platform, info]: [string, any]) => [
-            platform,
+          Object.entries(mappedStatus).map(([p, info]: [string, any]) => [
+            p,
             info.isConnected,
           ])
         ) as Record<Platform, boolean>
       )
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Failed to load connection status:', error)
       // Clear any previous errors when loading fails
       setErrors({
         twitter: undefined,
@@ -200,10 +200,10 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
     try {
       // Use OAuth 1.0a for Twitter/X (required for media upload)
       // Other platforms use OAuth 2.0
-      const oauthEndpoint = platform === 'twitter' 
+      const oauthEndpoint = platform === 'twitter'
         ? '/api/twitter/auth'  // OAuth 1.0a
         : `/api/auth/oauth/${platform}`  // OAuth 2.0
-      
+
       // POST to initiate OAuth
       const response = await fetch(oauthEndpoint, {
         method: 'POST',
@@ -212,7 +212,7 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.error || 'Failed to initiate connection'
-        
+
         // If workspace initialization failed, retry once after a short delay
         if (response.status === 500 && errorMessage.includes('initialize workspace')) {
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -227,7 +227,7 @@ const ConnectedAccountsView: React.FC<ConnectedAccountsViewProps> = ({
           window.location.href = retryRedirectUrl
           return
         }
-        
+
         throw new Error(errorMessage)
       }
 
@@ -459,14 +459,14 @@ function mapErrorCode(errorCode: string): string {
     config_missing: 'Platform is not configured. Please contact support.',
     insufficient_permissions: 'Access denied. Only workspace admins can connect social media accounts.',
   }
-  
+
   // Also check if error message contains workspace-related keywords
-  if (errorCode.toLowerCase().includes('workspace not found') || 
-      errorCode.toLowerCase().includes('workspace error') ||
-      errorCode.toLowerCase().includes('initialize workspace')) {
+  if (errorCode.toLowerCase().includes('workspace not found') ||
+    errorCode.toLowerCase().includes('workspace error') ||
+    errorCode.toLowerCase().includes('initialize workspace')) {
     return 'Workspace is being initialized. Please try again in a moment.'
   }
-  
+
   return messages[errorCode] || errorCode || 'Connection failed. Please try again.'
 }
 

@@ -8,22 +8,19 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { AlertCircle, CheckCircle, Loader2, LogIn, Users, Shield, Rocket } from 'lucide-react'
 import Link from 'next/link'
+import {
+  getInviteDetails as getInviteDetailsApi,
+  acceptInvite as acceptInviteApi,
+} from '@/lib/python-backend/api/workspace'
 
 interface InviteData {
   workspace_id: string
   workspace_name?: string
-  email?: string
+  email?: string | null
   role: string
-  expires_at?: string
+  expires_at?: string | null
   is_expired: boolean
   time_remaining?: number
-}
-
-interface AcceptInviteResponse {
-  success: boolean
-  message: string
-  workspace_id?: string
-  error?: string
 }
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
@@ -52,22 +49,29 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     const validateInvite = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch(`/api/workspace/invites/${token}`)
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Invalid invitation')
+        // Use the Python backend API client
+        const result = await getInviteDetailsApi(token!)
+
+        // Transform data to match expected format
+        const data: InviteData = {
+          workspace_id: result.data.workspace_id,
+          workspace_name: result.data.workspace_name,
+          email: result.data.email,
+          role: result.data.role,
+          expires_at: result.data.expires_at,
+          is_expired: !result.isValid
         }
 
-        const data = await response.json()
         setInviteData(data)
 
         // Check if already expired
-        if (data.is_expired) {
-          setError('This invitation has expired')
+        if (!result.isValid) {
+          setError('This invitation has expired or is invalid')
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to validate invitation')
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.detail || err.message || 'Failed to validate invitation'
+        setError(errorMessage)
       } finally {
         setIsLoading(false)
       }
@@ -84,17 +88,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       setIsAccepting(true)
       setError(null)
 
-      const response = await fetch('/api/workspace/invites/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
-
-      const data: AcceptInviteResponse = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to accept invitation')
-      }
+      // Use the Python backend API client
+      await acceptInviteApi(token!)
 
       setSuccess(true)
 
@@ -102,8 +97,9 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       setTimeout(() => {
         router.push('/')
       }, 2000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept invitation')
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to accept invitation'
+      setError(errorMessage)
     } finally {
       setIsAccepting(false)
     }

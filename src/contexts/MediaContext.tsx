@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { mediaStudioApi } from '@/lib/python-backend';
 
 // Types
 export interface MediaItem {
@@ -50,7 +51,7 @@ export function MediaProvider({ children }: { children: React.ReactNode }) {
   const dataLoadedRef = useRef(false);
   const currentWorkspaceRef = useRef<string | null>(null);
 
-  // Load media from database
+  // Load media from Python backend
   const loadMedia = useCallback(async (force = false) => {
     if (!user || !workspaceId) {
       return;
@@ -67,23 +68,35 @@ export function MediaProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
       }
 
-      const params = new URLSearchParams({ workspace_id: workspaceId });
-      if (filters.type) params.append('type', filters.type);
-      if (filters.isFavorite) params.append('is_favorite', 'true');
-      if (filters.search) params.append('search', filters.search);
+      // Use Python backend API
+      const response = await mediaStudioApi.getMediaLibrary(workspaceId, {
+        type: filters.type,
+        is_favorite: filters.isFavorite,
+        search: filters.search,
+      });
 
-      const response = await fetch(`/api/media-studio/library?${params}`);
+      // Map response to MediaItem format
+      const items = (response.items || []).map((item: any) => ({
+        id: item.id,
+        type: item.type,
+        source: item.source,
+        url: item.file_url || item.url,
+        thumbnail_url: item.thumbnail_url,
+        prompt: item.prompt || '',
+        model: item.model || '',
+        config: item.config || {},
+        is_favorite: item.is_favorite || false,
+        tags: item.tags || [],
+        created_at: item.created_at,
+      })) as MediaItem[];
 
-      if (!response.ok) throw new Error('Failed to load media');
-
-      const data = await response.json();
-
-      setMediaItems(data.items || []);
-      setTotalItems(data.total || 0);
+      setMediaItems(items);
+      setTotalItems(response.total || items.length);
 
       dataLoadedRef.current = true;
       currentWorkspaceRef.current = workspaceId;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Failed to load media:', error);
     } finally {
       if (force) {
         setLoading(false);
@@ -103,7 +116,7 @@ export function MediaProvider({ children }: { children: React.ReactNode }) {
     dataLoadedRef.current = false;
   }, []);
 
-  // Toggle favorite
+  // Toggle favorite using Python backend
   const toggleFavorite = useCallback(async (itemId: string) => {
     if (!workspaceId) return;
 
@@ -116,23 +129,9 @@ export function MediaProvider({ children }: { children: React.ReactNode }) {
     );
 
     try {
-      const response = await fetch('/api/media-studio/library', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId,
-          mediaId: itemId,
-          updates: { isFavorite: !item.is_favorite },
-        }),
-      });
-
-      if (!response.ok) {
-        // Revert on error
-        setMediaItems(prev =>
-          prev.map(i => i.id === itemId ? { ...i, is_favorite: item.is_favorite } : i)
-        );
-      }
-    } catch (error) {
+      await mediaStudioApi.toggleFavorite(workspaceId, itemId, !item.is_favorite);
+    } catch (error: any) {
+      console.error('Failed to toggle favorite:', error);
       // Revert on error
       setMediaItems(prev =>
         prev.map(i => i.id === itemId ? { ...i, is_favorite: item.is_favorite } : i)
@@ -140,7 +139,7 @@ export function MediaProvider({ children }: { children: React.ReactNode }) {
     }
   }, [workspaceId, mediaItems]);
 
-  // Delete item
+  // Delete item using Python backend
   const deleteItem = useCallback(async (itemId: string) => {
     if (!workspaceId) return;
 
@@ -151,21 +150,9 @@ export function MediaProvider({ children }: { children: React.ReactNode }) {
     setTotalItems(prev => prev - 1);
 
     try {
-      const params = new URLSearchParams({
-        workspace_id: workspaceId,
-        media_id: itemId,
-      });
-
-      const response = await fetch(`/api/media-studio/library?${params}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok && itemToDelete) {
-        // Revert on error
-        setMediaItems(prev => [itemToDelete, ...prev]);
-        setTotalItems(prev => prev + 1);
-      }
-    } catch (error) {
+      await mediaStudioApi.deleteMediaItem(workspaceId, itemId);
+    } catch (error: any) {
+      console.error('Failed to delete media item:', error);
       if (itemToDelete) {
         // Revert on error
         setMediaItems(prev => [itemToDelete, ...prev]);

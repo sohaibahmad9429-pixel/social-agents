@@ -4,8 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Activity, Filter, Download, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
-import { workspaceApi } from '@/lib/workspace/api-client'
-import type { ActivityLogEntry, WorkspaceMember } from '@/types/workspace'
+import { getMembers, getActivity } from '@/lib/python-backend/api/workspace'
+import type {
+  ActivityLogEntry,
+  WorkspaceMember,
+  PaginatedActivityLog,
+} from '@/lib/python-backend/types'
 
 const ITEMS_PER_PAGE = 50
 
@@ -35,7 +39,7 @@ export default function ActivityLogTab() {
 
     const loadMembers = async () => {
       try {
-        const data = await workspaceApi.getMembers()
+        const data = await getMembers()
         setMembers(data)
       } catch (error) {
         console.error('Failed to load members:', error)
@@ -56,7 +60,7 @@ export default function ActivityLogTab() {
       setLoading(page === 0)
       setLoadingMore(page > 0)
 
-      const data = await workspaceApi.getActivity({
+      const data: PaginatedActivityLog = await getActivity({
         userId: filterUserId || undefined,
         action: filterAction || undefined,
         startDate: filterStartDate || undefined,
@@ -80,12 +84,12 @@ export default function ActivityLogTab() {
   const handleExport = () => {
     try {
       // Convert to CSV
-      const headers = ['Date', 'User', 'Action', 'Entity Type', 'Details']
+      const headers = ['Date', 'User', 'Action', 'Resource Type', 'Details']
       const rows = activities.map(activity => [
         new Date(activity.created_at).toLocaleString(),
         activity.user_email || activity.user_name || 'Unknown',
         activity.action,
-        activity.entity_type,
+        activity.resource_type,
         JSON.stringify(activity.details)
       ])
 
@@ -307,8 +311,8 @@ export default function ActivityLogTab() {
                   <p className="text-sm text-gray-900">
                     <span className="font-medium">{activity.user_name || activity.user_email}</span>
                     {' '}{formatActionName(activity.action).toLowerCase()}
-                    {activity.entity_type && (
-                      <span className="text-gray-600"> on {activity.entity_type}</span>
+                    {activity.resource_type && (
+                      <span className="text-gray-600"> on {activity.resource_type}</span>
                     )}
                   </p>
 

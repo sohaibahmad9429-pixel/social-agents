@@ -358,29 +358,32 @@ export interface FileListResponse {
 export interface Workspace {
     id: string;
     name: string;
-    slug?: string;
     owner_id: string;
     created_at?: string;
     updated_at?: string;
+    description?: string | null;
+    max_users?: number;
     settings?: Record<string, unknown>;
 }
 
-/** Update workspace request */
+/** Update workspace request (mirrors FastAPI UpdateWorkspaceRequest) */
 export interface UpdateWorkspaceRequest {
     name?: string;
-    slug?: string;
+    description?: string | null;
+    /** backend expects camelCase maxMembers */
+    maxMembers?: number;
     settings?: Record<string, unknown>;
 }
 
-/** Workspace member */
+/** Workspace member (matches /workspace/members response) */
 export interface WorkspaceMember {
-    id: string;
-    user_id: string;
-    workspace_id: string;
+    id: string; // user id
+    email: string;
+    full_name: string | null;
+    avatar_url: string | null;
     role: 'admin' | 'editor' | 'viewer';
-    email?: string;
-    name?: string;
-    joined_at?: string;
+    created_at: string;
+    workspace_id: string;
 }
 
 /** Workspace invitation */
@@ -397,8 +400,10 @@ export interface WorkspaceInvite {
 
 /** Create invitation request */
 export interface CreateInviteRequest {
-    email: string;
+    email?: string;
     role: 'admin' | 'editor' | 'viewer';
+    /** default 7 days */
+    expiresInDays?: number;
 }
 
 /** Accept invitation request */
@@ -408,12 +413,18 @@ export interface AcceptInviteRequest {
 
 /** Invitation details */
 export interface InviteDetails {
-    valid: boolean;
-    workspaceName?: string;
-    inviterEmail?: string;
-    role?: string;
-    expiresAt?: string;
-    error?: string;
+    id?: string;
+    role: string;
+    email: string | null;
+    expires_at?: string | null;
+    workspace_id: string;
+    workspace_name?: string;
+    status?: string;
+}
+
+export interface InviteDetailsResponse {
+    data: InviteDetails;
+    isValid: boolean;
 }
 
 /** Activity log entry */
@@ -430,12 +441,23 @@ export interface ActivityLogEntry {
     user_name?: string;
 }
 
-/** Activity options */
+/** Activity options (filters) */
 export interface ActivityOptions {
+    userId?: string;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
     limit?: number;
     offset?: number;
-    resource_type?: string;
-    action?: string;
+}
+
+/** Paginated activity log */
+export interface PaginatedActivityLog {
+    data: ActivityLogEntry[];
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
 }
 
 /** Business settings */
@@ -443,10 +465,12 @@ export interface BusinessSettings {
     id?: string;
     workspace_id: string;
     name?: string;
+    business_name?: string; // legacy alias
     industry?: string;
     description?: string;
     target_audience?: string;
     brand_voice?: string;
+    tone_of_voice?: string; // legacy alias
     brand_colors?: string[];
     logo_url?: string;
     website?: string;

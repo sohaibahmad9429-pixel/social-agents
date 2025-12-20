@@ -119,6 +119,58 @@ function createBackendClient(): AxiosInstance {
 // AUTH TOKEN RETRIEVAL
 // =============================================================================
 
+// Cache to track if session has been initialized
+let sessionInitialized = false;
+let sessionInitPromise: Promise<void> | null = null;
+
+/**
+ * Wait for Supabase session to be initialized
+ * This helps prevent 401 errors on initial page load when session is still being restored
+ */
+async function waitForSession(): Promise<void> {
+    if (sessionInitialized) return;
+
+    if (sessionInitPromise) {
+        return sessionInitPromise;
+    }
+
+    sessionInitPromise = (async () => {
+        const maxAttempts = 5;
+        const delayMs = 100;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                const { getSupabaseClient, isSupabaseConfigured } = await import('@/lib/supabase/client');
+
+                if (!isSupabaseConfigured()) {
+                    sessionInitialized = true;
+                    return;
+                }
+
+                const supabase = getSupabaseClient();
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (session) {
+                    sessionInitialized = true;
+                    return;
+                }
+
+                // No session yet, wait and retry
+                if (attempt < maxAttempts - 1) {
+                    await sleep(delayMs * (attempt + 1));
+                }
+            } catch {
+                // Ignore errors, continue trying
+            }
+        }
+
+        // Mark as initialized even if no session found (user might not be logged in)
+        sessionInitialized = true;
+    })();
+
+    return sessionInitPromise;
+}
+
 /**
  * Get auth token from Supabase session
  * Uses the singleton Supabase client to avoid multiple GoTrueClient instances
@@ -130,11 +182,13 @@ async function getAuthToken(): Promise<string | null> {
             return null;
         }
 
+        // Wait for session to be initialized on first call
+        await waitForSession();
+
         // Import the singleton Supabase client dynamically to avoid circular dependencies
         const { getSupabaseClient, isSupabaseConfigured } = await import('@/lib/supabase/client');
 
         if (!isSupabaseConfigured()) {
-            console.warn('[Python Backend] Supabase not configured. Auth token will not be sent.');
             return null;
         }
 
@@ -152,6 +206,14 @@ async function getAuthToken(): Promise<string | null> {
         console.error('[Python Backend] Failed to get auth token:', error);
         return null; // Don't throw - allow unauthenticated requests for public endpoints
     }
+}
+
+/**
+ * Reset session state (useful for logout)
+ */
+export function resetSessionState(): void {
+    sessionInitialized = false;
+    sessionInitPromise = null;
 }
 
 // =============================================================================

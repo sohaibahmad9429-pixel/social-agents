@@ -3,7 +3,8 @@
 import React, { useState } from 'react'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { X, Mail, Link2, Copy, Check, Loader2, AlertTriangle } from 'lucide-react'
-import { workspaceApi } from '@/lib/workspace/api-client'
+import { createInvite, getMembers, getWorkspace } from '@/lib/python-backend/api/workspace'
+import type { Workspace } from '@/lib/python-backend/types'
 
 interface InviteMemberModalProps {
   onClose: () => void
@@ -31,9 +32,13 @@ export default function InviteMemberModal({ onClose, onSuccess }: InviteMemberMo
   React.useEffect(() => {
     const checkCapacity = async () => {
       try {
-        const result = await workspaceApi.canInviteMembers()
-        if (!result.canInvite) {
-          setCapacityError(result.reason || 'Workspace is at capacity')
+        const [members, workspace] = await Promise.all([
+          getMembers(),
+          getWorkspace().catch(() => null as Workspace | null)
+        ])
+        const max = workspace?.max_users ?? 0
+        if (max && members.length >= max) {
+          setCapacityError(`Workspace is at capacity (${max} members)`)
         }
       } catch (error) {
         console.error('Failed to check capacity:', error)
@@ -59,7 +64,7 @@ export default function InviteMemberModal({ onClose, onSuccess }: InviteMemberMo
 
     try {
       setLoading(true)
-      const response = await workspaceApi.createInvite({
+      const response = await createInvite({
         email: inviteType === 'email' ? email.trim() : undefined,
         role,
         expiresInDays

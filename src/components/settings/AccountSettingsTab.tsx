@@ -16,11 +16,12 @@ import {
 import { PLATFORMS } from '@/constants'
 import type { Platform } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
+import { credentialsApi } from '@/lib/python-backend'
 
 // Format date to readable format
 const formatDate = (dateString: string | number) => {
-  const date = typeof dateString === 'number' 
-    ? new Date(dateString * 1000) 
+  const date = typeof dateString === 'number'
+    ? new Date(dateString * 1000)
     : new Date(dateString)
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -30,7 +31,7 @@ const formatDate = (dateString: string | number) => {
 }
 
 const AccountSettingsTab: React.FC = () => {
-  const { userRole, loading: authLoading } = useAuth()
+  const { user, userRole, loading: authLoading } = useAuth()
   const [connectedAccounts, setConnectedAccounts] = useState<Record<Platform, boolean>>({
     twitter: false,
     linkedin: false,
@@ -39,13 +40,13 @@ const AccountSettingsTab: React.FC = () => {
     tiktok: false,
     youtube: false,
   })
-  
+
   // Canva connection state (separate from social platforms)
   const [canvaConnected, setCanvaConnected] = useState(false)
   const [canvaConnecting, setCanvaConnecting] = useState(false)
   const [canvaError, setCanvaError] = useState<string | null>(null)
   const [canvaLoading, setCanvaLoading] = useState(true)
-  
+
   const [connectingPlatform, setConnectingPlatform] = useState<Platform | null>(null)
   const [errors, setErrors] = useState<Record<Platform, string | undefined>>({
     twitter: undefined,
@@ -89,42 +90,37 @@ const AccountSettingsTab: React.FC = () => {
     youtube: 60000, // 60 seconds
   }
 
-  // Define loadConnectionStatus function - will be recreated but that's okay
-  // since it's only used in useEffect with empty deps
+  // Load connection status using Python backend API
   const loadConnectionStatus = async () => {
+    if (!user) return
+
     try {
       setIsLoading(true)
-      const response = await fetch('/api/credentials/status')
+      // Use Python backend API
+      const data = await credentialsApi.getConnectionStatus(user.id)
 
-      // Check if response is ok before trying to parse JSON
-      if (!response.ok) {
-        let errorMessage = 'Failed to load status'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData?.error || errorMessage
-        } catch {
-          // If JSON parsing fails, use status text
-          errorMessage = response.statusText || errorMessage
-        }
-        // Don't set errors here - let the component handle it
-        setIsLoading(false)
-        return
+      // Map the connection status response
+      const mappedStatus: Record<Platform, any> = {
+        twitter: { isConnected: data.twitter?.connected ?? false, ...data.twitter },
+        linkedin: { isConnected: data.linkedin?.connected ?? false, ...data.linkedin },
+        facebook: { isConnected: data.facebook?.connected ?? false, ...data.facebook },
+        instagram: { isConnected: data.instagram?.connected ?? false, ...data.instagram },
+        tiktok: { isConnected: data.tiktok?.connected ?? false, ...data.tiktok },
+        youtube: { isConnected: data.youtube?.connected ?? false, ...data.youtube },
       }
 
-      const data = await response.json()
-      setStatusInfo(data)
+      setStatusInfo(mappedStatus)
       setConnectedAccounts(
         Object.fromEntries(
-          Object.entries(data).map(([platform, info]: [string, any]) => [
+          Object.entries(mappedStatus).map(([platform, info]: [string, any]) => [
             platform,
             info.isConnected,
           ])
         ) as Record<Platform, boolean>
       )
-    } catch (error) {
-      // Don't set errors here - let the component handle it
+    } catch (error: any) {
+      console.error('Failed to load connection status:', error)
     } finally {
-      // Always clear loading state
       setIsLoading(false)
     }
   }
@@ -154,7 +150,7 @@ const AccountSettingsTab: React.FC = () => {
     try {
       const response = await fetch('/api/canva/auth')
       const data = await response.json()
-      
+
       if (data.authUrl) {
         window.location.href = data.authUrl
       } else {
@@ -204,28 +200,28 @@ const AccountSettingsTab: React.FC = () => {
     // Strict guard - prevent rapid re-executions
     // BUT: Skip guards if we have OAuth callback parameters (need to process them)
     const hasOAuthCallback = !!(successPlatform || errorCode)
-    
+
     if (!hasOAuthCallback) {
       const now = Date.now()
       const lastRunKey = 'account_settings_last_run'
       const lastRun = sessionStorage.getItem(lastRunKey)
-      
+
       // If ran within last 500ms, skip (prevents rapid re-executions)
       // Very short window to prevent infinite loops but allow legitimate navigation
       if (lastRun && (now - parseInt(lastRun)) < 500) {
         return
       }
-      
+
       // Also check ref for current mount
       if (effectRan.current) {
         return
       }
-      
+
       // Mark as ran immediately, before any async operations
       effectRan.current = true
       sessionStorage.setItem(lastRunKey, now.toString())
     }
-    
+
 
     // Support legacy `?platform_connected=true` query params from older callbacks
     if (!successPlatform) {
@@ -244,7 +240,7 @@ const AccountSettingsTab: React.FC = () => {
         errorCode = legacyError
       }
     }
-    
+
     // Mark guards as passed for OAuth callbacks
     if (hasOAuthCallback) {
       const now = Date.now()
@@ -263,7 +259,7 @@ const AccountSettingsTab: React.FC = () => {
     // Use a combination of the URL params as a unique key
     const callbackKey = `${successPlatform || ''}_${errorCode || ''}`
     const lastProcessedKey = sessionStorage.getItem('last_oauth_callback')
-    
+
     // If we've already processed this exact callback, just load status and return
     if (lastProcessedKey === callbackKey) {
       loadConnectionStatus()
@@ -300,48 +296,56 @@ const AccountSettingsTab: React.FC = () => {
         setConnectingPlatform(null)
         // Clean up URL immediately
         window.history.replaceState({}, document.title, window.location.pathname + '?tab=accounts')
-        
+
         // Clear loading immediately so page can render
         setIsLoading(false)
-        
+
         // Load status with multiple retries to check if connection succeeded
         const checkConnectionWithRetries = async () => {
           const maxRetries = 3
           const retryDelays = [1000, 2000, 3000] // Total 6 seconds of checking
-          
+
           for (let attempt = 0; attempt < maxRetries; attempt++) {
             if (attempt > 0) {
               await new Promise(resolve => setTimeout(resolve, retryDelays[attempt - 1]))
             }
-            
+
             try {
-              const response = await fetch('/api/credentials/status')
-              if (response.ok) {
-                const status = await response.json()
-                const platformConnected = status[platform]?.isConnected
-                
-                if (platformConnected) {
-                  // Platform is connected! Clear any errors and update state
-                  setStatusInfo(status)
-                  setConnectedAccounts(
-                    Object.fromEntries(
-                      Object.entries(status).map(([platform, info]: [string, any]) => [
-                        platform,
-                        info.isConnected,
-                      ])
-                    ) as Record<Platform, boolean>
-                  )
-                  setErrors(prev => ({
-                    ...prev,
-                    [platform]: undefined,
-                  }))
-                  return // Success, exit retry loop
-                }
+              // Use Python backend API
+              if (!user) return
+              const status = await credentialsApi.getConnectionStatus(user.id)
+              const mappedStatus: Record<Platform, any> = {
+                twitter: { isConnected: status.twitter?.connected ?? false, ...status.twitter },
+                linkedin: { isConnected: status.linkedin?.connected ?? false, ...status.linkedin },
+                facebook: { isConnected: status.facebook?.connected ?? false, ...status.facebook },
+                instagram: { isConnected: status.instagram?.connected ?? false, ...status.instagram },
+                tiktok: { isConnected: status.tiktok?.connected ?? false, ...status.tiktok },
+                youtube: { isConnected: status.youtube?.connected ?? false, ...status.youtube },
+              }
+              const platformConnected = mappedStatus[platform]?.isConnected
+
+              if (platformConnected) {
+                // Platform is connected! Clear any errors and update state
+                setStatusInfo(mappedStatus)
+                setConnectedAccounts(
+                  Object.fromEntries(
+                    Object.entries(mappedStatus).map(([p, info]: [string, any]) => [
+                      p,
+                      info.isConnected,
+                    ])
+                  ) as Record<Platform, boolean>
+                )
+                setErrors(prev => ({
+                  ...prev,
+                  [platform]: undefined,
+                }))
+                return // Success, exit retry loop
               }
             } catch (err) {
+              console.error('Failed to check connection status:', err)
             }
           }
-          
+
           // After all retries, if still not connected, show error
           const errorMessage = mapErrorCode(errorCode)
           setErrors(prev => ({
@@ -349,7 +353,7 @@ const AccountSettingsTab: React.FC = () => {
             [platform]: errorMessage,
           }))
         }
-        
+
         // Run the check with retries
         checkConnectionWithRetries()
         return
@@ -378,20 +382,28 @@ const AccountSettingsTab: React.FC = () => {
       // Use a separate function that doesn't set loading
       const loadStatusSilently = async () => {
         try {
-          const response = await fetch('/api/credentials/status')
-          if (response.ok) {
-            const data = await response.json()
-            setStatusInfo(data)
-            setConnectedAccounts(
-              Object.fromEntries(
-                Object.entries(data).map(([platform, info]: [string, any]) => [
-                  platform,
-                  info.isConnected,
-                ])
-              ) as Record<Platform, boolean>
-            )
+          if (!user) return
+          // Use Python backend API
+          const data = await credentialsApi.getConnectionStatus(user.id)
+          const mappedStatus: Record<Platform, any> = {
+            twitter: { isConnected: data.twitter?.connected ?? false, ...data.twitter },
+            linkedin: { isConnected: data.linkedin?.connected ?? false, ...data.linkedin },
+            facebook: { isConnected: data.facebook?.connected ?? false, ...data.facebook },
+            instagram: { isConnected: data.instagram?.connected ?? false, ...data.instagram },
+            tiktok: { isConnected: data.tiktok?.connected ?? false, ...data.tiktok },
+            youtube: { isConnected: data.youtube?.connected ?? false, ...data.youtube },
           }
+          setStatusInfo(mappedStatus)
+          setConnectedAccounts(
+            Object.fromEntries(
+              Object.entries(mappedStatus).map(([p, info]: [string, any]) => [
+                p,
+                info.isConnected,
+              ])
+            ) as Record<Platform, boolean>
+          )
         } catch (err) {
+          console.error('Failed to load status silently:', err)
         }
       }
       // Load in background without affecting loading state
@@ -403,6 +415,8 @@ const AccountSettingsTab: React.FC = () => {
       // Success - reload status with retry mechanism
       // Database transaction might still be in progress, so retry multiple times
       const retryLoadStatus = async () => {
+        if (!user) return
+
         const maxRetries = 4
         const retryDelays = [1500, 1000, 2000, 3000] // milliseconds between retries
 
@@ -414,21 +428,27 @@ const AccountSettingsTab: React.FC = () => {
 
           try {
             setIsLoading(true)
-            const response = await fetch('/api/credentials/status')
-            if (!response.ok) throw new Error('Failed to load status')
-
-            const status = await response.json()
+            // Use Python backend API
+            const data = await credentialsApi.getConnectionStatus(user.id)
+            const mappedStatus: Record<Platform, any> = {
+              twitter: { isConnected: data.twitter?.connected ?? false, ...data.twitter },
+              linkedin: { isConnected: data.linkedin?.connected ?? false, ...data.linkedin },
+              facebook: { isConnected: data.facebook?.connected ?? false, ...data.facebook },
+              instagram: { isConnected: data.instagram?.connected ?? false, ...data.instagram },
+              tiktok: { isConnected: data.tiktok?.connected ?? false, ...data.tiktok },
+              youtube: { isConnected: data.youtube?.connected ?? false, ...data.youtube },
+            }
 
             // Check if the platform we're looking for is now connected
-            const platformConnected = status[successPlatform]?.isConnected
+            const platformConnected = mappedStatus[successPlatform]?.isConnected
 
             if (platformConnected) {
               // Found credentials! Update state and we're done
-              setStatusInfo(status)
+              setStatusInfo(mappedStatus)
               setConnectedAccounts(
                 Object.fromEntries(
-                  Object.entries(status).map(([platform, info]: [string, any]) => [
-                    platform,
+                  Object.entries(mappedStatus).map(([p, info]: [string, any]) => [
+                    p,
                     info.isConnected,
                   ])
                 ) as Record<Platform, boolean>
@@ -437,11 +457,11 @@ const AccountSettingsTab: React.FC = () => {
               break // Exit retry loop
             } else if (attempt === maxRetries - 1) {
               // Last attempt failed - show what we got
-              setStatusInfo(status)
+              setStatusInfo(mappedStatus)
               setConnectedAccounts(
                 Object.fromEntries(
-                  Object.entries(status).map(([platform, info]: [string, any]) => [
-                    platform,
+                  Object.entries(mappedStatus).map(([p, info]: [string, any]) => [
+                    p,
                     info.isConnected,
                   ])
                 ) as Record<Platform, boolean>
@@ -449,6 +469,7 @@ const AccountSettingsTab: React.FC = () => {
               setConnectingPlatform(null)
             }
           } catch (err) {
+            console.error('Failed to load status in retry:', err)
             if (attempt === maxRetries - 1) {
               // All retries failed
               setConnectingPlatform(null)
@@ -512,10 +533,10 @@ const AccountSettingsTab: React.FC = () => {
     try {
       // Use OAuth 1.0a for Twitter/X (required for media upload)
       // Other platforms use OAuth 2.0
-      const oauthEndpoint = platform === 'twitter' 
+      const oauthEndpoint = platform === 'twitter'
         ? '/api/twitter/auth'  // OAuth 1.0a
         : `/api/auth/oauth/${platform}`  // OAuth 2.0
-      
+
       // POST to initiate OAuth
       const response = await fetch(oauthEndpoint, {
         method: 'POST',
@@ -720,7 +741,7 @@ const AccountSettingsTab: React.FC = () => {
                         <div>
                           <p className="text-sm font-semibold text-blue-900">Post Destination</p>
                           <p className="text-xs text-blue-700 mt-1">
-                            {info.postToPage 
+                            {info.postToPage
                               ? `Posting to: ${info.organizationName || 'Company Page'}`
                               : `Posting to: ${info.profileName || 'Personal Profile'}`
                             }
@@ -740,11 +761,10 @@ const AccountSettingsTab: React.FC = () => {
                             } catch (err) {
                             }
                           }}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                            info.postToPage
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50'
-                          }`}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${info.postToPage
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50'
+                            }`}
                         >
                           {info.postToPage ? 'Switch to Personal' : 'Switch to Company Page'}
                         </button>
@@ -760,8 +780,8 @@ const AccountSettingsTab: React.FC = () => {
 
                 {/* Facebook Meta Ads Info with Business Portfolio Selector */}
                 {id === 'facebook' && isConnected && (
-                  <FacebookMetaAdsSection 
-                    info={info} 
+                  <FacebookMetaAdsSection
+                    info={info}
                     onBusinessChange={loadConnectionStatus}
                   />
                 )}
@@ -907,7 +927,7 @@ function FacebookMetaAdsSection({ info, onBusinessChange }: { info: any; onBusin
           <Megaphone className="w-4 h-4 text-blue-600" />
           <p className="text-sm font-semibold text-blue-900">Meta Ads</p>
         </div>
-        
+
         {info?.pageName && (
           <p className="text-xs text-blue-700 mb-1">
             Page: {info.pageName}
@@ -959,11 +979,10 @@ function FacebookMetaAdsSection({ info, onBusinessChange }: { info: any; onBusin
                     {availableBusinesses.map((business) => (
                       <div
                         key={business.id}
-                        className={`p-2 rounded border ${
-                          business.id === activeBusiness?.id
-                            ? 'border-blue-400 bg-blue-100'
-                            : 'border-gray-200 bg-white hover:border-blue-300'
-                        }`}
+                        className={`p-2 rounded border ${business.id === activeBusiness?.id
+                          ? 'border-blue-400 bg-blue-100'
+                          : 'border-gray-200 bg-white hover:border-blue-300'
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -987,7 +1006,7 @@ function FacebookMetaAdsSection({ info, onBusinessChange }: { info: any; onBusin
                             </button>
                           )}
                         </div>
-                        
+
                         {/* Show ad accounts for this business */}
                         {business.adAccounts.length > 1 && business.id === activeBusiness?.id && (
                           <div className="mt-2 pl-2 border-l-2 border-blue-200">
@@ -995,9 +1014,8 @@ function FacebookMetaAdsSection({ info, onBusinessChange }: { info: any; onBusin
                             {business.adAccounts.map((acc: any) => (
                               <div
                                 key={acc.id}
-                                className={`text-xs py-1 flex items-center justify-between ${
-                                  acc.id === activeBusiness?.adAccount?.id ? 'text-green-700 font-medium' : 'text-gray-600'
-                                }`}
+                                className={`text-xs py-1 flex items-center justify-between ${acc.id === activeBusiness?.adAccount?.id ? 'text-green-700 font-medium' : 'text-gray-600'
+                                  }`}
                               >
                                 <span>
                                   {acc.name}

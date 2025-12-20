@@ -4,8 +4,17 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Users, UserX, Trash2, Loader2, AlertCircle } from 'lucide-react'
-import { workspaceApi } from '@/lib/workspace/api-client'
-import type { WorkspaceMember, WorkspaceInvite } from '@/types/workspace'
+import {
+  getMembers,
+  getInvites,
+  removeMember,
+  updateMemberRole,
+  deleteInvite,
+} from '@/lib/python-backend/api/workspace'
+import type {
+  WorkspaceMember,
+  WorkspaceInvite,
+} from '@/lib/python-backend/types'
 import InviteMemberModal from './InviteMemberModal'
 import MemberCard from './MemberCard'
 
@@ -48,8 +57,8 @@ export default function MembersTab() {
     try {
       setLoading(true)
       const [membersData, invitesData] = await Promise.all([
-        workspaceApi.getMembers(),
-        isAdmin ? workspaceApi.getInvites() : Promise.resolve([])
+        getMembers(),
+        isAdmin ? getInvites() : Promise.resolve([] as WorkspaceInvite[])
       ])
       setMembers(membersData)
       setInvites(invitesData)
@@ -71,7 +80,7 @@ export default function MembersTab() {
 
     try {
       setRemovingMemberId(memberId)
-      await workspaceApi.removeMember(memberId)
+      await removeMember(memberId)
 
       // Update local state
       setMembers(prev => prev.filter(m => m.id !== memberId))
@@ -89,7 +98,7 @@ export default function MembersTab() {
     if (!isAdmin) return
 
     try {
-      await workspaceApi.updateMemberRole({ userId: memberId, newRole })
+      await updateMemberRole(memberId, newRole)
 
       // Update local state
       setMembers(prev => prev.map(m =>
@@ -112,7 +121,7 @@ export default function MembersTab() {
 
     try {
       setRevokingInviteId(inviteId)
-      await workspaceApi.revokeInvite(inviteId)
+      await deleteInvite(inviteId)
 
       // Update local state
       setInvites(prev => prev.filter(i => i.id !== inviteId))

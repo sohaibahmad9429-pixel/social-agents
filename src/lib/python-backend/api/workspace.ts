@@ -5,8 +5,8 @@
  * team member management, invitations, and business settings.
  */
 
-import { get, post, patch, del, put } from '../client';
-import { ENDPOINTS } from '../config';
+import { get, post, patch, del, put } from '../client'
+import { ENDPOINTS } from '../config'
 import type {
   Workspace,
   UpdateWorkspaceRequest,
@@ -15,11 +15,12 @@ import type {
   CreateInviteRequest,
   AcceptInviteRequest,
   InviteDetails,
-  ActivityLogEntry,
+  InviteDetailsResponse,
   ActivityOptions,
   BusinessSettings,
+  PaginatedActivityLog,
   WorkspaceInfo,
-} from '../types';
+} from '../types'
 
 // =============================================================================
 // WORKSPACE CRUD
@@ -33,10 +34,12 @@ import type {
  * @param workspaceId - Workspace ID
  * @returns Promise resolving to workspace data
  */
-export async function getWorkspace(workspaceId: string): Promise<Workspace> {
-  return get<Workspace>(ENDPOINTS.workspace.base, {
-    params: { workspace_id: workspaceId },
-  });
+export async function getWorkspace(): Promise<Workspace> {
+  const result = await get<{ data: Workspace }>(ENDPOINTS.workspace.base)
+  if (!result?.data) {
+    throw new Error('No workspace data received')
+  }
+  return result.data
 }
 
 /**
@@ -49,12 +52,23 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace> {
  * @returns Promise resolving to updated workspace
  */
 export async function updateWorkspace(
-  workspaceId: string,
   updates: UpdateWorkspaceRequest
 ): Promise<Workspace> {
-  return patch<Workspace>(ENDPOINTS.workspace.base, updates, {
-    params: { workspace_id: workspaceId },
-  });
+  const payload: Record<string, unknown> = {}
+  if (updates.name !== undefined) payload.name = updates.name
+  if (updates.description !== undefined) payload.description = updates.description
+  if (updates.maxMembers !== undefined) payload.maxMembers = updates.maxMembers
+
+  const result = await patch<{ data: Workspace }>(
+    ENDPOINTS.workspace.base,
+    payload
+  )
+
+  if (!result?.data) {
+    throw new Error('Failed to update workspace')
+  }
+
+  return result.data
 }
 
 /**
@@ -66,12 +80,8 @@ export async function updateWorkspace(
  * @param workspaceId - Workspace ID
  * @returns Promise resolving when deletion is complete
  */
-export async function deleteWorkspace(
-  workspaceId: string
-): Promise<{ success: boolean }> {
-  return del<{ success: boolean }>(ENDPOINTS.workspace.base, {
-    params: { workspace_id: workspaceId },
-  });
+export async function deleteWorkspace(): Promise<{ success: boolean }> {
+  return del<{ success: boolean }>(ENDPOINTS.workspace.base)
 }
 
 // =============================================================================
@@ -86,14 +96,11 @@ export async function deleteWorkspace(
  * @param workspaceId - Workspace ID
  * @returns Promise resolving to list of members
  */
-export async function getMembers(
-  workspaceId: string
-): Promise<WorkspaceMember[]> {
-  const result = await get<{ members: WorkspaceMember[] }>(
-    ENDPOINTS.workspace.members,
-    { params: { workspace_id: workspaceId } }
-  );
-  return result.members;
+export async function getMembers(): Promise<WorkspaceMember[]> {
+  const result = await get<{ data: WorkspaceMember[] }>(
+    ENDPOINTS.workspace.members
+  )
+  return result.data || []
 }
 
 /**
@@ -107,13 +114,22 @@ export async function getMembers(
  * @returns Promise resolving when removal is complete
  */
 export async function removeMember(
-  workspaceId: string,
   memberId: string
 ): Promise<{ success: boolean }> {
-  return del<{ success: boolean }>(
-    `${ENDPOINTS.workspace.members}/${memberId}`,
-    { params: { workspace_id: workspaceId } }
-  );
+  return del<{ success: boolean }>(`${ENDPOINTS.workspace.members}/${memberId}`)
+}
+
+/**
+ * Update member role (admin only)
+ */
+export async function updateMemberRole(
+  memberId: string,
+  role: WorkspaceMember['role']
+): Promise<{ success: boolean }> {
+  return patch<{ success: boolean }>(
+    `${ENDPOINTS.workspace.members}/${memberId}/role`,
+    { role }
+  )
 }
 
 // =============================================================================
@@ -128,14 +144,11 @@ export async function removeMember(
  * @param workspaceId - Workspace ID
  * @returns Promise resolving to list of invitations
  */
-export async function getInvites(
-  workspaceId: string
-): Promise<WorkspaceInvite[]> {
-  const result = await get<{ invites: WorkspaceInvite[] }>(
-    ENDPOINTS.workspace.invites,
-    { params: { workspace_id: workspaceId } }
-  );
-  return result.invites;
+export async function getInvites(): Promise<WorkspaceInvite[]> {
+  const result = await get<{ data: WorkspaceInvite[] }>(
+    ENDPOINTS.workspace.invites
+  )
+  return result.data || []
 }
 
 /**
@@ -148,12 +161,21 @@ export async function getInvites(
  * @returns Promise resolving to created invitation
  */
 export async function createInvite(
-  workspaceId: string,
   invite: CreateInviteRequest
-): Promise<WorkspaceInvite> {
-  return post<WorkspaceInvite>(ENDPOINTS.workspace.invites, invite, {
-    params: { workspace_id: workspaceId },
-  });
+): Promise<{ invite: WorkspaceInvite; inviteUrl: string }> {
+  const result = await post<{
+    data?: { invite: WorkspaceInvite; inviteUrl: string }
+  }>(ENDPOINTS.workspace.invites, {
+    email: invite.email,
+    role: invite.role,
+    expiresInDays: invite.expiresInDays ?? 7,
+  })
+
+  if (!result.data) {
+    throw new Error('Failed to create invitation')
+  }
+
+  return result.data
 }
 
 /**
@@ -165,13 +187,10 @@ export async function createInvite(
  * @param inviteId - Invitation ID to delete
  * @returns Promise resolving when deletion is complete
  */
-export async function deleteInvite(
-  workspaceId: string,
-  inviteId: string
-): Promise<{ success: boolean }> {
+export async function deleteInvite(inviteId: string): Promise<{ success: boolean }> {
   return del<{ success: boolean }>(ENDPOINTS.workspace.invites, {
-    params: { workspace_id: workspaceId, invite_id: inviteId },
-  });
+    params: { inviteId },
+  })
 }
 
 /**
@@ -185,11 +204,11 @@ export async function deleteInvite(
 export async function acceptInvite(
   token: string
 ): Promise<{ success: boolean; workspaceId: string }> {
-  const request: AcceptInviteRequest = { token };
+  const request: AcceptInviteRequest = { token }
   return post<{ success: boolean; workspaceId: string }>(
     ENDPOINTS.workspace.acceptInvite,
     request
-  );
+  )
 }
 
 /**
@@ -200,8 +219,8 @@ export async function acceptInvite(
  * @param token - Invitation token
  * @returns Promise resolving to invitation details
  */
-export async function getInviteDetails(token: string): Promise<InviteDetails> {
-  return get<InviteDetails>(ENDPOINTS.workspace.inviteDetails(token));
+export async function getInviteDetails(token: string): Promise<InviteDetailsResponse> {
+  return get<InviteDetailsResponse>(ENDPOINTS.workspace.inviteDetails(token))
 }
 
 // =============================================================================
@@ -218,19 +237,22 @@ export async function getInviteDetails(token: string): Promise<InviteDetails> {
  * @returns Promise resolving to activity entries
  */
 export async function getActivity(
-  workspaceId: string,
   options?: ActivityOptions
-): Promise<ActivityLogEntry[]> {
-  const result = await get<{ activity: ActivityLogEntry[] }>(
+): Promise<PaginatedActivityLog> {
+  const result = await get<PaginatedActivityLog>(
     ENDPOINTS.workspace.activity,
     {
       params: {
-        workspace_id: workspaceId,
-        ...options,
+        userId: options?.userId,
+        action: options?.action,
+        startDate: options?.startDate,
+        endDate: options?.endDate,
+        limit: options?.limit ?? 50,
+        offset: options?.offset ?? 0,
       },
     }
-  );
-  return result.activity;
+  )
+  return result
 }
 
 // =============================================================================
@@ -245,12 +267,11 @@ export async function getActivity(
  * @param workspaceId - Workspace ID
  * @returns Promise resolving to business settings
  */
-export async function getBusinessSettings(
-  workspaceId: string
-): Promise<BusinessSettings> {
-  return get<BusinessSettings>(ENDPOINTS.workspace.businessSettings, {
-    params: { workspace_id: workspaceId },
-  });
+export async function getBusinessSettings(): Promise<BusinessSettings | null> {
+  const result = await get<{ success: boolean; data: BusinessSettings | null }>(
+    ENDPOINTS.workspace.businessSettings
+  )
+  return result?.data ?? null
 }
 
 /**
@@ -263,12 +284,16 @@ export async function getBusinessSettings(
  * @returns Promise resolving to updated settings
  */
 export async function updateBusinessSettings(
-  workspaceId: string,
   settings: Partial<BusinessSettings>
 ): Promise<BusinessSettings> {
-  return put<BusinessSettings>(ENDPOINTS.workspace.businessSettings, settings, {
-    params: { workspace_id: workspaceId },
-  });
+  const result = await put<{ success: boolean; data: BusinessSettings }>(
+    ENDPOINTS.workspace.businessSettings,
+    settings
+  )
+  if (!result?.data) {
+    throw new Error('Failed to update business settings')
+  }
+  return result.data
 }
 
 /**
@@ -279,12 +304,8 @@ export async function updateBusinessSettings(
  * @param workspaceId - Workspace ID
  * @returns Promise resolving when deletion is complete
  */
-export async function deleteBusinessSettings(
-  workspaceId: string
-): Promise<{ success: boolean }> {
-  return del<{ success: boolean }>(ENDPOINTS.workspace.businessSettings, {
-    params: { workspace_id: workspaceId },
-  });
+export async function deleteBusinessSettings(): Promise<{ success: boolean }> {
+  return del<{ success: boolean }>(ENDPOINTS.workspace.businessSettings)
 }
 
 // =============================================================================
@@ -300,10 +321,6 @@ export async function deleteBusinessSettings(
  * @param workspaceId - Workspace ID
  * @returns Promise resolving to workspace info
  */
-export async function getWorkspaceInfo(
-  workspaceId: string
-): Promise<WorkspaceInfo> {
-  return get<WorkspaceInfo>(ENDPOINTS.workspace.info, {
-    params: { workspace_id: workspaceId },
-  });
+export async function getWorkspaceInfo(): Promise<WorkspaceInfo> {
+  return get<WorkspaceInfo>(ENDPOINTS.workspace.info)
 }

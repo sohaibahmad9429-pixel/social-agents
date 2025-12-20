@@ -4,11 +4,15 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Save, AlertCircle, Loader2 } from 'lucide-react'
-import { workspaceApi } from '@/lib/workspace/api-client'
-import type { Workspace } from '@/types/workspace'
+import {
+  getWorkspace as getWorkspaceApi,
+  updateWorkspace as updateWorkspaceApi,
+} from '@/lib/python-backend/api/workspace'
+import type { Workspace as BackendWorkspace } from '@/lib/python-backend/types'
 
 // Format date to readable format
-const formatDate = (dateString: string) => {
+const formatDate = (dateString?: string | null) => {
+  if (!dateString) return '-'
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -31,7 +35,7 @@ interface FieldError {
 export default function WorkspaceSettingsTab() {
   const { workspaceId, userRole } = useAuth()
   const { addNotification } = useNotifications()
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
+  const [workspace, setWorkspace] = useState<BackendWorkspace | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<FieldError[]>([])
@@ -50,12 +54,12 @@ export default function WorkspaceSettingsTab() {
       try {
         setLoading(true)
         setErrors([])
-        const data = await workspaceApi.getWorkspace()
+        const data = await getWorkspaceApi()
         setWorkspace(data)
         setFormData({
           name: data.name || '',
-          description: data.settings?.description || '',
-          max_users: data.max_users || 10
+          description: (data as any).description || '',
+          max_users: (data as any).max_users || data.max_users || 10
         })
       } catch (error: any) {
         console.error('Failed to load workspace:', error)
@@ -113,12 +117,10 @@ export default function WorkspaceSettingsTab() {
       setSaving(true)
       setErrors([])
 
-      const updated = await workspaceApi.updateWorkspace({
+      const updated = await updateWorkspaceApi({
         name: formData.name,
-        max_users: formData.max_users,
-        settings: {
-          description: formData.description
-        }
+        description: formData.description,
+        maxMembers: formData.max_users,
       })
 
       setWorkspace(updated)

@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { BusinessInfo, DEFAULT_BUSINESS_INFO } from '@/types/businessInfo.types';
+import {
+  getBusinessSettings,
+  updateBusinessSettings,
+} from '@/lib/python-backend/api/workspace';
+import type { BusinessSettings } from '@/lib/python-backend/types';
 
 export function useBusinessInfo() {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(DEFAULT_BUSINESS_INFO);
@@ -9,33 +14,36 @@ export function useBusinessInfo() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load from Supabase on mount
+  // Load from Python backend on mount
   useEffect(() => {
     const loadBusinessInfo = async () => {
       try {
-        const response = await fetch('/api/workspace/business-settings');
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-          // Merge with defaults to ensure arrays are never null
-          const data = result.data;
+        const data = await getBusinessSettings();
+
+        if (data) {
+          // Map backend fields to BusinessInfo type
+          // The backend stores different fields, so we map what we can
           setBusinessInfo({
             ...DEFAULT_BUSINESS_INFO,
-            ...data,
-            // Ensure arrays are never null
-            uniqueSellingPoints: data.uniqueSellingPoints || [],
-            brandValues: data.brandValues || [],
-            mainProducts: data.mainProducts || [],
-            geographicFocus: data.geographicFocus || [],
-            preferredTone: data.preferredTone || [],
-            contentGoals: data.contentGoals || [],
-            brandColors: data.brandColors || [],
+            businessName: (data as any).business_name || data.name || '',
+            industry: data.industry || '',
+            brandDescription: data.description || '',
+            website: data.website || undefined,
+            targetMarket: data.target_audience || '',
+            brandColors: data.brand_colors || [],
+            // Map tone_of_voice to preferredTone array
+            preferredTone: (data as any).tone_of_voice
+              ? [(data as any).tone_of_voice]
+              : data.brand_voice
+                ? [data.brand_voice]
+                : [],
           });
         } else {
           // No settings yet, use defaults
           setBusinessInfo(DEFAULT_BUSINESS_INFO);
         }
-      } catch (e) {
+      } catch (e: any) {
+        console.error('Failed to load business settings:', e);
         setError('Failed to load business settings');
         // Fall back to defaults on error
         setBusinessInfo(DEFAULT_BUSINESS_INFO);
@@ -47,39 +55,40 @@ export function useBusinessInfo() {
     loadBusinessInfo();
   }, []);
 
-  // Save to Supabase
+  // Save to Python backend
   const saveBusinessInfo = useCallback(async (data: BusinessInfo) => {
     setIsSaving(true);
     setError(null);
     try {
-      const response = await fetch('/api/workspace/business-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save');
-      }
-      
-      // Ensure arrays are never null after saving
-      const savedData = result.data;
+      // Use Python backend API client - map BusinessInfo to backend format
+      const savedData = await updateBusinessSettings({
+        name: data.businessName,
+        industry: data.industry,
+        description: data.brandDescription,
+        website: data.website,
+        target_audience: data.targetMarket,
+        brand_colors: data.brandColors,
+        social_links: undefined, // not present in BusinessInfo
+        // Map preferredTone array to single tone/voice
+        brand_voice: data.preferredTone?.length > 0 ? data.preferredTone[0] : undefined,
+      } as Partial<BusinessSettings>);
+
+      // Update local state with saved data
       setBusinessInfo({
         ...DEFAULT_BUSINESS_INFO,
-        ...savedData,
-        uniqueSellingPoints: savedData.uniqueSellingPoints || [],
-        brandValues: savedData.brandValues || [],
-        mainProducts: savedData.mainProducts || [],
-        geographicFocus: savedData.geographicFocus || [],
-        preferredTone: savedData.preferredTone || [],
-        contentGoals: savedData.contentGoals || [],
-        brandColors: savedData.brandColors || [],
+        ...data, // Keep the full local state
+        // Update with any backend transformations
+        businessName:
+          (savedData as any).business_name ||
+          savedData.name ||
+          (savedData as any).businessName ||
+          data.businessName,
+        industry: savedData.industry || data.industry,
       });
       return true;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save business settings');
+    } catch (e: any) {
+      const errorMessage = e.response?.data?.detail || e.message || 'Failed to save business settings';
+      setError(errorMessage);
       return false;
     } finally {
       setIsSaving(false);
