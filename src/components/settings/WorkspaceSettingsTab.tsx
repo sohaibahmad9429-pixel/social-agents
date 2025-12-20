@@ -3,16 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { Save, AlertCircle } from 'lucide-react'
-
-interface Workspace {
-  id: string
-  name: string
-  max_users: number
-  settings?: Record<string, any>
-  created_at: string
-  updated_at: string
-}
+import { Save, AlertCircle, Loader2 } from 'lucide-react'
+import { workspaceApi } from '@/lib/workspace/api-client'
+import type { Workspace } from '@/types/workspace'
 
 // Format date to readable format
 const formatDate = (dateString: string) => {
@@ -24,14 +17,27 @@ const formatDate = (dateString: string) => {
   })
 }
 
+interface FormData {
+  name: string
+  description: string
+  max_users: number
+}
+
+interface FieldError {
+  field: string
+  message: string
+}
+
 export default function WorkspaceSettingsTab() {
   const { workspaceId, userRole } = useAuth()
   const { addNotification } = useNotifications()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [formData, setFormData] = useState({
+  const [errors, setErrors] = useState<FieldError[]>([])
+  const [formData, setFormData] = useState<FormData>({
     name: '',
+    description: '',
     max_users: 10
   })
   const isAdmin = userRole === 'admin'
@@ -43,17 +49,17 @@ export default function WorkspaceSettingsTab() {
     const loadWorkspace = async () => {
       try {
         setLoading(true)
-        const res = await fetch('/api/workspace')
-        if (res.ok) {
-          const { data } = await res.json()
-          setWorkspace(data as Workspace)
-          setFormData({
-            name: (data as any).name || '',
-            max_users: (data as any).max_users || 10
-          })
-        }
-      } catch (error) {
-        addNotification('error', 'Failed to load workspace settings', 'Failed to load workspace settings')
+        setErrors([])
+        const data = await workspaceApi.getWorkspace()
+        setWorkspace(data)
+        setFormData({
+          name: data.name || '',
+          description: data.settings?.description || '',
+          max_users: data.max_users || 10
+        })
+      } catch (error: any) {
+        console.error('Failed to load workspace:', error)
+        addNotification('error', 'Failed to load workspace settings', error.message || 'Please try again')
       } finally {
         setLoading(false)
       }
@@ -62,65 +68,97 @@ export default function WorkspaceSettingsTab() {
     loadWorkspace()
   }, [workspaceId, addNotification])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'max_users' ? parseInt(value, 10) : value
+      [name]: name === 'max_users' ? parseInt(value, 10) || 0 : value
     }))
+    // Clear error for this field
+    setErrors(prev => prev.filter(err => err.field !== name))
   }
 
-  const handleSave = async () => {
-    if (!workspaceId) return
+  const validate = (): boolean => {
+    const newErrors: FieldError[] = []
 
-    // Validation
     if (!formData.name.trim()) {
-      addNotification('error', 'Workspace name cannot be empty', 'Workspace name cannot be empty')
-      return
+      newErrors.push({ field: 'name', message: 'Workspace name is required' })
+    } else if (formData.name.length > 255) {
+      newErrors.push({ field: 'name', message: 'Workspace name must be less than 255 characters' })
+    }
+
+    if (formData.description && formData.description.length > 1000) {
+      newErrors.push({ field: 'description', message: 'Description must be less than 1000 characters' })
     }
 
     if (formData.max_users < 1) {
-      addNotification('error', 'Maximum users must be at least 1', 'Maximum users must be at least 1')
+      newErrors.push({ field: 'max_users', message: 'Maximum members must be at least 1' })
+    } else if (formData.max_users > 100) {
+      newErrors.push({ field: 'max_users', message: 'Maximum members cannot exceed 100' })
+    }
+
+    setErrors(newErrors)
+    return newErrors.length === 0
+  }
+
+  const handleSave = async () => {
+    if (!workspaceId || !isAdmin) return
+
+    if (!validate()) {
+      addNotification('error', 'Validation Error', 'Please fix the errors before saving')
       return
     }
 
     try {
       setSaving(true)
-      const res = await fetch('/api/workspace', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      setErrors([])
+
+      const updated = await workspaceApi.updateWorkspace({
+        name: formData.name,
+        max_users: formData.max_users,
+        settings: {
+          description: formData.description
+        }
       })
 
-      if (res.ok) {
-        const { data } = await res.json()
-        setWorkspace(data as Workspace)
-        addNotification('post_published', 'Workspace settings updated successfully', 'Workspace settings updated successfully')
-      } else {
-        addNotification('error', 'Failed to update workspace settings', 'Failed to update workspace settings')
+      setWorkspace(updated)
+      addNotification('post_published', 'Success', 'Workspace settings updated successfully')
+    } catch (error: any) {
+      console.error('Failed to update workspace:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to update workspace'
+      addNotification('error', 'Update Failed', errorMessage)
+
+      // Parse validation errors if available
+      if (error.response?.data?.errors) {
+        setErrors(error.response.data.errors)
       }
-    } catch (error) {
-      addNotification('error', 'Error updating workspace settings', 'Error updating workspace settings')
     } finally {
       setSaving(false)
     }
   }
 
+  const getFieldError = (field: string) => {
+    return errors.find(err => err.field === field)?.message
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600">Loading workspace settings...</div>
+        <div className="flex items-center gap-3 text-gray-600">
+          <Loader2 className="animate-spin" size={20} />
+          <span>Loading workspace settings...</span>
+        </div>
       </div>
     )
   }
 
   if (!isAdmin) {
     return (
-      <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg flex items-gap-3">
-        <AlertCircle className="text-yellow-600 flex-shrink-0" size={20} />
+      <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+        <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
         <div>
           <h3 className="font-semibold text-yellow-900">Access Denied</h3>
-          <p className="text-sm text-yellow-800">Only workspace admins can modify workspace settings.</p>
+          <p className="text-sm text-yellow-800 mt-1">Only workspace admins can modify workspace settings.</p>
         </div>
       </div>
     )
@@ -131,7 +169,7 @@ export default function WorkspaceSettingsTab() {
       {/* Workspace Name */}
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-2">
-          Workspace Name
+          Workspace Name <span className="text-red-500">*</span>
         </label>
         <input
           id="name"
@@ -140,28 +178,68 @@ export default function WorkspaceSettingsTab() {
           value={formData.name}
           onChange={handleInputChange}
           placeholder="My Workspace"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getFieldError('name')
+              ? 'border-red-300 bg-red-50'
+              : 'border-gray-300'
+            }`}
+          disabled={saving}
         />
+        {getFieldError('name') && (
+          <p className="text-xs text-red-600 mt-1">{getFieldError('name')}</p>
+        )}
         <p className="text-xs text-gray-500 mt-1">The name of your workspace</p>
+      </div>
+
+      {/* Description */}
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-gray-900 mb-2">
+          Description
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          value={formData.description}
+          onChange={handleInputChange}
+          placeholder="Describe your workspace..."
+          rows={3}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none ${getFieldError('description')
+              ? 'border-red-300 bg-red-50'
+              : 'border-gray-300'
+            }`}
+          disabled={saving}
+        />
+        {getFieldError('description') && (
+          <p className="text-xs text-red-600 mt-1">{getFieldError('description')}</p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">
+          Optional description of your workspace ({formData.description.length}/1000 characters)
+        </p>
       </div>
 
       {/* Max Users */}
       <div>
         <label htmlFor="max_users" className="block text-sm font-medium text-gray-900 mb-2">
-          Maximum Members
+          Maximum Members <span className="text-red-500">*</span>
         </label>
         <input
           id="max_users"
           name="max_users"
           type="number"
           min="1"
-          max="1000"
+          max="100"
           value={formData.max_users}
           onChange={handleInputChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getFieldError('max_users')
+              ? 'border-red-300 bg-red-50'
+              : 'border-gray-300'
+            }`}
+          disabled={saving}
         />
+        {getFieldError('max_users') && (
+          <p className="text-xs text-red-600 mt-1">{getFieldError('max_users')}</p>
+        )}
         <p className="text-xs text-gray-500 mt-1">
-          Maximum number of members allowed in this workspace
+          Maximum number of members allowed in this workspace (1-100)
         </p>
       </div>
 
@@ -170,6 +248,14 @@ export default function WorkspaceSettingsTab() {
         <div className="p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg border border-indigo-200">
           <h3 className="font-semibold text-indigo-900 mb-4">Workspace Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-indigo-700 font-medium mb-1">Workspace ID</p>
+              <p className="text-indigo-900 font-mono text-xs">{workspace.id}</p>
+            </div>
+            <div>
+              <p className="text-indigo-700 font-medium mb-1">Status</p>
+              <p className="text-indigo-900">Active</p>
+            </div>
             <div>
               <p className="text-indigo-700 font-medium mb-1">Created</p>
               <p className="text-indigo-900">
@@ -187,14 +273,31 @@ export default function WorkspaceSettingsTab() {
       )}
 
       {/* Save Button */}
-      <button
-        onClick={handleSave}
-        disabled={saving || !isAdmin}
-        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
-      >
-        <Save size={18} />
-        {saving ? 'Saving...' : 'Save Changes'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving || !isAdmin}
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="animate-spin" size={18} />
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <Save size={18} />
+              <span>Save Changes</span>
+            </>
+          )}
+        </button>
+
+        {saving && (
+          <span className="text-sm text-gray-600">
+            Please wait while we update your workspace...
+          </span>
+        )}
+      </div>
     </div>
   )
 }

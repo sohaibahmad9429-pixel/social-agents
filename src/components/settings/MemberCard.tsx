@@ -1,220 +1,202 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import type { WorkspaceMember, UserRole } from '@/types/workspace'
-import { RoleBadge } from '@/components/ui/RoleBadge'
-import { MoreVertical, Trash2, UserCog, Loader2 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import React, { useState } from 'react'
+import { User, Shield, Edit, Eye, Trash2, Crown, Loader2 } from 'lucide-react'
+import type { WorkspaceMember } from '@/types/workspace'
 
 interface MemberCardProps {
   member: WorkspaceMember
-  currentUserRole: UserRole
   currentUserId: string
-  onRoleChange: (userId: string, newRole: UserRole) => Promise<void>
-  onRemove: (userId: string) => Promise<void>
+  isAdmin: boolean
+  canRemove: boolean
+  isRemoving: boolean
+  onRemove: () => void
+  onRoleChange: (newRole: 'admin' | 'editor' | 'viewer') => void
 }
 
-/**
- * Member Card Component
- * Displays a single workspace member with their info and admin actions
- * Admin-only actions: change role, remove member
- */
-export const MemberCard: React.FC<MemberCardProps> = ({
+export default function MemberCard({
   member,
-  currentUserRole,
   currentUserId,
-  onRoleChange,
+  isAdmin,
+  canRemove,
+  isRemoving,
   onRemove,
-}) => {
-  const [showActions, setShowActions] = useState(false)
-  const [isChangingRole, setIsChangingRole] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<UserRole>(member.role)
-  const [isLoading, setIsLoading] = useState(false)
-
-  // Sync selectedRole when member.role changes from parent
-  useEffect(() => {
-    setSelectedRole(member.role)
-  }, [member.role])
+  onRoleChange
+}: MemberCardProps) {
+  const [showRoleMenu, setShowRoleMenu] = useState(false)
+  const [changingRole, setChangingRole] = useState(false)
 
   const isCurrentUser = member.id === currentUserId
-  const isAdmin = currentUserRole === 'admin'
-  const canManage = isAdmin && !isCurrentUser
 
-  // Format date to readable format with time
+  const handleRoleChange = async (newRole: 'admin' | 'editor' | 'viewer') => {
+    if (newRole === member.role) {
+      setShowRoleMenu(false)
+      return
+    }
+
+    setChangingRole(true)
+    try {
+      await onRoleChange(newRole)
+      setShowRoleMenu(false)
+    } finally {
+      setChangingRole(false)
+    }
+  }
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <Crown size={16} className="text-yellow-600" />
+      case 'editor':
+        return <Edit size={16} className="text-blue-600" />
+      case 'viewer':
+        return <Eye size={16} className="text-gray-600" />
+      default:
+        return <Shield size={16} className="text-gray-600" />
+    }
+  }
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'editor':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'viewer':
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
+      year: 'numeric'
     })
   }
 
-  /**
-   * Handle role change
-   */
-  const handleRoleChange = async (newRole: UserRole) => {
-    if (newRole === member.role) {
-      setIsChangingRole(false)
-      return
-    }
-
-    setIsLoading(true)
-    setSelectedRole(newRole)
-
-    try {
-      await onRoleChange(member.id, newRole)
-      toast.success(`Role updated to ${newRole}`)
-      setIsChangingRole(false)
-    } catch (error) {
-      toast.error('Failed to update role')
-      setSelectedRole(member.role)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  /**
-   * Handle remove member
-   */
-  const handleRemove = async () => {
-    const confirmed = confirm(
-      `Are you sure you want to remove ${member.full_name || member.email} from the workspace? This action cannot be undone.`
-    )
-
-    if (!confirmed) return
-
-    setIsLoading(true)
-
-    try {
-      await onRemove(member.id)
-      toast.success('Member removed successfully')
-      setShowActions(false)
-    } catch (error) {
-      toast.error('Failed to remove member')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
-    <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-      {/* Avatar */}
-      <div className="flex-shrink-0">
-        {member.avatar_url ? (
-          <img
-            src={member.avatar_url}
-            alt={member.full_name || member.email}
-            className="w-12 h-12 rounded-full object-cover border-2 border-border"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold">
-            {(member.full_name || member.email).charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
-
-      {/* Member Information */}
-      <div className="flex-grow min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-foreground truncate">
-            {member.full_name || 'No name'}
-          </h3>
-          {isCurrentUser && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              You
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground truncate">{member.email}</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Joined {formatDate(member.created_at)}
-        </p>
-      </div>
-
-      {/* Role Display/Selector */}
-      <div className="flex-shrink-0">
-        {isChangingRole && !isLoading ? (
-          <select
-            value={selectedRole}
-            onChange={(e) => handleRoleChange(e.target.value as UserRole)}
-            onBlur={() => {
-              setIsChangingRole(false)
-              setSelectedRole(member.role)
-            }}
-            autoFocus
-            className="border border-border rounded-md px-2 py-1 text-sm bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary"
-          >
-            <option value="admin">Admin</option>
-            <option value="editor">Editor</option>
-            <option value="viewer">Viewer</option>
-          </select>
-        ) : (
-          <RoleBadge role={member.role} />
-        )}
-      </div>
-
-      {/* Admin Actions Menu */}
-      {canManage && (
-        <div className="flex-shrink-0 relative">
-          <button
-            onClick={() => setShowActions(!showActions)}
-            disabled={isLoading}
-            className="p-2 rounded-full hover:bg-muted transition-colors disabled:opacity-50"
-            aria-label="Member actions"
-          >
-            <MoreVertical className="w-5 h-5 text-muted-foreground" />
-          </button>
-
-          {showActions && (
-            <>
-              {/* Backdrop to close menu */}
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setShowActions(false)}
+    <div className="p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+      <div className="flex items-center justify-between gap-4">
+        {/* User Info */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Avatar */}
+          <div className="flex-shrink-0">
+            {member.avatar_url ? (
+              <img
+                src={member.avatar_url}
+                alt={member.full_name || member.email}
+                className="w-10 h-10 rounded-full object-cover"
               />
-
-              {/* Dropdown Menu */}
-              <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-xl border border-border py-1 z-20">
-                <button
-                  onClick={() => {
-                    setIsChangingRole(true)
-                    setShowActions(false)
-                  }}
-                  disabled={isLoading}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-foreground disabled:opacity-50"
-                >
-                  <UserCog className="w-4 h-4" />
-                  Change Role
-                </button>
-
-                <button
-                  onClick={handleRemove}
-                  disabled={isLoading}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-destructive/10 flex items-center gap-2 text-destructive disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Removing...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      Remove Member
-                    </>
-                  )}
-                </button>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white font-semibold text-sm">
+                  {(member.full_name || member.email || 'U').charAt(0).toUpperCase()}
+                </span>
               </div>
-            </>
+            )}
+          </div>
+
+          {/* Name & Email */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-gray-900 truncate">
+                {member.full_name || member.email}
+              </p>
+              {isCurrentUser && (
+                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                  You
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 truncate">{member.email}</p>
+            {member.created_at && (
+              <p className="text-xs text-gray-500 mt-1">
+                Joined {formatDate(member.created_at)}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Role & Actions */}
+        <div className="flex items-center gap-3">
+          {/* Role Badge */}
+          <div className="relative">
+            <button
+              onClick={() => isAdmin && !isCurrentUser && setShowRoleMenu(!showRoleMenu)}
+              disabled={!isAdmin || isCurrentUser || changingRole}
+              className={`px-3 py-1.5 border rounded-full flex items-center gap-2 text-sm font-medium ${getRoleColor(
+                member.role
+              )} ${isAdmin && !isCurrentUser
+                ? 'cursor-pointer hover:opacity-80'
+                : 'cursor-default'
+                } disabled:opacity-50`}
+            >
+              {changingRole ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                getRoleIcon(member.role)
+              )}
+              <span className="capitalize">{member.role}</span>
+            </button>
+
+            {/* Role Menu */}
+            {showRoleMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowRoleMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                  <button
+                    onClick={() => handleRoleChange('admin')}
+                    disabled={changingRole}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Crown size={16} className="text-yellow-600" />
+                    <span>Admin</span>
+                  </button>
+                  <button
+                    onClick={() => handleRoleChange('editor')}
+                    disabled={changingRole}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Edit size={16} className="text-blue-600" />
+                    <span>Editor</span>
+                  </button>
+                  <button
+                    onClick={() => handleRoleChange('viewer')}
+                    disabled={changingRole}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Eye size={16} className="text-gray-600" />
+                    <span>Viewer</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Remove Button */}
+          {canRemove && (
+            <button
+              onClick={onRemove}
+              disabled={isRemoving}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              title="Remove member"
+            >
+              {isRemoving ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Trash2 size={18} />
+              )}
+            </button>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
-
-export default MemberCard

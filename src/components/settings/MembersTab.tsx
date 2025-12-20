@@ -3,290 +3,277 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { Plus, Trash2, Shield, Edit2, Mail, Link as LinkIcon, Copy, Check } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Users, UserX, Trash2, Loader2, AlertCircle } from 'lucide-react'
+import { workspaceApi } from '@/lib/workspace/api-client'
 import type { WorkspaceMember, WorkspaceInvite } from '@/types/workspace'
-import MemberCard from './MemberCard'
 import InviteMemberModal from './InviteMemberModal'
-import { RoleBadge } from '../ui/RoleBadge'
-
-// Use WorkspaceInvite from types
-type PendingInvite = WorkspaceInvite
+import MemberCard from './MemberCard'
 
 export default function MembersTab() {
-  const { user, workspaceId, userRole } = useAuth()
+  const { workspaceId, userRole, user } = useAuth()
   const { addNotification } = useNotifications()
   const [members, setMembers] = useState<WorkspaceMember[]>([])
-  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([])
+  const [invites, setInvites] = useState<WorkspaceInvite[]>([])
   const [loading, setLoading] = useState(true)
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
-  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
+  const [revokingInviteId, setRevokingInviteId] = useState<string | null>(null)
+
   const isAdmin = userRole === 'admin'
 
-  // Copy invite link to clipboard
-  const handleCopyLink = async (invite: PendingInvite) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-    const inviteUrl = `${baseUrl}/invite/${invite.token}`
-    
+  // Production guard: User must be authenticated to view members
+  if (!user) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+        <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+        <div>
+          <h3 className="font-semibold text-red-900">Authentication Required</h3>
+          <p className="text-sm text-red-800 mt-1">
+            Please sign in to access member management.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const currentUserId = user.id
+
+  // Load members and invites
+  useEffect(() => {
+    if (!workspaceId) return
+    loadData()
+  }, [workspaceId])
+
+  const loadData = async () => {
     try {
-      await navigator.clipboard.writeText(inviteUrl)
-      setCopiedInviteId(invite.id)
-      toast.success('Link copied to clipboard!')
-      setTimeout(() => setCopiedInviteId(null), 2000)
-    } catch (error) {
-      toast.error('Failed to copy link')
+      setLoading(true)
+      const [membersData, invitesData] = await Promise.all([
+        workspaceApi.getMembers(),
+        isAdmin ? workspaceApi.getInvites() : Promise.resolve([])
+      ])
+      setMembers(membersData)
+      setInvites(invitesData)
+    } catch (error: any) {
+      console.error('Failed to load data:', error)
+      addNotification('error', 'Failed to load members', error.message || 'Please try again')
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Load members and pending invites
-  useEffect(() => {
-    if (!workspaceId) return
+  const handleRemoveMember = async (memberId: string) => {
+    if (!isAdmin) return
 
-    const loadData = async () => {
-      try {
-        setLoading(true)
-
-        // Load workspace members via API
-        const membersRes = await fetch('/api/workspace/members')
-        if (membersRes.ok) {
-          const { data } = await membersRes.json()
-          setMembers(data as WorkspaceMember[])
-        }
-
-        // Load pending invites (only if admin)
-        if (isAdmin) {
-          const invitesRes = await fetch('/api/workspace/invites')
-          if (invitesRes.ok) {
-            const { data } = await invitesRes.json()
-            setPendingInvites(data as PendingInvite[])
-          }
-        }
-      } catch (error) {
-        addNotification('error', 'Load Failed', 'Failed to load workspace members')
-      } finally {
-        setLoading(false)
-      }
+    // Confirm deletion
+    if (!confirm('Are you sure you want to remove this member from the workspace?')) {
+      return
     }
 
-    loadData()
-  }, [workspaceId, isAdmin, addNotification])
-
-  const handleRemoveMember = async (memberId: string) => {
-    if (!workspaceId) return
-
-    const confirmed = confirm('Are you sure you want to remove this member?')
-    if (!confirmed) return
-
     try {
-      const res = await fetch(`/api/workspace/members/${memberId}`, {
-        method: 'DELETE',
-      })
+      setRemovingMemberId(memberId)
+      await workspaceApi.removeMember(memberId)
 
-      if (res.ok) {
-        setMembers(members.filter(m => m.id !== memberId))
-        addNotification('post_published', 'Success', 'Member removed successfully')
-      } else {
-        addNotification('error', 'Failed', 'Failed to remove member')
-      }
-    } catch (error) {
-      addNotification('error', 'Error', 'Error removing member')
+      // Update local state
+      setMembers(prev => prev.filter(m => m.id !== memberId))
+      addNotification('post_published', 'Success', 'Member removed successfully')
+    } catch (error: any) {
+      console.error('Failed to remove member:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to remove member'
+      addNotification('error', 'Removal Failed', errorMessage)
+    } finally {
+      setRemovingMemberId(null)
     }
   }
 
   const handleRoleChange = async (memberId: string, newRole: 'admin' | 'editor' | 'viewer') => {
-    if (!workspaceId) return
+    if (!isAdmin) return
 
     try {
-      const res = await fetch(`/api/workspace/members/${memberId}/role`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      })
+      await workspaceApi.updateMemberRole({ userId: memberId, newRole })
 
-      if (res.ok) {
-        setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole } : m))
-        addNotification('post_published', 'Member role updated', 'Member role updated')
-      } else {
-        addNotification('error', 'Failed to update member role', 'Failed to update member role')
-      }
-    } catch (error) {
-      addNotification('error', 'Error updating member role', 'Error updating member role')
+      // Update local state
+      setMembers(prev => prev.map(m =>
+        m.id === memberId ? { ...m, role: newRole } : m
+      ))
+      addNotification('post_published', 'Success', 'Member role updated successfully')
+    } catch (error: any) {
+      console.error('Failed to update role:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to update role'
+      addNotification('error', 'Update Failed', errorMessage)
     }
   }
 
   const handleRevokeInvite = async (inviteId: string) => {
-    if (!workspaceId) return
+    if (!isAdmin) return
 
-    const confirmed = confirm('Are you sure you want to revoke this invitation?')
-    if (!confirmed) return
+    if (!confirm('Are you sure you want to revoke this invitation?')) {
+      return
+    }
 
     try {
-      const res = await fetch(`/api/workspace/invites?inviteId=${inviteId}`, {
-        method: 'DELETE',
-      })
+      setRevokingInviteId(inviteId)
+      await workspaceApi.revokeInvite(inviteId)
 
-      if (res.ok) {
-        setPendingInvites(pendingInvites.filter(i => i.id !== inviteId))
-        toast.success('Invitation revoked successfully')
-      } else {
-        const data = await res.json()
-        toast.error(data.error || 'Failed to revoke invitation')
-      }
-    } catch (error) {
-      toast.error('Error revoking invitation')
+      // Update local state
+      setInvites(prev => prev.filter(i => i.id !== inviteId))
+      addNotification('post_published', 'Success', 'Invitation revoked successfully')
+    } catch (error: any) {
+      console.error('Failed to revoke invite:', error)
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to revoke invitation'
+      addNotification('error', 'Revoke Failed', errorMessage)
+    } finally {
+      setRevokingInviteId(null)
     }
   }
 
-  const handleResendInvite = async (inviteId: string) => {
-    if (!workspaceId) return
-
-    try {
-      const res = await fetch('/api/workspace/invites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'resend', inviteId }),
-      })
-
-      if (res.ok) {
-        addNotification('post_published', 'Invitation resent successfully', 'Invitation resent successfully')
-      } else {
-        addNotification('error', 'Failed to resend invitation', 'Failed to resend invitation')
-      }
-    } catch (error) {
-      addNotification('error', 'Error resending invitation', 'Error resending invitation')
-    }
-  }
-
-  const handleInviteSent = async () => {
-    setIsInviteModalOpen(false)
-    // Refresh pending invites
-    if (isAdmin) {
-      try {
-        const res = await fetch('/api/workspace/invites')
-        if (res.ok) {
-          const { data } = await res.json()
-          setPendingInvites(data as PendingInvite[])
-        }
-      } catch (error) {
-      }
-    }
+  const handleInviteSuccess = () => {
+    setShowInviteModal(false)
+    loadData() // Refresh the invites list
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Loading members...</div>
+        <div className="flex items-center gap-3 text-gray-600">
+          <Loader2 className="animate-spin" size={20} />
+          <span>Loading members...</span>
+        </div>
       </div>
     )
   }
 
+  const adminCount = members.filter(m => m.role === 'admin').length
+
   return (
-    <div className="space-y-8">
-      {/* Current Members Section */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Workspace Members</h2>
-            <p className="text-sm text-muted-foreground mt-1">{members.length} member{members.length !== 1 ? 's' : ''}</p>
-          </div>
-          {isAdmin && (
-            <button
-              onClick={() => setIsInviteModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-md"
-            >
-              <Plus size={18} />
-              Invite Member
-            </button>
-          )}
+    <div className="max-w-4xl space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Users size={24} />
+            Workspace Members
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {members.length} {members.length === 1 ? 'member' : 'members'} • {adminCount} {adminCount === 1 ? 'admin' : 'admins'}
+          </p>
         </div>
 
+        {isAdmin && (
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+          >
+            Invite Member
+          </button>
+        )}
+      </div>
+
+      {/* Members List */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Members</h3>
         <div className="space-y-3">
           {members.length === 0 ? (
-            <div className="text-center py-8 bg-muted rounded-lg border border-border">
-              <p className="text-muted-foreground">No members yet</p>
+            <div className="p-8 bg-gray-50 border border-gray-200 rounded-lg text-center">
+              <UserX className="mx-auto text-gray-400 mb-3" size={48} />
+              <p className="text-gray-600">No members found</p>
             </div>
           ) : (
             members.map(member => (
               <MemberCard
                 key={member.id}
                 member={member}
-                currentUserRole={userRole || 'viewer'}
-                currentUserId={user?.id || ''}
-                onRemove={async (userId) => handleRemoveMember(userId)}
-                onRoleChange={async (userId, role) => handleRoleChange(userId, role)}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                canRemove={isAdmin && member.id !== currentUserId && (member.role !== 'admin' || adminCount > 1)}
+                isRemoving={removingMemberId === member.id}
+                onRemove={() => handleRemoveMember(member.id)}
+                onRoleChange={(newRole: 'admin' | 'editor' | 'viewer') => handleRoleChange(member.id, newRole)}
               />
             ))
           )}
         </div>
       </div>
 
-      {/* Pending Invitations Section */}
-      {isAdmin && pendingInvites.length > 0 && (
+      {/* Pending Invitations */}
+      {isAdmin && invites.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold text-foreground mb-6">Pending Invitations</h2>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Pending Invitations ({invites.length})
+          </h3>
           <div className="space-y-3">
-            {pendingInvites.map(invite => (
-              <div
-                key={invite.id}
-                className="flex items-center justify-between p-4 bg-muted rounded-lg border border-border"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    {invite.email ? <Mail size={20} className="text-primary" /> : <LinkIcon size={20} className="text-primary" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">
-                      {invite.email || 'Shareable Link'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {invite.email ? `Email invitation` : `Anyone with link can join`}
-                    </p>
-                  </div>
-                  <RoleBadge role={invite.role} size="sm" />
-                </div>
+            {invites.map(invite => {
+              const isExpired = new Date(invite.expires_at || '') < new Date()
+              const expiresAt = invite.expires_at ? new Date(invite.expires_at) : null
 
-                <div className="flex items-center gap-2">
-                  {invite.expires_at && new Date(invite.expires_at).getTime() < new Date().getTime() && (
-                    <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">Expired</span>
-                  )}
-                  <button
-                    onClick={() => handleCopyLink(invite)}
-                    className="p-2 hover:bg-background rounded-lg transition-colors"
-                    title="Copy invite link"
-                  >
-                    {copiedInviteId === invite.id ? (
-                      <Check size={18} className="text-green-600" />
-                    ) : (
-                      <Copy size={18} className="text-blue-600" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleResendInvite(invite.id)}
-                    className="p-2 hover:bg-background rounded-lg transition-colors"
-                    title="Resend invitation"
-                  >
-                    <Mail size={18} className="text-primary" />
-                  </button>
+              return (
+                <div
+                  key={invite.id}
+                  className={`p-4 border rounded-lg flex items-center justify-between ${isExpired ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'
+                    }`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900">
+                        {invite.email || 'Shareable Link'}
+                      </p>
+                      {isExpired && (
+                        <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">
+                          Expired
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
+                      <span className="capitalize">{invite.role}</span>
+                      {expiresAt && (
+                        <>
+                          <span>•</span>
+                          <span>
+                            {isExpired ? 'Expired' : 'Expires'} {expiresAt.toLocaleDateString()}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => handleRevokeInvite(invite.id)}
-                    className="p-2 hover:bg-background rounded-lg transition-colors"
+                    disabled={revokingInviteId === invite.id}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                     title="Revoke invitation"
                   >
-                    <Trash2 size={18} className="text-destructive" />
+                    {revokingInviteId === invite.id ? (
+                      <Loader2 className="animate-spin" size={18} />
+                    ) : (
+                      <Trash2 size={18} />
+                    )}
                   </button>
                 </div>
-              </div>
-            ))}
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* No Admin Warning */}
+      {!isAdmin && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+          <div className="text-sm">
+            <p className="font-medium text-blue-900">Limited Access</p>
+            <p className="text-blue-800 mt-1">
+              You can view members but cannot manage them. Contact a workspace admin to manage members and invitations.
+            </p>
           </div>
         </div>
       )}
 
       {/* Invite Modal */}
-      <InviteMemberModal
-        isOpen={isInviteModalOpen}
-        onClose={() => setIsInviteModalOpen(false)}
-        onInviteCreated={handleInviteSent}
-      />
+      {showInviteModal && (
+        <InviteMemberModal
+          onClose={() => setShowInviteModal(false)}
+          onSuccess={handleInviteSuccess}
+        />
+      )}
     </div>
   )
 }
