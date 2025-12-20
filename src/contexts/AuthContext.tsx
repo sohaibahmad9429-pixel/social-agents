@@ -27,26 +27,12 @@ const RATE_LIMIT_CONFIG = {
   maxDelay: 60000, // 60 seconds max
 }
 
-// Password validation
-const PASSWORD_REQUIREMENTS = {
-  minLength: 8,
-  requireUppercase: true,
-  requireLowercase: true,
-  requireNumber: true,
-}
-
+// Password validation - removed all requirements for user flexibility
+// Users can set any password they want
 function validatePassword(password: string): { valid: boolean; message: string } {
-  if (password.length < PASSWORD_REQUIREMENTS.minLength) {
-    return { valid: false, message: `Password must be at least ${PASSWORD_REQUIREMENTS.minLength} characters` }
-  }
-  if (PASSWORD_REQUIREMENTS.requireUppercase && !/[A-Z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one uppercase letter' }
-  }
-  if (PASSWORD_REQUIREMENTS.requireLowercase && !/[a-z]/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one lowercase letter' }
-  }
-  if (PASSWORD_REQUIREMENTS.requireNumber && !/\d/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one number' }
+  // Only check that password is not empty
+  if (!password || password.trim().length === 0) {
+    return { valid: false, message: 'Password cannot be empty' }
   }
   return { valid: true, message: '' }
 }

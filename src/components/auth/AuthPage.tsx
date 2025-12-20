@@ -3,54 +3,11 @@
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { Loader2, Rocket, Eye, EyeOff, Check, X, Mail } from 'lucide-react'
+import { Loader2, Rocket, Eye, EyeOff, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface AuthPageProps {
   inviteToken?: string | null
-}
-
-// Password strength indicator
-function PasswordStrength({ password }: { password: string }) {
-  const checks = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /\d/.test(password),
-  }
-
-  const strength = Object.values(checks).filter(Boolean).length
-  const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500']
-  const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong']
-
-  if (password.length === 0) return null
-
-  return (
-    <div className="mt-2 space-y-2">
-      <div className="flex gap-1">
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className={`h-1 flex-1 rounded ${i < strength ? strengthColors[strength - 1] : 'bg-slate-600'}`}
-          />
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-2 text-xs">
-        <span className={checks.length ? 'text-green-400' : 'text-gray-500'}>
-          {checks.length ? <Check className="inline w-3 h-3" /> : <X className="inline w-3 h-3" />} 8+ chars
-        </span>
-        <span className={checks.uppercase ? 'text-green-400' : 'text-gray-500'}>
-          {checks.uppercase ? <Check className="inline w-3 h-3" /> : <X className="inline w-3 h-3" />} Uppercase
-        </span>
-        <span className={checks.lowercase ? 'text-green-400' : 'text-gray-500'}>
-          {checks.lowercase ? <Check className="inline w-3 h-3" /> : <X className="inline w-3 h-3" />} Lowercase
-        </span>
-        <span className={checks.number ? 'text-green-400' : 'text-gray-500'}>
-          {checks.number ? <Check className="inline w-3 h-3" /> : <X className="inline w-3 h-3" />} Number
-        </span>
-      </div>
-    </div>
-  )
 }
 
 export default function AuthPage({ inviteToken }: AuthPageProps) {
@@ -243,7 +200,6 @@ export default function AuthPage({ inviteToken }: AuthPageProps) {
                       placeholder="Your password"
                       className="w-full px-4 py-3 pr-12 bg-slate-800/50 border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-white placeholder-gray-500 text-base"
                       required
-                      minLength={8}
                       disabled={loading}
                       autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                     />
@@ -256,7 +212,6 @@ export default function AuthPage({ inviteToken }: AuthPageProps) {
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  {mode === 'signup' && <PasswordStrength password={password} />}
                 </div>
               )}
 
