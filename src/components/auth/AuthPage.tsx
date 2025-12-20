@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 import { Loader2, Rocket, Eye, EyeOff, Check, X, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -62,6 +63,7 @@ export default function AuthPage({ inviteToken }: AuthPageProps) {
   const [error, setError] = useState<string | null>(null)
 
   const { signIn, signUp, resetPassword } = useAuth()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,6 +78,12 @@ export default function AuthPage({ inviteToken }: AuthPageProps) {
           toast.error(error.message)
         } else {
           toast.success('Welcome back!')
+          // Immediate redirect after successful login
+          if (inviteToken) {
+            router.push(`/invite/${inviteToken}`)
+          } else {
+            router.push('/dashboard')
+          }
         }
       } else if (mode === 'signup') {
         if (!fullName.trim()) {
