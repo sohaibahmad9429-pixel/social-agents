@@ -49,28 +49,18 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
             setIsPublishing(false);
         }
     };
-    
+
     const handleSchedule = async () => {
         if (!scheduleDate) return;
         const scheduledAt = new Date(scheduleDate).toISOString();
-        const updates: Partial<Post> = { 
-            status: 'scheduled', 
-            scheduledAt 
+        const updates: Partial<Post> = {
+            status: 'scheduled',
+            scheduledAt
         };
         onUpdatePost({ ...post, ...updates });
-        
-        // Log schedule activity
-        await fetch('/api/workspace/activity/log', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'post_scheduled',
-                postId: post.id,
-                postTitle: post.topic,
-                scheduledAt,
-            }),
-        }).catch(() => {});
-        
+
+        // Activity is automatically logged by the Python backend
+
         setIsScheduleModalOpen(false);
         setScheduleDate('');
     };
@@ -98,13 +88,13 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
         return <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${colorClass}`}>{config?.label || status}</span>;
     };
 
-    const ActionButton: React.FC<{ onClick: () => void, icon: React.ElementType, label: string, className?: string, disabled?: boolean }> = 
-    ({ onClick, icon: Icon, label, className, disabled }) => (
-        <button onClick={onClick} disabled={disabled} className={`flex items-center justify-center text-xs font-semibold py-1 px-2.5 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${className}`}>
-            <Icon className={`w-3.5 h-3.5 ${label ? 'mr-1.5' : ''} ${Icon === Loader2 ? 'animate-spin' : ''}`} />
-            {label && <span className="whitespace-nowrap text-xs">{label}</span>}
-        </button>
-    );
+    const ActionButton: React.FC<{ onClick: () => void, icon: React.ElementType, label: string, className?: string, disabled?: boolean }> =
+        ({ onClick, icon: Icon, label, className, disabled }) => (
+            <button onClick={onClick} disabled={disabled} className={`flex items-center justify-center text-xs font-semibold py-1 px-2.5 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${className}`}>
+                <Icon className={`w-3.5 h-3.5 ${label ? 'mr-1.5' : ''} ${Icon === Loader2 ? 'animate-spin' : ''}`} />
+                {label && <span className="whitespace-nowrap text-xs">{label}</span>}
+            </button>
+        );
 
     const MediaPreviewModal = () => {
         if (!mediaPreview) return null;
@@ -112,22 +102,22 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
         return (
             <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setMediaPreview(null)}>
                 <div className="relative max-w-7xl max-h-[90vh] w-full flex flex-col" onClick={e => e.stopPropagation()}>
-                    <button 
-                        onClick={() => setMediaPreview(null)} 
+                    <button
+                        onClick={() => setMediaPreview(null)}
                         className="absolute -top-12 right-0 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
                     >
                         <X className="w-6 h-6" />
                     </button>
                     {mediaPreview.type === 'image' ? (
-                        <img 
-                            src={mediaPreview.url} 
-                            alt="Preview" 
+                        <img
+                            src={mediaPreview.url}
+                            alt="Preview"
                             className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl mx-auto"
                         />
                     ) : (
-                        <video 
-                            src={mediaPreview.url} 
-                            controls 
+                        <video
+                            src={mediaPreview.url}
+                            controls
                             autoPlay
                             className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl mx-auto"
                         />
@@ -138,7 +128,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
     };
 
     const ScheduleModal = () => (
-         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsScheduleModalOpen(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsScheduleModalOpen(false)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col" onClick={e => e.stopPropagation()}>
                 <header className="flex justify-between items-center p-6 border-b border-gray-200">
                     <h2 className="text-xl font-bold text-gray-900">Schedule Post</h2>
@@ -147,8 +137,8 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                     </button>
                 </header>
                 <div className="p-6 space-y-4">
-                     <p className="text-gray-700">Select a date and time to schedule this post for.</p>
-                     <input
+                    <p className="text-gray-700">Select a date and time to schedule this post for.</p>
+                    <input
                         type="datetime-local"
                         value={scheduleDate}
                         onChange={(e) => setScheduleDate(e.target.value)}
@@ -160,7 +150,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                         disabled={!scheduleDate}
                         className="w-full inline-flex justify-center items-center py-3 px-4 shadow-md text-base font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
                     >
-                       Confirm Schedule
+                        Confirm Schedule
                     </button>
                 </div>
             </div>
@@ -168,15 +158,15 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
     );
 
     const isVideoUrl = (url: string): boolean => {
-        return !!(url?.match(/\.(mp4|webm|mov|avi|mkv)(\?|$)/i) || 
-                 url?.includes('video') ||
-                 url?.startsWith('data:video/'));
+        return !!(url?.match(/\.(mp4|webm|mov|avi|mkv)(\?|$)/i) ||
+            url?.includes('video') ||
+            url?.startsWith('data:video/'));
     };
 
     const PlatformPreview: React.FC<{ platform: Platform }> = ({ platform }) => {
         // Build media array from post properties
         const media: MediaAsset[] = [];
-        
+
         // Add carousel images/videos if available
         if (post.carouselImages && post.carouselImages.length > 0) {
             post.carouselImages.forEach((url, index) => {
@@ -207,7 +197,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                 usedInPosts: [post.id]
             });
         }
-        
+
         if (post.generatedVideoUrl) {
             media.push({
                 id: `video-${Date.now()}`,
@@ -225,11 +215,11 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
         // Get post type badge info
         const mediaType = post.generatedVideoUrl ? 'video' : 'image';
         const formatBadge = getFormatBadge(mediaType as 'video' | 'image', post.postType || 'post');
-        
+
         // Get platform info for icon
         const platformInfo = PLATFORMS.find(p => p.id === platform);
         const PlatformIcon = platformInfo?.icon;
-        
+
         // Get platform-specific colors
         const platformColors: Record<Platform, string> = {
             instagram: 'bg-gradient-to-r from-purple-600 to-pink-500',
@@ -239,7 +229,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
             tiktok: 'bg-black',
             youtube: 'bg-[#FF0000]'
         };
-        
+
         // Get post type icon
         const getPostTypeIcon = () => {
             switch (post.postType) {
@@ -249,7 +239,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                 default: return post.generatedVideoUrl ? <Film className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />;
             }
         };
-        
+
         // Get post type label
         const getPostTypeLabel = () => {
             if (post.postType === 'story') return 'STORY';
@@ -306,7 +296,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                         key={p}
                         onClick={() => setActivePlatform(p)}
                         title={`Preview on ${platformInfo.name}`}
-                        className={`flex-1 flex justify-center items-center p-1.5 rounded-md transition-all ${ activePlatform === p ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-700' }`}
+                        className={`flex-1 flex justify-center items-center p-1.5 rounded-md transition-all ${activePlatform === p ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-700'}`}
                     > <Icon className="w-4 h-4" /> </button>
                 );
             })}
@@ -318,7 +308,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
 
         // Build media array from post properties
         const media: MediaAsset[] = [];
-        
+
         if (post.carouselImages && post.carouselImages.length > 0) {
             post.carouselImages.forEach((url, index) => {
                 const isVideo = isVideoUrl(url);
@@ -347,7 +337,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                 usedInPosts: [post.id]
             });
         }
-        
+
         if (post.generatedVideoUrl) {
             media.push({
                 id: `video-${Date.now()}`,
@@ -395,26 +385,26 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                     <div className="flex flex-col w-full gap-2">
                         <div className="flex items-center justify-between w-full gap-2">
                             <div className="flex gap-1.5 items-center flex-wrap">
-                                <ActionButton 
-                                    onClick={() => !isViewOnly && setIsEditModalOpen(true)} 
+                                <ActionButton
+                                    onClick={() => !isViewOnly && setIsEditModalOpen(true)}
                                     disabled={isViewOnly}
-                                    icon={Edit3} 
-                                    label="Edit" 
-                                    className={`text-white shadow-md ${isViewOnly ? 'bg-emerald-600/50 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`} 
+                                    icon={Edit3}
+                                    label="Edit"
+                                    className={`text-white shadow-md ${isViewOnly ? 'bg-emerald-600/50 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}
                                 />
-                                <ActionButton 
-                                    onClick={() => !isViewOnly && setIsScheduleModalOpen(true)} 
+                                <ActionButton
+                                    onClick={() => !isViewOnly && setIsScheduleModalOpen(true)}
                                     disabled={isViewOnly}
-                                    icon={Clock} 
-                                    label="Schedule" 
-                                    className={`text-white shadow-md ${isViewOnly ? 'bg-purple-600/50 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`} 
+                                    icon={Clock}
+                                    label="Schedule"
+                                    className={`text-white shadow-md ${isViewOnly ? 'bg-purple-600/50 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`}
                                 />
-                                <ActionButton 
-                                    onClick={() => !isViewOnly && handlePublish()} 
-                                    disabled={!canPublish || isPublishing || isViewOnly} 
-                                    icon={isPublishing ? Loader2 : Send} 
-                                    label={isPublishing ? 'Publishing...' : 'Publish Now'} 
-                                    className={`text-white shadow-md ${isViewOnly ? 'bg-indigo-600/50 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`} 
+                                <ActionButton
+                                    onClick={() => !isViewOnly && handlePublish()}
+                                    disabled={!canPublish || isPublishing || isViewOnly}
+                                    icon={isPublishing ? Loader2 : Send}
+                                    label={isPublishing ? 'Publishing...' : 'Publish Now'}
+                                    className={`text-white shadow-md ${isViewOnly ? 'bg-indigo-600/50 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                                 />
                                 {!canPublish && !isViewOnly && (
                                     <div className="text-xs text-yellow-400 flex items-center gap-1">
@@ -423,12 +413,12 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                                     </div>
                                 )}
                             </div>
-                            <ActionButton 
-                                onClick={() => !isViewOnly && onDeletePost(post.id, post.topic)} 
+                            <ActionButton
+                                onClick={() => !isViewOnly && onDeletePost(post.id, post.topic)}
                                 disabled={isViewOnly}
-                                icon={Trash2} 
-                                label="" 
-                                className={`text-white w-7 h-7 shadow-md ${isViewOnly ? 'bg-red-600/50 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`} 
+                                icon={Trash2}
+                                label=""
+                                className={`text-white w-7 h-7 shadow-md ${isViewOnly ? 'bg-red-600/50 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                             />
                         </div>
                         {isViewOnly && (
@@ -450,27 +440,26 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                 );
             case 'scheduled':
                 return (
-                     <div className="flex items-center justify-between w-full text-xs">
+                    <div className="flex items-center justify-between w-full text-xs">
                         <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg">
-                               <Clock className="w-3.5 h-3.5"/>
-                               <span className="font-medium">{new Date(post.scheduledAt!).toLocaleString()}</span>
+                                <Clock className="w-3.5 h-3.5" />
+                                <span className="font-medium">{new Date(post.scheduledAt!).toLocaleString()}</span>
                             </div>
-                            <button 
-                                onClick={() => !isViewOnly && setIsEditModalOpen(true)} 
+                            <button
+                                onClick={() => !isViewOnly && setIsEditModalOpen(true)}
                                 disabled={isViewOnly}
-                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
-                                    isViewOnly 
-                                        ? 'text-gray-400 bg-gray-100 cursor-not-allowed' 
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${isViewOnly
+                                        ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
                                         : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
-                                }`}
+                                    }`}
                             >
                                 <Edit3 className="w-3.5 h-3.5" />
                                 <span className="font-medium">Edit</span>
                             </button>
                         </div>
-                        <button 
-                            onClick={() => !isViewOnly && handleUnschedule()} 
+                        <button
+                            onClick={() => !isViewOnly && handleUnschedule()}
                             disabled={isViewOnly}
                             className={`text-xs ${isViewOnly ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:text-gray-900 hover:underline'}`}
                         >
@@ -482,8 +471,8 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                 return (
                     <div className="flex items-center justify-between w-full text-xs">
                         <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2.5 py-1.5 rounded-lg">
-                           <Globe className="w-3.5 h-3.5"/>
-                           <span className="font-medium">{new Date(post.publishedAt!).toLocaleString()}</span>
+                            <Globe className="w-3.5 h-3.5" />
+                            <span className="font-medium">{new Date(post.publishedAt!).toLocaleString()}</span>
                         </div>
                         <a href="#" className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline">View Live Post</a>
                     </div>
@@ -493,7 +482,7 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                 const publishLog = (post.content as any)?._publishLog;
                 const errorMessage = publishLog?.error || (post as any).publish_error || 'Publishing failed';
                 const retryCount = publishLog?.retryCount || (post as any).publish_retry_count || 0;
-                
+
                 return (
                     <div className="flex flex-col w-full gap-2">
                         {/* Error Message */}
@@ -511,46 +500,46 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Actions */}
                         <div className="flex items-center justify-between">
                             <div className="flex gap-1.5">
-                                <ActionButton 
-                                    onClick={() => !isViewOnly && setIsEditModalOpen(true)} 
+                                <ActionButton
+                                    onClick={() => !isViewOnly && setIsEditModalOpen(true)}
                                     disabled={isViewOnly}
-                                    icon={Edit3} 
-                                    label="Edit" 
-                                    className={`text-white shadow-md ${isViewOnly ? 'bg-emerald-600/50 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`} 
+                                    icon={Edit3}
+                                    label="Edit"
+                                    className={`text-white shadow-md ${isViewOnly ? 'bg-emerald-600/50 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'}`}
                                 />
-                                <ActionButton 
+                                <ActionButton
                                     onClick={() => {
                                         if (isViewOnly) return;
                                         // Retry: Reset to scheduled status
-                                        const updates: Partial<Post> = { 
+                                        const updates: Partial<Post> = {
                                             status: 'scheduled',
                                             scheduledAt: new Date().toISOString() // Schedule for now (immediate retry)
                                         };
                                         onUpdatePost({ ...post, ...updates });
-                                    }} 
+                                    }}
                                     disabled={isViewOnly}
-                                    icon={Clock} 
-                                    label="Retry Now" 
-                                    className={`text-white shadow-md ${isViewOnly ? 'bg-orange-600/50 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'}`} 
+                                    icon={Clock}
+                                    label="Retry Now"
+                                    className={`text-white shadow-md ${isViewOnly ? 'bg-orange-600/50 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'}`}
                                 />
-                                <ActionButton 
-                                    onClick={() => !isViewOnly && handlePublish()} 
-                                    disabled={!canPublish || isPublishing || isViewOnly} 
-                                    icon={isPublishing ? Loader2 : Send} 
-                                    label="Publish Now" 
-                                    className={`text-white shadow-md ${isViewOnly ? 'bg-indigo-600/50 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`} 
+                                <ActionButton
+                                    onClick={() => !isViewOnly && handlePublish()}
+                                    disabled={!canPublish || isPublishing || isViewOnly}
+                                    icon={isPublishing ? Loader2 : Send}
+                                    label="Publish Now"
+                                    className={`text-white shadow-md ${isViewOnly ? 'bg-indigo-600/50 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                                 />
                             </div>
-                            <ActionButton 
-                                onClick={() => !isViewOnly && onDeletePost(post.id, post.topic)} 
+                            <ActionButton
+                                onClick={() => !isViewOnly && onDeletePost(post.id, post.topic)}
                                 disabled={isViewOnly}
-                                icon={Trash2} 
-                                label="" 
-                                className={`text-white w-7 h-7 shadow-md ${isViewOnly ? 'bg-red-600/50 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`} 
+                                icon={Trash2}
+                                label=""
+                                className={`text-white w-7 h-7 shadow-md ${isViewOnly ? 'bg-red-600/50 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                             />
                         </div>
                     </div>
@@ -561,27 +550,27 @@ const PublishedCard: React.FC<PublishedCardProps> = ({ post, onUpdatePost, onDel
 
     return (
         <>
-        <div className="bg-transparent rounded-lg shadow-md hover:shadow-lg flex flex-col overflow-hidden border border-border transition-all">
-            <div className="flex-grow p-2 cursor-pointer" onClick={() => setIsPreviewOpen(true)}>
-                <PlatformPreview platform={activePlatform} />
+            <div className="bg-transparent rounded-lg shadow-md hover:shadow-lg flex flex-col overflow-hidden border border-border transition-all">
+                <div className="flex-grow p-2 cursor-pointer" onClick={() => setIsPreviewOpen(true)}>
+                    <PlatformPreview platform={activePlatform} />
+                </div>
+                <div className="p-2 bg-muted/50 flex flex-wrap gap-1.5 justify-between items-center border-t border-border">
+                    {renderActions()}
+                </div>
             </div>
-            <div className="p-2 bg-muted/50 flex flex-wrap gap-1.5 justify-between items-center border-t border-border">
-                {renderActions()}
-            </div>
-        </div>
-        <MediaPreviewModal />
-        <PreviewModal />
-        {isScheduleModalOpen && <ScheduleModal />}
-        {isEditModalOpen && (
-            <EditPostModal
-                post={post}
-                onSave={(updatedPost) => {
-                    onUpdatePost(updatedPost);
-                    setIsEditModalOpen(false);
-                }}
-                onClose={() => setIsEditModalOpen(false)}
-            />
-        )}
+            <MediaPreviewModal />
+            <PreviewModal />
+            {isScheduleModalOpen && <ScheduleModal />}
+            {isEditModalOpen && (
+                <EditPostModal
+                    post={post}
+                    onSave={(updatedPost) => {
+                        onUpdatePost(updatedPost);
+                        setIsEditModalOpen(false);
+                    }}
+                    onClose={() => setIsEditModalOpen(false)}
+                />
+            )}
         </>
     );
 };

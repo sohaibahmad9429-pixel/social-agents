@@ -210,32 +210,17 @@ async function getAuthToken(): Promise<string | null> {
     }
 }
 
-async function getServerAuthHeader(): Promise<Record<string, string>> {
-    try {
-        const { createClient } = await import('@/lib/supabase/server');
-        const supabase = await createClient();
-
-        // Try current session first
-        let { data: { session } } = await supabase.auth.getSession();
-
-        // If no access token, attempt a refresh (server-side) using cookies
-        if (!session?.access_token) {
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            if (!refreshError) {
-                session = refreshData.session;
-            }
-        }
-
-        const token = session?.access_token;
-        return token ? { Authorization: `Bearer ${token}` } : {};
-    } catch {
-        return {};
-    }
-}
-
+/**
+ * Get auth header for requests
+ * Note: Server-side requests should use dedicated server components/actions
+ * that directly use createClient from @/lib/supabase/server
+ * This function is designed for client-side use only.
+ */
 async function getAuthHeader(): Promise<Record<string, string>> {
+    // On server-side, return empty header
+    // Server components should use their own Supabase client directly
     if (typeof window === 'undefined') {
-        return await getServerAuthHeader();
+        return {};
     }
     const token = await getAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};

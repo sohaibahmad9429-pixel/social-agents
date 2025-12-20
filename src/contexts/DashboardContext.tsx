@@ -251,20 +251,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
                 return; // Don't delete the post if all platforms failed
             }
 
-            if (user && workspaceId) {
-                // Log publish activity
-                const successPlatforms = results.filter(r => r.success).map(r => r.platform);
-                await fetch('/api/workspace/activity/log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'post_published',
-                        postId: post.id,
-                        postTitle: post.topic,
-                        platforms: successPlatforms,
-                    }),
-                }).catch(() => { });
-            }
+            // Activity is automatically logged by the Python backend when posts are published
 
             // Only delete post if at least one platform succeeded
             await deletePost(post.id, post.topic);
