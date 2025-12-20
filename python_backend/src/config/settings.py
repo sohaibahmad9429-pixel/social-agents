@@ -2,8 +2,9 @@
 Configuration Settings
 Using Pydantic Settings v2.6+ for environment variable management
 """
+import re
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +38,39 @@ class Settings(BaseSettings):
     
     # App Configuration
     APP_URL: str = Field(default="http://localhost:3000", description="Frontend app URL")
+    
+    @field_validator('APP_URL', mode='before')
+    @classmethod
+    def normalize_app_url(cls, v: str) -> str:
+        """
+        Transform Render's internal URL format to external HTTPS URL.
+        Examples:
+            - 'content-creator-frontend-xlki' -> 'https://content-creator-frontend-xlki.onrender.com'
+            - 'http://localhost:3000' -> 'http://localhost:3000' (unchanged)
+        """
+        if not v:
+            return "http://localhost:3000"
+        
+        url = v.strip()
+        
+        # Handle Render's internal format (no protocol, no dots)
+        if '://' not in url and 'localhost' not in url and '127.0.0.1' not in url:
+            # Remove port if present (e.g., ":8000")
+            url = re.sub(r':\d+$', '', url)
+            # Add .onrender.com if not already a full domain
+            if '.' not in url:
+                url = f"{url}.onrender.com"
+            # Add https:// for production
+            url = f"https://{url}"
+        elif not url.startswith('http://') and not url.startswith('https://'):
+            # URL without protocol
+            if 'localhost' in url or '127.0.0.1' in url:
+                url = f"http://{url}"
+            else:
+                url = f"https://{url}"
+        
+        # Remove trailing slash
+        return url.rstrip('/')
     
     # Social Platform OAuth Credentials
     FACEBOOK_CLIENT_ID: Optional[str] = Field(default=None, description="Facebook App ID")
