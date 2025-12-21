@@ -11,7 +11,6 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 
 from supabase import create_client, Client
-from supabase.lib.client_options import ClientOptions
 
 from ..config import settings
 
@@ -33,14 +32,9 @@ def get_supabase_client() -> Client:
         if not url or not key:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be configured")
         
-        _supabase_client = create_client(
-            url, 
-            key,
-            options=ClientOptions(
-                auto_refresh_token=True,
-                persist_session=False
-            )
-        )
+        # Note: We don't use ClientOptions due to 'storage' attribute bugs in certain versions
+        # of supabase-py. The default options work correctly for server-side applications.
+        _supabase_client = create_client(url, key)
         logger.info("Supabase client initialized")
     
     return _supabase_client
@@ -57,14 +51,9 @@ def get_supabase_admin_client() -> Client:
         if not url or not key:
             raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be configured")
         
-        _supabase_admin_client = create_client(
-            url, 
-            key,
-            options=ClientOptions(
-                auto_refresh_token=False,
-                persist_session=False
-            )
-        )
+        # Note: We don't use ClientOptions due to 'storage' attribute bugs in certain versions
+        # of supabase-py. The default options work correctly for server-side applications.
+        _supabase_admin_client = create_client(url, key)
         logger.info("Supabase admin client initialized")
     
     return _supabase_admin_client
