@@ -118,12 +118,12 @@ async def get_workspace(user: Dict[str, Any] = Depends(get_current_user)):
         supabase = get_supabase_client()
         result = supabase.table("workspaces").select("*").eq(
             "id", workspace_id
-        ).single().execute()
+        ).execute()
         
-        if not result.data:
+        if not result.data or len(result.data) == 0:
             raise HTTPException(status_code=404, detail="Workspace not found")
         
-        return {"data": result.data}
+        return {"data": result.data[0]}
         
     except HTTPException:
         raise
