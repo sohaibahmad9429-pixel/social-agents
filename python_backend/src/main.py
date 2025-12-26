@@ -50,6 +50,10 @@ async def lifespan(app: FastAPI):
     for error in validation_errors:
         logger.warning(f"Config warning: {error}")
     
+    # Initialize checkpointer for LangGraph memory persistence
+    from .agents.content_strategist_agent.service import init_checkpointer, close_checkpointer
+    await init_checkpointer()
+    
     # LLM models are created on-demand per request
     logger.info("Using on-demand LLM model creation")
     
@@ -75,6 +79,9 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down Content Creator Backend...")
+    
+    # Close checkpointer connection
+    await close_checkpointer()
     
     logger.info("Application shutdown complete")
 

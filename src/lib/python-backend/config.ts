@@ -145,7 +145,10 @@ export const API_BASE_URL = `${PYTHON_BACKEND_URL}/api/${API_VERSION}`;
 if (IS_BROWSER && IS_PRODUCTION) {
     try {
         const baseUrl = new URL(API_BASE_URL);
-        if (baseUrl.protocol !== 'https:') {
+        const isLocalhost = baseUrl.hostname === 'localhost' || baseUrl.hostname === '127.0.0.1';
+
+        // Skip HTTPS check for localhost - HTTP is expected for local dev
+        if (baseUrl.protocol !== 'https:' && !isLocalhost) {
             console.error(
                 `[Backend Config] CRITICAL: API Base URL is not HTTPS in production!\n` +
                 `This will cause mixed content errors.\n` +

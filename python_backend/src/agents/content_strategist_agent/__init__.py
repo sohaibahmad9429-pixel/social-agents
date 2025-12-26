@@ -1,5 +1,9 @@
 """Content Strategist Agent"""
-from .service import content_strategist_chat
+from .service import (
+    content_strategist_chat,
+    init_checkpointer,
+    close_checkpointer,
+)
 from .schemas import (
     ChatStrategistRequest,
     ChatStrategistResponse,
@@ -9,6 +13,8 @@ from .prompts import get_content_strategist_system_prompt
 
 __all__ = [
     "content_strategist_chat",
+    "init_checkpointer",
+    "close_checkpointer",
     "ChatStrategistRequest",
     "ChatStrategistResponse",
     "ContentBlock",

@@ -2,15 +2,19 @@
 Content Strategist Agent - Service
 LangChain create_agent with PostgresSaver for short-term memory
 Supports multimodal input (text, images, PDFs)
+
+Production pattern: Use AsyncPostgresSaver with connection pooling
+managed via FastAPI lifespan context manager.
 """
 import logging
-import base64
 from typing import AsyncGenerator, List
+from contextlib import asynccontextmanager
 
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.memory import MemorySaver
 
 from .schemas import ChatStrategistRequest, ContentBlock
 from .prompts import get_content_strategist_system_prompt
@@ -18,26 +22,66 @@ from ...config import settings
 
 logger = logging.getLogger(__name__)
 
-# Global agent instance
+# Global references managed by lifespan
 _checkpointer = None
+_checkpointer_context = None
 _agent = None
 
 
-async def get_checkpointer():
-    """Get or create AsyncPostgresSaver checkpointer"""
+async def init_checkpointer():
+    """
+    Initialize the AsyncPostgresSaver checkpointer.
+    Call this at application startup (in FastAPI lifespan).
+    """
+    global _checkpointer, _checkpointer_context
+    
+    db_uri = settings.DATABASE_URL
+    if not db_uri:
+        logger.warning("DATABASE_URL not configured, using in-memory checkpointer")
+        _checkpointer = MemorySaver()
+        return _checkpointer
+    
+    try:
+        # Create the async context manager
+        _checkpointer_context = AsyncPostgresSaver.from_conn_string(db_uri)
+        # Enter the context
+        _checkpointer = await _checkpointer_context.__aenter__()
+        # Run setup to create tables if needed
+        await _checkpointer.setup()
+        logger.info("AsyncPostgresSaver checkpointer initialized successfully")
+        return _checkpointer
+    except Exception as e:
+        logger.error(f"Failed to initialize AsyncPostgresSaver: {e}")
+        logger.warning("Falling back to in-memory checkpointer")
+        _checkpointer = MemorySaver()
+        return _checkpointer
+
+
+async def close_checkpointer():
+    """
+    Close the checkpointer connection.
+    Call this at application shutdown (in FastAPI lifespan).
+    """
+    global _checkpointer, _checkpointer_context
+    
+    if _checkpointer_context is not None:
+        try:
+            await _checkpointer_context.__aexit__(None, None, None)
+            logger.info("AsyncPostgresSaver checkpointer closed")
+        except Exception as e:
+            logger.error(f"Error closing checkpointer: {e}")
+    
+    _checkpointer = None
+    _checkpointer_context = None
+
+
+def get_checkpointer():
+    """Get the current checkpointer instance"""
     global _checkpointer
     if _checkpointer is None:
-        db_uri = settings.DATABASE_URL
-        if db_uri:
-            try:
-                _checkpointer = AsyncPostgresSaver.from_conn_string(db_uri)
-                await _checkpointer.setup()
-                logger.info("AsyncPostgresSaver checkpointer initialized")
-            except Exception as e:
-                logger.error(f"Failed to initialize checkpointer: {e}")
-                _checkpointer = None
-        else:
-            logger.warning("DATABASE_URL not configured, memory will not persist")
+        # Fallback to memory saver if not initialized
+        logger.warning("Checkpointer not initialized, using in-memory fallback")
+        _checkpointer = MemorySaver()
     return _checkpointer
 
 
@@ -55,7 +99,7 @@ async def get_agent():
             model=model,
             tools=[],
             system_prompt=get_content_strategist_system_prompt(),
-            checkpointer=await get_checkpointer(),
+            checkpointer=get_checkpointer(),
         )
         logger.info("Content strategist agent created")
     return _agent
