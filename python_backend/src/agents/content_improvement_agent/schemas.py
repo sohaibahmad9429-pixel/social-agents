@@ -24,7 +24,6 @@ class ImproveContentRequest(BaseModel):
 class ImproveContentResponse(BaseModel):
     """Response with improved content"""
     success: bool = Field(..., description="Success status")
-    originalDescription: str = Field(..., description="Original input description")
     improvedDescription: str = Field(..., description="AI-improved description")
     metadata: dict = Field(..., description="Metadata about the improvement")
 

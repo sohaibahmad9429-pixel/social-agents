@@ -3,6 +3,7 @@
 import React from 'react';
 import { DashboardProvider } from '@/contexts/DashboardContext';
 import { MediaProvider } from '@/contexts/MediaContext';
+import { VideoGenerationProvider } from '@/contexts/VideoGenerationContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 export default function DashboardClientLayout({
@@ -13,10 +14,13 @@ export default function DashboardClientLayout({
     return (
         <DashboardProvider>
             <MediaProvider>
-                <DashboardLayout>
-                    {children}
-                </DashboardLayout>
+                <VideoGenerationProvider>
+                    <DashboardLayout>
+                        {children}
+                    </DashboardLayout>
+                </VideoGenerationProvider>
             </MediaProvider>
         </DashboardProvider>
     );
 }
+

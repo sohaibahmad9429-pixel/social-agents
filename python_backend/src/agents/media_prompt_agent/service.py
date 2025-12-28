@@ -3,7 +3,6 @@ Media Prompt Improvement Service
 AI-powered prompt enhancement for image/video generation
 """
 import logging
-import time
 from langchain.agents import create_agent
 
 from .schemas import ImprovePromptRequest, ImprovePromptResponse, MEDIA_TYPE_GUIDELINES
@@ -26,8 +25,6 @@ async def improve_media_prompt(
     Returns:
         Improved prompt response
     """
-    start_time = time.time()
-    
     try:
         # Validate media type
         if request.mediaType not in MEDIA_TYPE_GUIDELINES:
@@ -57,7 +54,7 @@ async def improve_media_prompt(
         
         # Create simple Google Gemini model
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model="gemini-2.5-flash",
             google_api_key=settings.GOOGLE_API_KEY,
             temperature=0.7,
         )
@@ -92,72 +89,13 @@ async def improve_media_prompt(
         if not improved_prompt:
             raise ValueError("Agent returned empty response")
         
-        # Calculate generation time
-        generation_time_ms = int((time.time() - start_time) * 1000)
-        
-        logger.info(f"Prompt improved for {request.mediaType} in {generation_time_ms}ms")
-        
-        # Extract improvements (simple analysis)
-        improvements = analyze_improvements(request.originalPrompt, improved_prompt)
+        logger.info(f"Prompt improved for {request.mediaType}")
         
         return ImprovePromptResponse(
             success=True,
             improvedPrompt=improved_prompt,
-            originalPrompt=request.originalPrompt,
-            mediaType=request.mediaType,
-            improvements=improvements,
-            suggestions=None,  # Could add AI-generated suggestions
-            technicalDetails={
-                "provider": request.provider,
-                "model": request.model,
-                "subType": request.mediaSubType
-            },
-            processingTime=generation_time_ms
         )
         
     except Exception as e:
         logger.error(f"Prompt improvement error: {e}", exc_info=True)
         raise
-
-
-def analyze_improvements(original: str, improved: str) -> list[str]:
-    """
-    Analyze what improvements were made
-    
-    Args:
-        original: Original prompt
-        improved: Improved prompt
-        
-    Returns:
-        List of improvement descriptions
-    """
-    improvements = []
-    
-    # Length increase
-    if len(improved) > len(original) * 1.5:
-        improvements.append("Added significant detail and specificity")
-    
-    # Technical keywords
-    technical_keywords = ["lighting", "composition", "camera", "style", "quality", "detailed", "professional"]
-    added_keywords = [kw for kw in technical_keywords if kw.lower() in improved.lower() and kw.lower() not in original.lower()]
-    if added_keywords:
-        improvements.append(f"Added technical details: {', '.join(added_keywords)}")
-    
-    # Aspect ratio
-    if "--ar" in improved and "--ar" not in original:
-        improvements.append("Added aspect ratio specification")
-    
-    # Style references
-    if any(word in improved.lower() for word in ["style", "artistic", "cinematic", "photorealistic"]):
-        if not any(word in original.lower() for word in ["style", "artistic", "cinematic", "photorealistic"]):
-            improvements.append("Added style and aesthetic direction")
-    
-    # Composition details
-    if any(word in improved.lower() for word in ["angle", "perspective", "framing", "composition"]):
-        if not any(word in original.lower() for word in ["angle", "perspective", "framing", "composition"]):
-            improvements.append("Enhanced composition and framing details")
-    
-    if not improvements:
-        improvements.append("Enhanced overall prompt quality and clarity")
-    
-    return improvements

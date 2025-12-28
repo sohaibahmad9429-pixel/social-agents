@@ -30,10 +30,11 @@ from .media_prompt_agent import (
 from .media_agents.image_agent import (
     generate_image,
     generate_image_edit,
-    ImageGenerationRequest,
+    generate_image_reference,
+    FrontendImageRequest,
     ImageGenerationResponse,
     ImageEditRequest,
-    IMAGE_GENERATION_PRESETS,
+    ImageReferenceRequest,
 )
 
 from .media_agents.audio_agent import (
@@ -90,10 +91,11 @@ __all__ = [
     # Image Agent
     "generate_image",
     "generate_image_edit",
-    "ImageGenerationRequest",
+    "generate_image_reference",
+    "FrontendImageRequest",
     "ImageGenerationResponse",
     "ImageEditRequest",
-    "IMAGE_GENERATION_PRESETS",
+    "ImageReferenceRequest",
     # Audio Agent
     "generate_speech",
     "generate_music",

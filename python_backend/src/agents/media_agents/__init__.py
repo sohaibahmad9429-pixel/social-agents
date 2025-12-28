@@ -6,10 +6,11 @@ Image, Audio, and Video generation agents
 from .image_agent import (
     generate_image,
     generate_image_edit,
-    ImageGenerationRequest,
+    generate_image_reference,
+    FrontendImageRequest,
     ImageGenerationResponse,
     ImageEditRequest,
-    IMAGE_GENERATION_PRESETS,
+    ImageReferenceRequest,
 )
 
 # Audio Agent
@@ -39,10 +40,11 @@ __all__ = [
     # Image Agent
     "generate_image",
     "generate_image_edit",
-    "ImageGenerationRequest",
+    "generate_image_reference",
+    "FrontendImageRequest",
     "ImageGenerationResponse",
     "ImageEditRequest",
-    "IMAGE_GENERATION_PRESETS",
+    "ImageReferenceRequest",
     # Audio Agent
     "generate_speech",
     "generate_music",

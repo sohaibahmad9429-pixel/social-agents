@@ -11,16 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Loader2, 
-  Sparkles, 
-  Info, 
-  AlertCircle, 
-  X, 
-  ChevronDown, 
+import {
+  Loader2,
+  Sparkles,
+  Info,
+  AlertCircle,
+  X,
+  ChevronDown,
   Check,
-  Upload, 
-  ImageIcon, 
+  Upload,
+  ImageIcon,
   FolderOpen,
   ArrowRight,
   RefreshCw,
@@ -78,7 +78,7 @@ export function VeoFrameSpecific({
   const [lastFrameUrl, setLastFrameUrl] = useState<string | null>(null);
   const [activeFrame, setActiveFrame] = useState<'first' | 'last' | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
-  
+
   // Prompt improvement state
   const [showImprovementModal, setShowImprovementModal] = useState(false);
   const [improvementInstructions, setImprovementInstructions] = useState('');
@@ -93,18 +93,18 @@ export function VeoFrameSpecific({
     if (errorMessage.includes('429') || errorMessage.includes('rate') || errorMessage.includes('quota')) return 'Rate limit exceeded. Try a different model.';
     return 'Failed to improve prompt. Please try again.';
   };
-  
+
   // Library state
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-  
+
   const firstFrameInputRef = useRef<HTMLInputElement | null>(null);
   const lastFrameInputRef = useRef<HTMLInputElement | null>(null);
 
   // Fetch library images
   const fetchLibraryImages = useCallback(async () => {
     if (!workspaceId) return;
-    
+
     setIsLoadingLibrary(true);
     try {
       const response = await fetch(`/api/media-studio/library?workspace_id=${workspaceId}&type=image&limit=20`);
@@ -127,7 +127,7 @@ export function VeoFrameSpecific({
 
   // Validation: 1080p only available for 8s duration
   const is1080pDisabled = duration !== 8;
-  
+
   React.useEffect(() => {
     if (resolution === '1080p' && duration !== 8) {
       setResolution('720p');
@@ -227,7 +227,7 @@ export function VeoFrameSpecific({
       // Update prompt with improved version
       setPrompt(data.improvedPrompt);
       setImprovementInstructions('');
-      
+
     } catch (error) {
       console.error('Prompt improvement error:', error);
       setImprovementError(getUserFriendlyError(error));
@@ -259,13 +259,12 @@ export function VeoFrameSpecific({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstFrameUrl,
-          lastFrameUrl,
+          firstImageUrl: firstFrameUrl,
+          lastImageUrl: lastFrameUrl,
           prompt: prompt.trim(),
           model,
           aspectRatio,
-          duration,
-          resolution,
+          durationSeconds: duration,
         }),
       });
 
@@ -396,7 +395,7 @@ export function VeoFrameSpecific({
                 </Button>
               </div>
             </div>
-            
+
             {isLoadingLibrary ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -440,7 +439,7 @@ export function VeoFrameSpecific({
                 <p className="text-xs">Generate some images first</p>
               </div>
             )}
-            
+
           </div>
         </div>
       )}
@@ -565,8 +564,8 @@ export function VeoFrameSpecific({
             </SelectTrigger>
             <SelectContent>
               {VEO_RESOLUTION_OPTIONS.map((opt) => (
-                <SelectItem 
-                  key={opt.value} 
+                <SelectItem
+                  key={opt.value}
                   value={opt.value}
                   disabled={opt.value === '1080p' && is1080pDisabled}
                 >

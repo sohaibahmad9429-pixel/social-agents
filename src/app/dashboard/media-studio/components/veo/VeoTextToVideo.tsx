@@ -77,7 +77,7 @@ export function VeoTextToVideo({
 
   // Validation: 1080p only available for 8s duration
   const is1080pDisabled = duration !== 8;
-  
+
   // Auto-adjust resolution if 1080p is selected but duration changes
   React.useEffect(() => {
     if (resolution === '1080p' && duration !== 8) {
@@ -145,7 +145,7 @@ export function VeoTextToVideo({
       // Update prompt with improved version
       setPrompt(data.improvedPrompt);
       setImprovementInstructions('');
-      
+
     } catch (error) {
       console.error('Prompt improvement error:', error);
       setImprovementError(getUserFriendlyError(error));
@@ -170,7 +170,7 @@ export function VeoTextToVideo({
           prompt: prompt.trim(),
           model,
           aspectRatio,
-          duration,
+          durationSeconds: duration,
           resolution,
         }),
       });
@@ -360,8 +360,8 @@ export function VeoTextToVideo({
             </SelectTrigger>
             <SelectContent>
               {VEO_RESOLUTION_OPTIONS.map((opt) => (
-                <SelectItem 
-                  key={opt.value} 
+                <SelectItem
+                  key={opt.value}
                   value={opt.value}
                   disabled={opt.value === '1080p' && is1080pDisabled}
                 >
@@ -481,7 +481,7 @@ export function VeoTextToVideo({
                     <span>{getModelDisplayName(selectedAIModelId)}</span>
                     <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${showAIModelDropdown ? 'rotate-180' : ''}`} />
                   </button>
-                  
+
                   {showAIModelDropdown && (
                     <div className="absolute top-full left-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto whitespace-nowrap">
                       {AI_MODELS.map((aiModel) => (
@@ -492,9 +492,8 @@ export function VeoTextToVideo({
                             setSelectedAIModelId(aiModel.id);
                             setShowAIModelDropdown(false);
                           }}
-                          className={`w-full px-3 py-1.5 text-left hover:bg-muted transition-colors flex items-center gap-2 text-xs ${
-                            selectedAIModelId === aiModel.id ? 'bg-primary/10' : ''
-                          }`}
+                          className={`w-full px-3 py-1.5 text-left hover:bg-muted transition-colors flex items-center gap-2 text-xs ${selectedAIModelId === aiModel.id ? 'bg-primary/10' : ''
+                            }`}
                         >
                           <span className="text-foreground">{aiModel.name} <span className="text-muted-foreground">({aiModel.providerLabel})</span></span>
                           {selectedAIModelId === aiModel.id && (

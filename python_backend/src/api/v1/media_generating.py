@@ -8,10 +8,11 @@ from fastapi import APIRouter, HTTPException
 from ...agents.media_agents.image_agent import (
     generate_image,
     generate_image_edit,
-    ImageGenerationRequest,
-    ImageGenerationResponse,
+    generate_image_reference,
+    FrontendImageRequest,
     ImageEditRequest,
-    IMAGE_GENERATION_PRESETS,
+    ImageReferenceRequest,
+    ImageGenerationResponse,
 )
 from ...agents.media_agents.audio_agent import (
     generate_speech,
@@ -35,11 +36,48 @@ from ...agents.media_agents.video_agent import (
     generate_video,
     get_video_status,
     generate_image_to_video,
+    generate_frame_specific,
+    generate_with_references,
+    extend_video,
+    download_video,
     VideoGenerationRequest,
     VideoGenerationResponse,
+    VideoStatusRequest,
     VideoStatusResponse,
+    VideoDownloadRequest,
+    VideoDownloadResponse,
     ImageToVideoRequest,
+    FrameSpecificRequest,
+    ReferenceImagesRequest,
+    VideoExtendRequest,
     VEO_MODELS,
+)
+from ...agents.media_agents.gemini_image_agent import (
+    generate_image as gemini_generate_image,
+    edit_image as gemini_edit_image,
+    multi_turn_edit as gemini_multi_turn_edit,
+    GeminiImageGenerateRequest,
+    GeminiImageEditRequest,
+    GeminiMultiTurnRequest,
+    GeminiImageResponse,
+)
+from ...agents.media_agents.sora_agent import (
+    generate_video as sora_generate_video,
+    generate_image_to_video as sora_image_to_video,
+    remix_video as sora_remix_video,
+    get_video_status as sora_get_status,
+    fetch_video_content as sora_fetch_content,
+    list_videos as sora_list_videos,
+    delete_video as sora_delete_video,
+    SoraGenerateRequest,
+    SoraImageToVideoRequest,
+    SoraRemixRequest,
+    SoraStatusRequest,
+    SoraFetchRequest,
+    SoraGenerateResponse,
+    SoraStatusResponse,
+    SoraFetchResponse,
+    SORA_MODELS,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,14 +90,12 @@ router = APIRouter(prefix="/api/v1/media", tags=["Media Generation"])
 # ============================================================================
 
 @router.post("/image/generate", response_model=ImageGenerationResponse)
-async def api_generate_image(request: ImageGenerationRequest):
+async def api_generate_image(request: FrontendImageRequest):
     """
-    Generate image from text prompt
+    Generate image from text prompt using gpt-image-1.5
     
-    Supports:
-    - gpt-image-1.5: Latest, best quality
-    - dall-e-3: High quality with style options
-    - dall-e-2: Fast, multiple images
+    Request format: { prompt, options: { model, size, quality, ... } }
+    Response format: { success, data: { imageUrl, metadata } }
     """
     try:
         logger.info(f"Image generation request: {request.prompt[:50]}...")
@@ -100,12 +136,172 @@ async def api_edit_image(request: ImageEditRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/image/presets")
-async def get_image_presets():
-    """Get available image generation presets"""
+
+
+
+@router.post("/image/inpaint", response_model=ImageGenerationResponse)
+async def api_inpaint_image(request: ImageEditRequest):
+    """
+    Inpaint image with mask
+    
+    Alias for /image/edit for frontend compatibility
+    """
+    try:
+        logger.info(f"Image inpaint request: {request.prompt[:50]}...")
+        result = await generate_image_edit(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Image inpaint error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/image/reference", response_model=ImageGenerationResponse)
+async def api_reference_image(request: ImageReferenceRequest):
+    """
+    Reference-based image generation using gpt-image-1.5
+    
+    Request: { referenceImages, prompt, input_fidelity }
+    Response: { success, data: { imageUrl, metadata } }
+    """
+    try:
+        logger.info(f"Image reference request: {request.prompt[:50]}...")
+        result = await generate_image_reference(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Image reference error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# GEMINI IMAGE ENDPOINTS
+# ============================================================================
+
+@router.post("/imagen", response_model=GeminiImageResponse)
+async def api_gemini_generate_image(request: GeminiImageGenerateRequest):
+    """
+    Generate image using Google Gemini
+    
+    Models:
+    - gemini-2.5-flash-image: Fast, general purpose
+    - gemini-3-pro-image-preview: Advanced 4K, thinking mode
+    
+    Features:
+    - Text-to-image generation
+    - Aspect ratios: 1:1, 16:9, 9:16, etc.
+    - Image sizes: 1K, 2K, 4K
+    - Google Search grounding (for real-time info)
+    """
+    try:
+        logger.info(f"Gemini image generation: {request.prompt[:50]}...")
+        result = await gemini_generate_image(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Gemini image generation error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/imagen/edit", response_model=GeminiImageResponse)
+async def api_gemini_edit_image(request: GeminiImageEditRequest):
+    """
+    Edit image using Google Gemini
+    
+    Features:
+    - Add/remove/modify elements
+    - Style transfer
+    - Up to 14 reference images (Gemini 3 Pro)
+    - Semantic masking (describe what to edit)
+    """
+    try:
+        logger.info(f"Gemini image edit: {request.prompt[:50]}...")
+        result = await gemini_edit_image(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Gemini image edit error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/imagen/chat", response_model=GeminiImageResponse)
+async def api_gemini_multi_turn(request: GeminiMultiTurnRequest):
+    """
+    Multi-turn conversational image editing
+    
+    Maintain conversation context for iterative refinement.
+    Pass conversation_history from previous response.
+    
+    Example:
+    1. Generate initial image
+    2. "Make the sky more dramatic"
+    3. "Change the language to Spanish"
+    """
+    try:
+        logger.info(f"Gemini multi-turn edit: {request.prompt[:50]}...")
+        result = await gemini_multi_turn_edit(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Gemini multi-turn error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/imagen/models")
+async def get_gemini_image_models():
+    """Get available Gemini image models and their capabilities"""
     return {
         "success": True,
-        "presets": {k: v.model_dump() for k, v in IMAGE_GENERATION_PRESETS.items()}
+        "models": [
+            {
+                "id": "gemini-2.5-flash-image",
+                "name": "Gemini 2.5 Flash Image",
+                "description": "Fast, general purpose image generation",
+                "maxReferenceImages": 1,
+                "supportedSizes": ["1K"],
+                "features": ["text-to-image", "image-editing"]
+            },
+            {
+                "id": "gemini-3-pro-image-preview",
+                "name": "Gemini 3 Pro Image Preview",
+                "description": "Advanced 4K generation with thinking mode",
+                "maxReferenceImages": 14,
+                "supportedSizes": ["1K", "2K", "4K"],
+                "features": ["text-to-image", "image-editing", "multi-turn", "google-search", "thinking"]
+            }
+        ],
+        "aspectRatios": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+        "imageSizes": ["1K", "2K", "4K"]
     }
 
 
@@ -233,6 +429,19 @@ async def get_audio_models():
     }
 
 
+# Alias endpoints for frontend compatibility
+@router.post("/audio/tts", response_model=TTSResponse)
+async def api_tts_alias(request: TTSRequest):
+    """Alias for /audio/speech for frontend compatibility"""
+    return await api_generate_speech(request)
+
+
+@router.post("/audio/voice-cloning", response_model=VoiceCloningResponse)
+async def api_voice_cloning_alias(request: VoiceCloningRequest):
+    """Alias for /audio/clone-voice for frontend compatibility"""
+    return await api_clone_voice(request)
+
+
 # ============================================================================
 # VIDEO ENDPOINTS
 # ============================================================================
@@ -265,17 +474,16 @@ async def api_generate_video(request: VideoGenerationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/video/status/{operation_name:path}", response_model=VideoStatusResponse)
-async def api_get_video_status(operation_name: str):
+@router.post("/video/status", response_model=VideoStatusResponse)
+async def api_get_video_status(request: VideoStatusRequest):
     """
     Get status of video generation operation
     
-    Poll this endpoint to check if video is ready
+    Poll every 10 seconds until done=True
     """
     try:
-        logger.info(f"Video status check: {operation_name}")
-        result = await get_video_status(operation_name)
-        
+        logger.info(f"Video status check: {request.operationId}")
+        result = await get_video_status(request)
         return result
         
     except Exception as e:
@@ -286,9 +494,7 @@ async def api_get_video_status(operation_name: str):
 @router.post("/video/image-to-video", response_model=VideoGenerationResponse)
 async def api_image_to_video(request: ImageToVideoRequest):
     """
-    Generate video from image using Google Veo
-    
-    Provide image URL or base64 data URL
+    Generate video with image as first frame (Veo 3.1)
     """
     try:
         logger.info(f"Image-to-video: {request.prompt[:50]}...")
@@ -306,6 +512,93 @@ async def api_image_to_video(request: ImageToVideoRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/video/frame-specific", response_model=VideoGenerationResponse)
+async def api_frame_specific(request: FrameSpecificRequest):
+    """
+    Generate video by specifying first and last frames (interpolation)
+    Veo 3.1 only
+    """
+    try:
+        logger.info(f"Frame-specific generation")
+        result = await generate_frame_specific(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Frame-specific error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/video/reference-images", response_model=VideoGenerationResponse)
+async def api_reference_images(request: ReferenceImagesRequest):
+    """
+    Generate video using 1-3 reference images for content guidance
+    Veo 3.1 only
+    """
+    try:
+        logger.info(f"Reference images: {request.prompt[:50]}...")
+        result = await generate_with_references(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Reference images error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/video/extend", response_model=VideoGenerationResponse)
+async def api_extend_video(request: VideoExtendRequest):
+    """
+    Extend a Veo-generated video by 7 seconds (up to 20 times)
+    Veo 3.1 only
+    """
+    try:
+        logger.info(f"Extend video: {request.veoVideoId[:50]}...")
+        result = await extend_video(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Extend video error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/video/download", response_model=VideoDownloadResponse)
+async def api_download_video(request: VideoDownloadRequest):
+    """
+    Download completed video and optionally upload to Supabase
+    """
+    try:
+        logger.info(f"Download video: {request.veoVideoId[:50]}...")
+        result = await download_video(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Download video error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/video/models")
 async def get_video_models():
     """Get available Veo models"""
@@ -313,6 +606,149 @@ async def get_video_models():
         "success": True,
         "models": VEO_MODELS
     }
+
+
+# ============================================================================
+# SORA ENDPOINTS - OpenAI Video Generation
+# ============================================================================
+
+@router.post("/sora/generate", response_model=SoraGenerateResponse)
+async def api_sora_generate(request: SoraGenerateRequest):
+    """
+    Generate video from text prompt using OpenAI Sora
+    
+    Returns job ID for polling status
+    """
+    try:
+        logger.info(f"Sora generate: {request.prompt[:50]}...")
+        result = await sora_generate_video(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Sora generate error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sora/image-to-video", response_model=SoraGenerateResponse)
+async def api_sora_image_to_video(request: SoraImageToVideoRequest):
+    """
+    Generate video with image as first frame using OpenAI Sora
+    
+    Image must match target resolution
+    """
+    try:
+        logger.info(f"Sora image-to-video: {request.prompt[:50]}...")
+        result = await sora_image_to_video(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Sora image-to-video error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sora/remix", response_model=SoraGenerateResponse)
+async def api_sora_remix(request: SoraRemixRequest):
+    """
+    Remix a completed Sora video with targeted adjustments
+    
+    Best for single, focused changes
+    """
+    try:
+        logger.info(f"Sora remix: video={request.previousVideoId}")
+        result = await sora_remix_video(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Sora remix error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sora/status", response_model=SoraStatusResponse)
+async def api_sora_status(request: SoraStatusRequest):
+    """
+    Get Sora video generation status
+    
+    Poll this endpoint every 10-20 seconds until completed/failed
+    """
+    try:
+        result = await sora_get_status(request)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Sora status error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sora/fetch", response_model=SoraFetchResponse)
+async def api_sora_fetch(request: SoraFetchRequest):
+    """
+    Fetch completed Sora video content
+    
+    Supports variants: video (MP4), thumbnail (WebP), spritesheet (JPG)
+    """
+    try:
+        logger.info(f"Sora fetch: video={request.videoId}, variant={request.variant}")
+        result = await sora_fetch_content(request)
+        
+        if not result.success:
+            raise HTTPException(status_code=400, detail=result.error)
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Sora fetch error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sora/models")
+async def get_sora_models():
+    """Get available Sora models"""
+    return {
+        "success": True,
+        "models": SORA_MODELS
+    }
+
+
+@router.get("/sora/list")
+async def api_sora_list(limit: int = 20, after: str = None, order: str = "desc"):
+    """List Sora videos with pagination"""
+    try:
+        result = await sora_list_videos(limit, after, order)
+        return result
+    except Exception as e:
+        logger.error(f"Sora list error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/sora/{video_id}")
+async def api_sora_delete(video_id: str):
+    """Delete a Sora video"""
+    try:
+        result = await sora_delete_video(video_id)
+        return result
+    except Exception as e:
+        logger.error(f"Sora delete error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
@@ -325,19 +761,32 @@ async def media_info():
     return {
         "success": True,
         "message": "Media Generation API is operational",
-        "version": "1.0.0",
+        "version": "1.2.0",
         "services": {
             "image": {
-                "models": ["gpt-image-1.5", "dall-e-3", "dall-e-2"],
-                "endpoints": ["/image/generate", "/image/edit", "/image/presets"]
+                "models": ["gpt-image-1.5"],
+                "features": ["text-to-image", "inpainting", "reference-based"],
+                "endpoints": ["/image/generate", "/image/inpaint", "/image/reference"]
+            },
+            "gemini": {
+                "models": ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"],
+                "features": ["text-to-image", "image-editing", "multi-turn", "4K-output", "google-search-grounding"],
+                "endpoints": ["/imagen", "/imagen/edit", "/imagen/chat", "/imagen/models"]
             },
             "audio": {
                 "features": ["text-to-speech", "music", "sound-effects", "voice-cloning"],
                 "endpoints": ["/audio/speech", "/audio/music", "/audio/sound-effects", "/audio/voices"]
             },
-            "video": {
+            "video-veo": {
                 "models": ["veo-3.1-generate-preview", "veo-3.1-fast-preview"],
+                "features": ["text-to-video", "image-to-video"],
                 "endpoints": ["/video/generate", "/video/status", "/video/image-to-video"]
+            },
+            "video-sora": {
+                "models": ["sora-2", "sora-2-pro"],
+                "features": ["text-to-video", "image-to-video", "video-remix", "thumbnails", "spritesheets"],
+                "endpoints": ["/sora/generate", "/sora/image-to-video", "/sora/remix", "/sora/status", "/sora/fetch"]
             }
         }
     }
+

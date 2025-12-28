@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 
 MediaType = Literal["image-generation", "image-editing", "video-generation", "video-editing"]
-MediaProvider = Literal["openai", "midjourney", "runway", "veo", "imagen", "stable-diffusion"]
+MediaProvider = Literal["openai", "google", "midjourney", "runway", "veo", "imagen", "stable-diffusion"]
 
 
 class ImprovePromptRequest(BaseModel):
@@ -25,12 +25,6 @@ class ImprovePromptResponse(BaseModel):
     """Response with improved prompt"""
     success: bool = Field(..., description="Success status")
     improvedPrompt: str = Field(..., description="AI-improved generation prompt")
-    originalPrompt: str = Field(..., description="Original input prompt")
-    mediaType: MediaType = Field(..., description="Media type")
-    improvements: Optional[list[str]] = Field(None, description="List of improvements made")
-    suggestions: Optional[list[str]] = Field(None, description="Additional suggestions")
-    technicalDetails: Optional[dict] = Field(None, description="Technical details and parameters")
-    processingTime: Optional[int] = Field(None, description="Processing time in milliseconds")
 
 
 # Media type guidelines

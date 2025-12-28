@@ -1,50 +1,90 @@
 """
 Image Generation Schemas
-Pydantic models for OpenAI image generation (gpt-image-1.5, dall-e-3, dall-e-2)
+OpenAI gpt-image-1.5 support per latest API docs
 """
 from typing import Optional, Literal, List
-from enum import Enum
 from pydantic import BaseModel, Field
 
 
-# Type definitions
-ImageSize = Literal[
-    "1024x1024", "1536x1024", "1024x1536",  # gpt-image-1.5
-    "1792x1024", "1024x1792",  # dall-e-3
-    "512x512", "256x256",  # dall-e-2
-    "auto"
-]
-ImageQuality = Literal["low", "medium", "high", "auto", "standard", "hd"]
+# Type definitions per OpenAI docs
+ImageSize = Literal["1024x1024", "1536x1024", "1024x1536", "auto"]
+ImageQuality = Literal["low", "medium", "high", "auto"]
 ImageFormat = Literal["png", "jpeg", "webp"]
 ImageBackground = Literal["transparent", "opaque", "auto"]
-ImageModel = Literal["gpt-image-1.5", "dall-e-3", "dall-e-2"]
+InputFidelity = Literal["low", "high"]
+Moderation = Literal["auto", "low"]
 
 
-class ImageGenerationOptions(BaseModel):
-    """Core image generation options"""
+# ============================================================================
+# GENERATION REQUEST - Frontend sends { prompt, options: {...} }
+# ============================================================================
+
+class FrontendImageOptions(BaseModel):
+    """Options object from frontend"""
+    model: Optional[str] = Field("gpt-image-1.5", description="Model to use")
     size: Optional[ImageSize] = Field("1024x1024", description="Image size")
     quality: Optional[ImageQuality] = Field("medium", description="Quality level")
     format: Optional[ImageFormat] = Field("png", description="Output format")
     background: Optional[ImageBackground] = Field("auto", description="Background type")
-    output_compression: Optional[int] = Field(80, ge=0, le=100, description="JPEG/WebP compression")
-    moderation: Optional[Literal["auto", "low"]] = Field("auto", description="Moderation level")
+    moderation: Optional[Moderation] = Field("auto", description="Moderation level")
+    output_compression: Optional[int] = Field(None, ge=0, le=100, description="JPEG/WebP compression 0-100%")
+    n: Optional[int] = Field(1, ge=1, le=10, description="Number of images to generate")
 
 
-class ImageGenerationRequest(BaseModel):
-    """Request for image generation"""
-    prompt: str = Field(..., min_length=1, max_length=4000, description="Image generation prompt")
-    model: Optional[ImageModel] = Field("gpt-image-1.5", description="Model to use")
-    size: Optional[ImageSize] = Field("1024x1024", description="Image size")
+class FrontendImageRequest(BaseModel):
+    """Image generation request: { prompt, options }"""
+    prompt: str = Field(..., min_length=1, max_length=32000, description="Image generation prompt")
+    options: Optional[FrontendImageOptions] = Field(default_factory=FrontendImageOptions)
+
+
+# ============================================================================
+# EDIT REQUEST - Inpainting with mask
+# ============================================================================
+
+class ImageEditRequest(BaseModel):
+    """
+    Image editing with optional mask (inpainting)
+    Per OpenAI docs: supports size, quality, format, background
+    """
+    originalImageUrl: str = Field(..., description="Original image (URL or base64 data URL)")
+    maskImageUrl: Optional[str] = Field(None, description="Mask image with alpha channel")
+    prompt: str = Field(..., min_length=1, max_length=32000, description="Edit prompt")
+    # Output options per OpenAI docs
+    size: Optional[ImageSize] = Field("1024x1024", description="Output image size")
+    quality: Optional[ImageQuality] = Field("medium", description="Quality: low/medium/high")
+    format: Optional[ImageFormat] = Field("png", description="Output format: png/jpeg/webp")
+    background: Optional[ImageBackground] = Field("auto", description="Background: transparent/opaque/auto")
+    output_compression: Optional[int] = Field(None, ge=0, le=100, description="Compression for JPEG/WebP")
+
+
+# ============================================================================
+# REFERENCE REQUEST - Generate new image using reference images
+# ============================================================================
+
+class ImageReferenceRequest(BaseModel):
+    """
+    Reference-based image generation
+    Per OpenAI docs: supports multiple reference images and input_fidelity
+    - gpt-image-1.5: First 5 images preserved with high fidelity
+    - input_fidelity='high': Preserves faces, logos, fine details
+    """
+    referenceImages: List[str] = Field(..., description="Reference image URLs (max 5 for high fidelity)")
+    prompt: str = Field(..., min_length=1, max_length=32000, description="Generation prompt")
+    input_fidelity: Optional[InputFidelity] = Field("low", description="'high' preserves faces/logos")
+    # Output options
+    size: Optional[ImageSize] = Field("1024x1024", description="Output image size")
     quality: Optional[ImageQuality] = Field("medium", description="Quality level")
     format: Optional[ImageFormat] = Field("png", description="Output format")
     background: Optional[ImageBackground] = Field("auto", description="Background type")
-    style: Optional[Literal["vivid", "natural"]] = Field(None, description="Style for dall-e-3")
-    n: Optional[int] = Field(1, ge=1, le=10, description="Number of images (dall-e-2 only)")
 
+
+# ============================================================================
+# RESPONSE SCHEMAS - Match frontend expectations
+# ============================================================================
 
 class ImageGenerationMetadata(BaseModel):
     """Metadata about generated image"""
-    model: str
+    model: str = "gpt-image-1.5"
     promptUsed: str
     revisedPrompt: Optional[str] = None
     size: Optional[str] = None
@@ -52,24 +92,22 @@ class ImageGenerationMetadata(BaseModel):
     format: Optional[str] = None
 
 
-class ImageGenerationResponse(BaseModel):
-    """Response from image generation"""
-    success: bool
-    imageUrl: Optional[str] = Field(None, description="Data URL of generated image")
+class ImageGenerationData(BaseModel):
+    """Data wrapper - Frontend expects { imageUrl, metadata }"""
+    imageUrl: str = Field(..., description="Data URL of generated image")
     metadata: Optional[ImageGenerationMetadata] = None
-    generatedAt: Optional[int] = None
-    generationTime: Optional[int] = Field(None, description="Generation time in ms")
+
+
+class ImageGenerationResponse(BaseModel):
+    """Response format: { success, data: { imageUrl, metadata }, error? }"""
+    success: bool
+    data: Optional[ImageGenerationData] = None
     error: Optional[str] = None
 
 
-class ImageEditRequest(BaseModel):
-    """Request for image editing with mask"""
-    originalImageUrl: str = Field(..., description="Original image (URL or base64 data URL)")
-    maskImageUrl: str = Field(..., description="Mask image (URL or base64 data URL)")
-    prompt: str = Field(..., min_length=1, max_length=4000, description="Edit prompt")
-    model: Optional[ImageModel] = Field("gpt-image-1.5", description="Model to use")
-    size: Optional[ImageSize] = Field("1024x1024", description="Output size")
-
+# ============================================================================
+# PRESETS
+# ============================================================================
 
 class ImagePreset(BaseModel):
     """Preset configuration for image generation"""
@@ -84,68 +122,3 @@ class ImagePreset(BaseModel):
     category: Literal["platform", "quality", "style"]
 
 
-# Built-in presets for different platforms
-IMAGE_GENERATION_PRESETS = {
-    "instagram": ImagePreset(
-        id="instagram", name="Instagram Post", description="Square format, vibrant colors",
-        icon="📸", size="1024x1024", quality="medium", format="png", background="auto", category="platform"
-    ),
-    "twitter": ImagePreset(
-        id="twitter", name="Twitter/X", description="Landscape, optimized for feed",
-        icon="🐦", size="1536x1024", quality="medium", format="jpeg", background="auto", category="platform"
-    ),
-    "story": ImagePreset(
-        id="story", name="Instagram Story", description="Vertical format for stories",
-        icon="📱", size="1024x1536", quality="high", format="png", background="auto", category="platform"
-    ),
-    "linkedin": ImagePreset(
-        id="linkedin", name="LinkedIn", description="Professional, corporate style",
-        icon="💼", size="1024x1024", quality="high", format="png", background="auto", category="platform"
-    ),
-    "facebook": ImagePreset(
-        id="facebook", name="Facebook", description="Landscape format for Facebook posts",
-        icon="📘", size="1536x1024", quality="medium", format="jpeg", background="auto", category="platform"
-    ),
-    "tiktok": ImagePreset(
-        id="tiktok", name="TikTok", description="Vertical format for TikTok",
-        icon="🎵", size="1024x1536", quality="high", format="png", background="auto", category="platform"
-    ),
-    "youtube": ImagePreset(
-        id="youtube", name="YouTube Thumbnail", description="Landscape for thumbnails",
-        icon="📺", size="1536x1024", quality="high", format="jpeg", background="auto", category="platform"
-    ),
-    "fast": ImagePreset(
-        id="fast", name="Fast Generation", description="Quick preview quality",
-        icon="⚡", size="1024x1024", quality="low", format="jpeg", background="auto", category="quality"
-    ),
-    "premium": ImagePreset(
-        id="premium", name="Premium Quality", description="Best quality, transparent",
-        icon="💎", size="1024x1024", quality="high", format="png", background="transparent", category="quality"
-    ),
-    "product": ImagePreset(
-        id="product", name="Product Photo", description="Clean background, high quality",
-        icon="📦", size="1024x1024", quality="high", format="png", background="transparent", category="style"
-    ),
-}
-
-
-def get_preset_for_platform(platform: str) -> ImageGenerationOptions:
-    """Get optimal image generation settings for a platform"""
-    platform_lower = platform.lower()
-    preset = IMAGE_GENERATION_PRESETS.get(platform_lower)
-    
-    if preset:
-        return ImageGenerationOptions(
-            size=preset.size,
-            quality=preset.quality,
-            format=preset.format,
-            background=preset.background
-        )
-    
-    # Default fallback
-    return ImageGenerationOptions(
-        size="1024x1024",
-        quality="medium",
-        format="png",
-        background="auto"
-    )

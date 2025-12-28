@@ -12,12 +12,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Loader2, 
-  Sparkles, 
-  Info, 
-  Upload, 
-  ImageIcon, 
+import {
+  Loader2,
+  Sparkles,
+  Info,
+  Upload,
+  ImageIcon,
   X,
   FolderOpen,
   Plus,
@@ -77,7 +77,7 @@ export function VeoReferenceImages({
   const [resolution, setResolution] = useState<VeoResolution>('720p');
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [showLibrary, setShowLibrary] = useState(false);
-  
+
   // Prompt improvement state
   const [showImprovementModal, setShowImprovementModal] = useState(false);
   const [improvementInstructions, setImprovementInstructions] = useState('');
@@ -92,17 +92,17 @@ export function VeoReferenceImages({
     if (errorMessage.includes('429') || errorMessage.includes('rate') || errorMessage.includes('quota')) return 'Rate limit exceeded. Try a different model.';
     return 'Failed to improve prompt. Please try again.';
   };
-  
+
   // Library state
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch library images
   const fetchLibraryImages = useCallback(async () => {
     if (!workspaceId) return;
-    
+
     setIsLoadingLibrary(true);
     try {
       const response = await fetch(`/api/media-studio/library?workspace_id=${workspaceId}&type=image&limit=20`);
@@ -223,7 +223,7 @@ export function VeoReferenceImages({
       // Update prompt with improved version
       setPrompt(data.improvedPrompt);
       setImprovementInstructions('');
-      
+
     } catch (error) {
       console.error('Prompt improvement error:', error);
       setImprovementError(getUserFriendlyError(error));
@@ -250,11 +250,13 @@ export function VeoReferenceImages({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          referenceImageUrls: referenceImages,
           prompt: prompt.trim(),
           model,
           aspectRatio,
-          resolution,
+          referenceImages: referenceImages.map(url => ({
+            imageUrl: url,
+            referenceType: 'asset',
+          })),
         }),
       });
 
@@ -357,8 +359,8 @@ export function VeoReferenceImages({
               >
                 <X className="w-3 h-3" />
               </Button>
-              <Badge 
-                className="absolute bottom-1 left-1 text-[10px]" 
+              <Badge
+                className="absolute bottom-1 left-1 text-[10px]"
                 variant="secondary"
               >
                 {index === 0 ? 'Primary' : `Ref ${index + 1}`}
@@ -400,7 +402,7 @@ export function VeoReferenceImages({
                 </Button>
               </div>
             </div>
-            
+
             {isLoadingLibrary ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -412,11 +414,10 @@ export function VeoReferenceImages({
                     key={img.id}
                     onClick={() => handleSelectLibraryImage(img.url)}
                     disabled={referenceImages.length >= VEO_MAX_REFERENCE_IMAGES}
-                    className={`relative aspect-square rounded-lg overflow-hidden transition-all ${
-                      referenceImages.length >= VEO_MAX_REFERENCE_IMAGES 
-                        ? 'opacity-50 cursor-not-allowed' 
+                    className={`relative aspect-square rounded-lg overflow-hidden transition-all ${referenceImages.length >= VEO_MAX_REFERENCE_IMAGES
+                        ? 'opacity-50 cursor-not-allowed'
                         : 'hover:ring-2 ring-purple-500'
-                    }`}
+                      }`}
                   >
                     <img
                       src={img.url}
@@ -433,11 +434,10 @@ export function VeoReferenceImages({
                     key={img.id}
                     onClick={() => handleSelectLibraryImage(img.url)}
                     disabled={referenceImages.length >= VEO_MAX_REFERENCE_IMAGES}
-                    className={`relative aspect-square rounded-lg overflow-hidden transition-all ${
-                      referenceImages.length >= VEO_MAX_REFERENCE_IMAGES 
-                        ? 'opacity-50 cursor-not-allowed' 
+                    className={`relative aspect-square rounded-lg overflow-hidden transition-all ${referenceImages.length >= VEO_MAX_REFERENCE_IMAGES
+                        ? 'opacity-50 cursor-not-allowed'
                         : 'hover:ring-2 ring-purple-500'
-                    }`}
+                      }`}
                   >
                     <img
                       src={img.url}

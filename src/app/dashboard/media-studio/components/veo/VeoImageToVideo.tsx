@@ -11,12 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Loader2, 
-  Sparkles, 
-  Info, 
-  Upload, 
-  ImageIcon, 
+import {
+  Loader2,
+  Sparkles,
+  Info,
+  Upload,
+  ImageIcon,
   X,
   FolderOpen,
   RefreshCw,
@@ -78,7 +78,7 @@ export function VeoImageToVideo({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageSource, setImageSource] = useState<'upload' | 'library' | null>(null);
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
-  
+
   // Prompt improvement state
   const [showImprovementModal, setShowImprovementModal] = useState(false);
   const [improvementInstructions, setImprovementInstructions] = useState('');
@@ -93,17 +93,17 @@ export function VeoImageToVideo({
     if (errorMessage.includes('429') || errorMessage.includes('rate') || errorMessage.includes('quota')) return 'Rate limit exceeded. Try a different model.';
     return 'Failed to improve prompt. Please try again.';
   };
-  
+
   // Library state
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch library images
   const fetchLibraryImages = useCallback(async () => {
     if (!workspaceId) return;
-    
+
     setIsLoadingLibrary(true);
     try {
       const response = await fetch(`/api/media-studio/library?workspace_id=${workspaceId}&type=image&limit=20`);
@@ -126,7 +126,7 @@ export function VeoImageToVideo({
 
   // Validation: 1080p only available for 8s duration
   const is1080pDisabled = duration !== 8;
-  
+
   React.useEffect(() => {
     if (resolution === '1080p' && duration !== 8) {
       setResolution('720p');
@@ -224,7 +224,7 @@ export function VeoImageToVideo({
       // Update prompt with improved version
       setPrompt(data.improvedPrompt);
       setImprovementInstructions('');
-      
+
     } catch (error) {
       console.error('Prompt improvement error:', error);
       setImprovementError(getUserFriendlyError(error));
@@ -255,7 +255,7 @@ export function VeoImageToVideo({
           prompt: prompt.trim(),
           model,
           aspectRatio,
-          duration,
+          durationSeconds: duration,
           resolution,
         }),
       });
@@ -300,7 +300,7 @@ export function VeoImageToVideo({
       {/* Image Upload Section */}
       <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
         <Label className="text-sm font-medium">First Frame Image</Label>
-        
+
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -523,8 +523,8 @@ export function VeoImageToVideo({
             </SelectTrigger>
             <SelectContent>
               {VEO_RESOLUTION_OPTIONS.map((opt) => (
-                <SelectItem 
-                  key={opt.value} 
+                <SelectItem
+                  key={opt.value}
                   value={opt.value}
                   disabled={opt.value === '1080p' && is1080pDisabled}
                 >

@@ -114,6 +114,7 @@ app.add_middleware(AuthMiddleware)
 # Include API routers
 from .api import (
     content_router,
+    content_improvement_router,
     improve_media_prompts_router,
     media_generating_router,
     comments_router,
@@ -134,6 +135,7 @@ from .api import (
     youtube_router
 )
 app.include_router(content_router)
+app.include_router(content_improvement_router)
 app.include_router(improve_media_prompts_router)
 app.include_router(media_generating_router)
 app.include_router(comments_router)

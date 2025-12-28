@@ -83,6 +83,50 @@ const nextConfig = {
         source: '/api/media/:path*',
         destination: `${pythonBackendUrl}/api/v1/media/:path*`,
       },
+      // AI Media Generation routes (frontend uses /api/ai/media/*)
+      {
+        source: '/api/ai/media/imagen/:path*',
+        destination: `${pythonBackendUrl}/api/v1/media/imagen/:path*`,
+      },
+      {
+        source: '/api/ai/media/imagen',
+        destination: `${pythonBackendUrl}/api/v1/media/imagen`,
+      },
+      {
+        source: '/api/ai/media/image/:path*',
+        destination: `${pythonBackendUrl}/api/v1/media/image/:path*`,
+      },
+      {
+        source: '/api/ai/media/audio/:path*',
+        destination: `${pythonBackendUrl}/api/v1/media/audio/:path*`,
+      },
+      {
+        source: '/api/ai/media/video/:path*',
+        destination: `${pythonBackendUrl}/api/v1/media/video/:path*`,
+      },
+      // Veo routes (veo uses same video backend)
+      {
+        source: '/api/ai/media/veo/:path*',
+        destination: `${pythonBackendUrl}/api/v1/media/video/:path*`,
+      },
+      {
+        source: '/api/ai/media/veo',
+        destination: `${pythonBackendUrl}/api/v1/media/video/generate`,
+      },
+      // Sora routes (OpenAI Video Generation)
+      {
+        source: '/api/ai/media/sora/:path*',
+        destination: `${pythonBackendUrl}/api/v1/media/sora/:path*`,
+      },
+      {
+        source: '/api/ai/media/sora',
+        destination: `${pythonBackendUrl}/api/v1/media/sora/generate`,
+      },
+      // Prompt improvement routes (maps to /improve/prompt)
+      {
+        source: '/api/ai/media/prompt/improve',
+        destination: `${pythonBackendUrl}/api/v1/improve/prompt`,
+      },
     ];
   },
 };

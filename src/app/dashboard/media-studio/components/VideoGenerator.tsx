@@ -33,6 +33,7 @@ import {
 import type { GeneratedVideo, GeneratedImage, VideoGenerationConfig } from '../types/mediaStudio.types';
 import { useMediaLibrary } from '../hooks/useMediaLibrary';
 import { AI_MODELS, DEFAULT_AI_MODEL_ID, getModelDisplayName } from '@/constants/aiModels';
+import { useVideoGeneration } from '@/contexts/VideoGenerationContext';
 
 interface VideoGeneratorProps {
   onVideoStarted: (video: GeneratedVideo) => void;
@@ -108,27 +109,34 @@ type GenerationMode = 'text' | 'image' | 'remix';
 export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, recentImages }: VideoGeneratorProps) {
   // Media Library hook for saving to database
   const { saveGeneratedMedia, createHistoryEntry, markGenerationFailed, isEnabled: canSaveToDb, workspaceId } = useMediaLibrary();
-  
+
+  // Global video generation context for persistent polling across pages
+  const { startSoraPolling, activeJobs, getJobStatus } = useVideoGeneration();
+
   // State
   const [mode, setMode] = useState<GenerationMode>('text');
   const [model, setModel] = useState<SoraModel>('sora-2');
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState('1280x720');
   const [seconds, setSeconds] = useState(8);
-  
+
   // Image-to-video state
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  
+
   // Library picker state
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
   const [libraryImages, setLibraryImages] = useState<any[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-  
+
+  // Library videos for remix (from database)
+  const [libraryVideos, setLibraryVideos] = useState<GeneratedVideo[]>([]);
+  const [isLoadingLibraryVideos, setIsLoadingLibraryVideos] = useState(false);
+
   // Remix state
   const [selectedVideoForRemix, setSelectedVideoForRemix] = useState<GeneratedVideo | null>(null);
   const [remixPrompt, setRemixPrompt] = useState('');
-  
+
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentVideo, setCurrentVideo] = useState<GeneratedVideo | null>(null);
@@ -136,7 +144,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const [generationStartTime, setGenerationStartTime] = useState<number>(0);
-  
+
   // Prompt improvement state
   const [showImprovementModal, setShowImprovementModal] = useState(false);
   const [improvementInstructions, setImprovementInstructions] = useState('');
@@ -168,7 +176,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
     }
     return 'Failed to improve prompt. Please try again.';
   };
-  
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,7 +206,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
   // Fetch library images
   const fetchLibraryImages = useCallback(async () => {
     if (!workspaceId) return;
-    
+
     setIsLoadingLibrary(true);
     try {
       const response = await fetch(`/api/media-studio/library?workspace_id=${workspaceId}&type=image&limit=20`);
@@ -219,6 +227,43 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
     }
   }, [showLibraryPicker, fetchLibraryImages]);
 
+  // Fetch library videos for remix
+  const fetchLibraryVideos = useCallback(async () => {
+    if (!workspaceId) return;
+
+    setIsLoadingLibraryVideos(true);
+    try {
+      const response = await fetch(`/api/media-studio/library?workspace_id=${workspaceId}&type=video&limit=50`);
+      const data = await response.json();
+      if (data.items) {
+        // Filter to only Sora-generated videos
+        const soraVideos = data.items.filter((item: any) =>
+          item.source?.startsWith('sora-') || item.model?.startsWith('sora-')
+        ).map((item: any) => ({
+          id: item.id,
+          url: item.url,
+          prompt: item.prompt,
+          config: item.config || {},
+          status: 'completed' as const,
+          createdAt: new Date(item.created_at).getTime(),
+          thumbnailUrl: item.thumbnail_url,
+        }));
+        setLibraryVideos(soraVideos);
+      }
+    } catch (err) {
+      console.error('Failed to fetch library videos:', err);
+    } finally {
+      setIsLoadingLibraryVideos(false);
+    }
+  }, [workspaceId]);
+
+  // Load library videos when remix mode is active
+  useEffect(() => {
+    if (mode === 'remix') {
+      fetchLibraryVideos();
+    }
+  }, [mode, fetchLibraryVideos]);
+
   // Handle selecting image from library
   const handleLibrarySelect = (imageUrl: string) => {
     setSelectedImageUrl(imageUrl);
@@ -227,79 +272,97 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
     setError(null);
   };
 
+  // Poll count ref for timeout protection (max 96 polls = 8 minutes)
+  const pollCountRef = useRef<number>(0);
+  const MAX_POLLS = 96;
+
   // Poll video status
   const pollVideoStatus = useCallback(async (videoId: string) => {
     try {
-      const response = await fetch('/api/ai/media/video/status', {
+      // Timeout protection
+      pollCountRef.current += 1;
+      if (pollCountRef.current > MAX_POLLS) {
+        console.error('Video generation timeout - max polls exceeded');
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        setError('Video generation timed out. Please try again.');
+        setIsGenerating(false);
+        return;
+      }
+
+      const response = await fetch('/api/ai/media/sora/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoId }),
       });
 
+      if (!response.ok) {
+        console.error('Status check failed:', response.status);
+        return; // Continue polling on network errors
+      }
+
       const data = await response.json();
-      
+
       if (data.success && data.data?.video) {
         const video = data.data.video;
-        
+
         if (video.status === 'completed') {
           // Fetch the video content
-          const fetchResponse = await fetch('/api/ai/media/video/fetch', {
+          const fetchResponse = await fetch('/api/ai/media/sora/fetch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ videoId }),
           });
+
+          if (!fetchResponse.ok) {
+            throw new Error('Failed to fetch video content');
+          }
+
           const fetchData = await fetchResponse.json();
+
+          if (!fetchData.success) {
+            throw new Error(fetchData.error || 'Failed to download video');
+          }
+
           const videoUrl = fetchData.data?.videoData;
-          
+
           onVideoUpdate(videoId, {
             status: 'completed',
             url: videoUrl,
             progress: 100,
           });
-          
+
           setCurrentVideo(prev => prev ? {
             ...prev,
             status: 'completed',
             url: videoUrl,
             progress: 100,
           } : null);
-          
-          // Save completed video to database
-          if (canSaveToDb && videoUrl && currentVideo) {
-            const genTime = generationStartTime > 0 ? Date.now() - generationStartTime : undefined;
-            await saveGeneratedMedia({
-              type: 'video',
-              source: mode === 'image' ? 'image-to-video' : mode === 'remix' ? 'remix' : 'generated',
-              url: videoUrl,
-              prompt: currentVideo.prompt,
-              model,
-              config: { size, seconds, mode },
-            }, currentHistoryId, genTime);
-          }
-          
+
+          // Clear polling
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
+          pollCountRef.current = 0;
           setIsGenerating(false);
-          setCurrentHistoryId(null);
+
         } else if (video.status === 'failed') {
+          const errorMsg = video.error || 'Video generation failed';
           onVideoUpdate(videoId, { status: 'failed', progress: 0 });
-          setError('Video generation failed. Please try again.');
-          
-          // Mark generation as failed in history
-          if (currentHistoryId) {
-            await markGenerationFailed(currentHistoryId, 'Video generation failed');
-          }
-          
+          setError(errorMsg);
+
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
+          pollCountRef.current = 0;
           setIsGenerating(false);
-          setCurrentHistoryId(null);
+
         } else {
-          // Still processing
+          // Still processing (queued or in_progress)
           const progress = video.progress || 0;
           onVideoUpdate(videoId, {
             status: video.status,
@@ -311,8 +374,12 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
             progress,
           } : null);
         }
+      } else if (data.error) {
+        console.error('Status response error:', data.error);
       }
     } catch (err) {
+      console.error('Poll video status error:', err);
+      // Don't stop polling on transient errors, let timeout handle it
     }
   }, [onVideoUpdate]);
 
@@ -324,6 +391,51 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
       }
     };
   }, []);
+
+  // Save completed video to database when status changes to completed
+  useEffect(() => {
+    const saveCompletedVideo = async () => {
+      if (
+        currentVideo?.status === 'completed' &&
+        currentVideo?.url &&
+        canSaveToDb &&
+        currentHistoryId
+      ) {
+        const genTime = generationStartTime > 0 ? Date.now() - generationStartTime : undefined;
+        try {
+          await saveGeneratedMedia({
+            type: 'video',
+            source: mode === 'image' ? 'image-to-video' : mode === 'remix' ? 'remix' : 'generated',
+            url: currentVideo.url,
+            prompt: currentVideo.prompt,
+            model,
+            config: { size, seconds, mode },
+          }, currentHistoryId, genTime);
+        } catch (err) {
+          console.error('Failed to save video to database:', err);
+        }
+        setCurrentHistoryId(null);
+      }
+    };
+
+    saveCompletedVideo();
+  }, [currentVideo?.status, currentVideo?.url]);
+
+  // Mark failed generations in history
+  useEffect(() => {
+    const markFailed = async () => {
+      if (currentVideo?.status === 'failed' && currentHistoryId) {
+        try {
+          await markGenerationFailed(currentHistoryId, 'Video generation failed');
+        } catch (err) {
+          console.error('Failed to mark generation as failed:', err);
+        }
+        setCurrentHistoryId(null);
+      }
+    };
+
+    markFailed();
+  }, [currentVideo?.status]);
 
   // Handle improve prompt click
   const handleImprovePrompt = () => {
@@ -384,7 +496,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
         setPrompt(data.improvedPrompt);
       }
       setImprovementInstructions('');
-      
+
     } catch (error) {
       console.error('Prompt improvement error:', error);
       setImprovementError(getUserFriendlyError(error));
@@ -438,25 +550,25 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
       let requestBody: any;
 
       if (mode === 'remix') {
-        // Video Remix - POST /api/ai/media/video/remix
-        endpoint = '/api/ai/media/video/remix';
+        // Video Remix - POST /api/ai/media/sora/remix
+        endpoint = '/api/ai/media/sora/remix';
         requestBody = {
           previousVideoId: selectedVideoForRemix!.id,
           prompt: remixPrompt,
         };
       } else if (mode === 'image') {
-        // Image-to-Video - POST /api/ai/media/video/image-to-video
-        endpoint = '/api/ai/media/video/image-to-video';
+        // Image-to-Video - POST /api/ai/media/sora/image-to-video
+        endpoint = '/api/ai/media/sora/image-to-video';
         requestBody = {
           imageUrl: selectedImageUrl,
           prompt,
           model,
           size,
-          seconds,
+          seconds: String(seconds),
         };
       } else {
-        // Text-to-Video - POST /api/ai/media/video
-        endpoint = '/api/ai/media/video';
+        // Text-to-Video - POST /api/ai/media/sora/generate
+        endpoint = '/api/ai/media/sora/generate';
         requestBody = {
           prompt,
           model,
@@ -490,7 +602,11 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
       setCurrentVideo(generatedVideo);
       onVideoStarted(generatedVideo);
 
-      // Start polling for status every 5 seconds
+      // Start global polling (persists across page navigation)
+      startSoraPolling(data.videoId, mode === 'remix' ? remixPrompt : prompt, model);
+
+      // Also start local polling for immediate UI updates
+      pollCountRef.current = 0;
       pollIntervalRef.current = setInterval(() => {
         pollVideoStatus(data.videoId);
       }, 5000);
@@ -499,7 +615,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
       const errorMsg = err instanceof Error ? err.message : 'Generation failed';
       setError(errorMsg);
       setIsGenerating(false);
-      
+
       // Mark generation as failed
       if (historyId) {
         await markGenerationFailed(historyId, errorMsg);
@@ -616,7 +732,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
                 Reference Image (First Frame)
                 <Badge variant="secondary" className="text-xs">Required</Badge>
               </label>
-              
+
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
@@ -762,7 +878,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
                 <p className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
                   <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <span>
-                    <strong>Note:</strong> Video Remix only works with videos generated by OpenAI Sora. 
+                    <strong>Note:</strong> Video Remix only works with videos generated by OpenAI Sora.
                     External video uploads are not supported by the API. Generate a video first, then remix it.
                   </span>
                 </p>
@@ -770,45 +886,82 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
 
               {/* Video Selection */}
               <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  Select Video to Remix
-                  <Badge variant="secondary" className="text-xs">Required</Badge>
-                </label>
-                
-                {completedVideos.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {completedVideos.slice(0, 4).map((video) => (
-                      <button
-                        key={video.id}
-                        className={`aspect-video bg-muted rounded-md overflow-hidden relative transition-all ${
-                          selectedVideoForRemix?.id === video.id
-                            ? 'ring-2 ring-primary'
-                            : 'hover:ring-2 hover:ring-muted-foreground/50'
-                        }`}
-                        onClick={() => setSelectedVideoForRemix(video)}
-                      >
-                        {video.url && (
-                          <video src={video.url} className="w-full h-full object-cover" muted />
-                        )}
-                        {selectedVideoForRemix?.id === video.id && (
-                          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                            <Check className="w-8 h-8 text-primary" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-6 border-2 border-dashed rounded-lg text-center">
-                    <Film className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-2">
-                      No Sora videos available yet
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Generate a video using Text or Image mode first, then come back to remix it
-                    </p>
-                  </div>
-                )}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    Select Video to Remix
+                    <Badge variant="secondary" className="text-xs">Required</Badge>
+                  </label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchLibraryVideos}
+                    disabled={isLoadingLibraryVideos}
+                    className="h-7 px-2"
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${isLoadingLibraryVideos ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+
+                {/* Combine recent completed videos with library videos (deduplicated) */}
+                {(() => {
+                  const allVideos = [
+                    ...completedVideos,
+                    ...libraryVideos.filter(lv => !completedVideos.some(cv => cv.id === lv.id))
+                  ];
+
+                  if (isLoadingLibraryVideos && allVideos.length === 0) {
+                    return (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      </div>
+                    );
+                  }
+
+                  if (allVideos.length > 0) {
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto">
+                          {allVideos.map((video) => (
+                            <button
+                              key={video.id}
+                              className={`aspect-video bg-muted rounded-md overflow-hidden relative transition-all ${selectedVideoForRemix?.id === video.id
+                                ? 'ring-2 ring-primary'
+                                : 'hover:ring-2 hover:ring-muted-foreground/50'
+                                }`}
+                              onClick={() => setSelectedVideoForRemix(video)}
+                            >
+                              {video.url && (
+                                <video src={video.url} className="w-full h-full object-cover" muted />
+                              )}
+                              {selectedVideoForRemix?.id === video.id && (
+                                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                  <Check className="w-8 h-8 text-primary" />
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <FolderOpen className="w-3 h-3" />
+                          {libraryVideos.length} from library, {completedVideos.length} recent
+                        </p>
+                      </>
+                    );
+                  }
+
+                  return (
+                    <div className="p-6 border-2 border-dashed rounded-lg text-center">
+                      <Film className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        No Sora videos available yet
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Generate a video using Text or Image mode first, then come back to remix it
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Remix Prompt - Always visible */}
@@ -886,15 +1039,15 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
               <div className="flex flex-wrap gap-2">
                 {PLATFORM_PRESETS.map((preset) => {
                   const isSelected = size === preset.size && seconds === preset.seconds && model === preset.model;
-                  
+
                   return (
                     <button
                       key={preset.id}
                       onClick={() => applyPreset(preset.id)}
                       className={`
                         px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200
-                        ${isSelected 
-                          ? 'border-[var(--ms-primary)] bg-[var(--ms-primary)] text-white' 
+                        ${isSelected
+                          ? 'border-[var(--ms-primary)] bg-[var(--ms-primary)] text-white'
                           : 'border-[var(--ms-border)] hover:border-[var(--ms-primary)]/50 hover:bg-muted/50 text-foreground'
                         }
                       `}
@@ -916,11 +1069,10 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
                   <button
                     key={m.value}
                     onClick={() => setModel(m.value)}
-                    className={`p-3 rounded-lg border-2 text-left transition-all duration-200 ${
-                      model === m.value
-                        ? 'border-[var(--ms-primary)] bg-[var(--ms-primary)]/10 dark:bg-[var(--ms-primary)]/20'
-                        : 'border-[var(--ms-border)] hover:border-[var(--ms-primary)]/50'
-                    }`}
+                    className={`p-3 rounded-lg border-2 text-left transition-all duration-200 ${model === m.value
+                      ? 'border-[var(--ms-primary)] bg-[var(--ms-primary)]/10 dark:bg-[var(--ms-primary)]/20'
+                      : 'border-[var(--ms-border)] hover:border-[var(--ms-primary)]/50'
+                      }`}
                   >
                     <div className="font-medium text-sm text-foreground">{m.label}</div>
                     <div className="text-xs text-muted-foreground">{m.description}</div>
@@ -1026,27 +1178,27 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
               <div className="w-full h-full flex flex-col items-center justify-center p-6" style={{ background: 'var(--ms-gradient-subtle)' }}>
                 {/* Cinematic Loading Animation */}
                 <div className="relative mb-8">
-                  <div 
-                    className="absolute inset-0 rounded-full blur-xl opacity-40 animate-pulse" 
+                  <div
+                    className="absolute inset-0 rounded-full blur-xl opacity-40 animate-pulse"
                     style={{ background: 'var(--ms-primary)' }}
                   />
                   <div className="relative w-20 h-20 rounded-full border-4 border-[var(--ms-border)] flex items-center justify-center">
-                    <div 
+                    <div
                       className="absolute inset-1 rounded-full border-4 border-transparent border-t-[var(--ms-primary)] animate-spin"
                     />
                     <Clapperboard className="w-8 h-8" style={{ color: 'var(--ms-primary)' }} />
                   </div>
                 </div>
-                
+
                 <p className="ms-heading-sm mb-2">
                   {currentVideo.status === 'queued' ? 'In Queue...' : 'Rendering Video'}
                 </p>
                 <p className="ms-caption mb-6">
-                  {currentVideo.status === 'queued' 
-                    ? 'Your video will start processing soon' 
+                  {currentVideo.status === 'queued'
+                    ? 'Your video will start processing soon'
                     : 'AI is generating your video frame by frame'}
                 </p>
-                
+
                 {/* Cinematic Progress Bar */}
                 {currentVideo.progress !== undefined && (
                   <div className="w-full max-w-sm">
@@ -1065,11 +1217,11 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
                         Est. {selectedModel.estimatedTime}
                       </span>
                     </div>
-                    
+
                     {/* Timeline Preview */}
                     <div className="ms-timeline mt-4">
                       {Array.from({ length: Math.ceil(seconds / 2) }).map((_, i) => (
-                        <div 
+                        <div
                           key={i}
                           className={`ms-timeline-segment ${(currentVideo.progress || 0) > (i / Math.ceil(seconds / 2)) * 100 ? 'active' : ''}`}
                         />
@@ -1157,7 +1309,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
                         onMouseEnter={(e) => {
                           const vid = e.target as HTMLVideoElement;
                           if (vid.readyState >= 2 && vid.src) {
-                            vid.play().catch(() => {});
+                            vid.play().catch(() => { });
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -1269,7 +1421,7 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
                     <span>{getModelDisplayName(selectedAIModelId)}</span>
                     <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${showAIModelDropdown ? 'rotate-180' : ''}`} />
                   </button>
-                  
+
                   {showAIModelDropdown && (
                     <div className="absolute top-full left-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto whitespace-nowrap">
                       {AI_MODELS.map((aiModel) => (
@@ -1280,9 +1432,8 @@ export function VideoGenerator({ onVideoStarted, onVideoUpdate, recentVideos, re
                             setSelectedAIModelId(aiModel.id);
                             setShowAIModelDropdown(false);
                           }}
-                          className={`w-full px-3 py-1.5 text-left hover:bg-muted transition-colors flex items-center gap-2 text-xs ${
-                            selectedAIModelId === aiModel.id ? 'bg-primary/10' : ''
-                          }`}
+                          className={`w-full px-3 py-1.5 text-left hover:bg-muted transition-colors flex items-center gap-2 text-xs ${selectedAIModelId === aiModel.id ? 'bg-primary/10' : ''
+                            }`}
                         >
                           <span className="text-foreground">{aiModel.name} <span className="text-muted-foreground">({aiModel.providerLabel})</span></span>
                           {selectedAIModelId === aiModel.id && (

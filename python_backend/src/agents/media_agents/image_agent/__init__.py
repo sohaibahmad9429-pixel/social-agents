@@ -1,21 +1,22 @@
 """Image Agent - Main Export"""
-from .service import generate_image, generate_image_edit
+from .service import generate_image, generate_image_edit, generate_image_reference
 from .schemas import (
-    ImageGenerationRequest,
-    ImageGenerationResponse,
+    FrontendImageRequest,
     ImageEditRequest,
-    ImageGenerationOptions,
-    IMAGE_GENERATION_PRESETS,
-    get_preset_for_platform,
+    ImageReferenceRequest,
+    ImageGenerationResponse,
+    ImageGenerationData,
+    ImageGenerationMetadata,
 )
 
 __all__ = [
     "generate_image",
     "generate_image_edit",
-    "ImageGenerationRequest",
-    "ImageGenerationResponse",
+    "generate_image_reference",
+    "FrontendImageRequest",
     "ImageEditRequest",
-    "ImageGenerationOptions",
-    "IMAGE_GENERATION_PRESETS",
-    "get_preset_for_platform",
+    "ImageReferenceRequest",
+    "ImageGenerationResponse",
+    "ImageGenerationData",
+    "ImageGenerationMetadata",
 ]

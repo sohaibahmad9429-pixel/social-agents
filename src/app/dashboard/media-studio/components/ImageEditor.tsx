@@ -106,6 +106,34 @@ const FIDELITY_OPTIONS = [
 ];
 
 // ============================================================================
+// OPENAI EDIT OPTIONS - Per latest API docs
+// ============================================================================
+
+const OPENAI_EDIT_SIZES = [
+  { value: '1024x1024', label: 'Square (1024×1024)' },
+  { value: '1536x1024', label: 'Landscape (1536×1024)' },
+  { value: '1024x1536', label: 'Portrait (1024×1536)' },
+];
+
+const OPENAI_EDIT_QUALITIES = [
+  { value: 'low', label: 'Low (Fastest)' },
+  { value: 'medium', label: 'Medium (Balanced)' },
+  { value: 'high', label: 'High (Best Quality)' },
+];
+
+const OPENAI_EDIT_FORMATS = [
+  { value: 'png', label: 'PNG', description: 'Best for transparency' },
+  { value: 'jpeg', label: 'JPEG', description: 'Smaller file size' },
+  { value: 'webp', label: 'WebP', description: 'Modern, efficient' },
+];
+
+const OPENAI_EDIT_BACKGROUNDS = [
+  { value: 'auto', label: 'Auto', description: 'AI decides' },
+  { value: 'transparent', label: 'Transparent', description: 'PNG/WebP only' },
+  { value: 'opaque', label: 'Opaque', description: 'Solid background' },
+];
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
@@ -120,6 +148,12 @@ export function ImageEditor({ onImageGenerated, recentImages }: ImageEditorProps
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [maskDataUrl, setMaskDataUrl] = useState<string | null>(null);
   const [inputFidelity, setInputFidelity] = useState<'low' | 'high'>('high');
+
+  // OpenAI edit options state
+  const [editSize, setEditSize] = useState('1024x1024');
+  const [editQuality, setEditQuality] = useState('medium');
+  const [editFormat, setEditFormat] = useState('png');
+  const [editBackground, setEditBackground] = useState('auto');
 
   // Gemini 3 Pro edit options
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
@@ -514,6 +548,10 @@ export function ImageEditor({ onImageGenerated, recentImages }: ImageEditorProps
             originalImageUrl: selectedImage,
             maskImageUrl: properMaskUrl,
             prompt,
+            size: editSize,
+            quality: editQuality,
+            format: editFormat,
+            background: editBackground,
           }),
         });
       } else if (editMode === 'reference') {
@@ -525,6 +563,10 @@ export function ImageEditor({ onImageGenerated, recentImages }: ImageEditorProps
             referenceImages: [selectedImage],
             prompt,
             input_fidelity: inputFidelity,
+            size: editSize,
+            quality: editQuality,
+            format: editFormat,
+            background: editBackground,
           }),
         });
       } else if (editMode === 'multi-turn') {
@@ -914,6 +956,87 @@ export function ImageEditor({ onImageGenerated, recentImages }: ImageEditorProps
             </div>
           )}
 
+          {/* OPENAI EDIT OPTIONS - For inpaint and reference modes */}
+          {(editMode === 'inpaint' || editMode === 'reference') && (
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4" />
+                <span className="text-sm font-medium">Output Options</span>
+              </div>
+
+              {/* Size */}
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Size</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {OPENAI_EDIT_SIZES.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={() => setEditSize(s.value)}
+                      className={`p-2 rounded-lg border text-center transition-all ${editSize === s.value
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                          : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <div className="font-medium text-xs">{s.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quality */}
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Quality</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {OPENAI_EDIT_QUALITIES.map((q) => (
+                    <button
+                      key={q.value}
+                      onClick={() => setEditQuality(q.value)}
+                      className={`p-2 rounded-lg border text-center transition-all ${editQuality === q.value
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                          : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <div className="font-medium text-xs">{q.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Format and Background Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Format</label>
+                  <select
+                    value={editFormat}
+                    onChange={(e) => setEditFormat(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+                  >
+                    {OPENAI_EDIT_FORMATS.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Background</label>
+                  <select
+                    value={editBackground}
+                    onChange={(e) => setEditBackground(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+                  >
+                    {OPENAI_EDIT_BACKGROUNDS.map((b) => (
+                      <option key={b.value} value={b.value}>{b.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                Transparent background works with PNG/WebP and medium+ quality
+              </p>
+            </div>
+          )}
+
           {/* GEMINI MODE: Aspect Ratio and Resolution */}
           {editMode === 'gemini' && (
             <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
@@ -1211,8 +1334,8 @@ export function ImageEditor({ onImageGenerated, recentImages }: ImageEditorProps
                       <div
                         key={idx}
                         className={`p-2 rounded-lg text-sm ${msg.role === 'user'
-                            ? 'bg-primary/10 ml-4'
-                            : 'bg-muted mr-4'
+                          ? 'bg-primary/10 ml-4'
+                          : 'bg-muted mr-4'
                           }`}
                       >
                         <div className="text-xs text-muted-foreground mb-1">

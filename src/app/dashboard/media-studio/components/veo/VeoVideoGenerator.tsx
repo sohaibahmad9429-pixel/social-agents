@@ -22,6 +22,7 @@ import { VeoReferenceImages } from './VeoReferenceImages';
 import { VeoPreviewPanel } from './VeoPreviewPanel';
 import type { GeneratedVeoVideo, GeneratedImage } from '../../types/mediaStudio.types';
 import { useMediaLibrary } from '../../hooks/useMediaLibrary';
+import { useVideoGeneration } from '@/contexts/VideoGenerationContext';
 
 // ============================================================================
 // Types
@@ -59,7 +60,10 @@ export function VeoVideoGenerator({
   recentImages,
 }: VeoVideoGeneratorProps) {
   const { saveGeneratedMedia, createHistoryEntry, markGenerationFailed, isEnabled: canSaveToDb, workspaceId } = useMediaLibrary();
-  
+
+  // Global video generation context for persistent polling across pages
+  const { startVeoPolling } = useVideoGeneration();
+
   // State
   const [mode, setMode] = useState<VeoMode>('text');
   const [currentVideo, setCurrentVideo] = useState<GeneratedVeoVideo | null>(null);
@@ -67,14 +71,14 @@ export function VeoVideoGenerator({
   const [error, setError] = useState<string | null>(null);
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const [generationStartTime, setGenerationStartTime] = useState<number>(0);
-  
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get extendable videos (Veo videos with extension_count < 20)
   const extendableVideos = recentVideos.filter(
-    v => v.status === 'completed' && 
-    v.veoVideoId && 
-    (v.extensionCount === undefined || v.extensionCount < 20)
+    v => v.status === 'completed' &&
+      v.veoVideoId &&
+      (v.extensionCount === undefined || v.extensionCount < 20)
   );
 
   // Poll video status
@@ -87,7 +91,7 @@ export function VeoVideoGenerator({
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         if (data.done) {
           if (data.status === 'completed' && data.video) {
@@ -95,7 +99,7 @@ export function VeoVideoGenerator({
             const downloadResponse = await fetch('/api/ai/media/veo/download', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
+              body: JSON.stringify({
                 veoVideoId: data.video.veoVideoId,
                 operationId,
                 uploadToSupabase: true,
@@ -110,7 +114,7 @@ export function VeoVideoGenerator({
               progress: 100,
               veoVideoId: data.video.veoVideoId,
             });
-            
+
             setCurrentVideo(prev => prev ? {
               ...prev,
               status: 'completed',
@@ -118,18 +122,18 @@ export function VeoVideoGenerator({
               progress: 100,
               veoVideoId: data.video.veoVideoId,
             } : null);
-            
+
             // Save to database
             if (canSaveToDb && videoUrl && currentVideo) {
               const genTime = generationStartTime > 0 ? Date.now() - generationStartTime : undefined;
-              
+
               // Calculate total duration - for extensions, use total_duration from config
               const totalDuration = currentVideo.config.total_duration || currentVideo.config.duration || 8;
               // For extensions, extensionCount is already the new count
               const extensionCount = currentVideo.extensionCount || 0;
               // Can extend if under 20 extensions
               const isExtendable = extensionCount < 20;
-              
+
               await saveGeneratedMedia({
                 type: 'video',
                 source: `veo-${mode}` as any,
@@ -147,7 +151,7 @@ export function VeoVideoGenerator({
                 },
               }, currentHistoryId, genTime);
             }
-            
+
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
@@ -157,11 +161,11 @@ export function VeoVideoGenerator({
           } else if (data.status === 'failed') {
             onVideoUpdate(operationId, { status: 'failed', progress: 0 });
             setError(data.error || 'Video generation failed. Please try again.');
-            
+
             if (currentHistoryId) {
               await markGenerationFailed(currentHistoryId, data.error || 'Video generation failed');
             }
-            
+
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
@@ -216,19 +220,24 @@ export function VeoVideoGenerator({
     }) : null;
     setCurrentHistoryId(historyId);
 
-    // Start polling
+    // Start global polling (persists across page navigation)
+    if (video.operationId && video.operationName) {
+      startVeoPolling(video.operationId, video.operationName, video.prompt, video.config.model);
+    }
+
+    // Also start local polling for immediate UI updates
     if (video.operationId && video.operationName) {
       pollIntervalRef.current = setInterval(() => {
         pollVideoStatus(video.operationId!, video.operationName!);
-      }, 10000); // Poll every 10 seconds
+      }, 10000);
     }
-  }, [canSaveToDb, createHistoryEntry, onVideoStarted, pollVideoStatus]);
+  }, [canSaveToDb, createHistoryEntry, onVideoStarted, pollVideoStatus, startVeoPolling]);
 
   // Handle generation error from child components
   const handleGenerationError = useCallback(async (errorMsg: string) => {
     setError(errorMsg);
     setIsGenerating(false);
-    
+
     if (currentHistoryId) {
       await markGenerationFailed(currentHistoryId, errorMsg);
     }
@@ -276,11 +285,10 @@ export function VeoVideoGenerator({
                   key={m.id}
                   onClick={() => setMode(m.id)}
                   disabled={isGenerating}
-                  className={`p-3 rounded-lg border text-center transition-all ${
-                    mode === m.id
-                      ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/20 ring-1 ring-purple-500'
-                      : 'border-[var(--ms-border)] hover:border-purple-500/50'
-                  } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`p-3 rounded-lg border text-center transition-all ${mode === m.id
+                    ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/20 ring-1 ring-purple-500'
+                    : 'border-[var(--ms-border)] hover:border-purple-500/50'
+                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="flex justify-center mb-1">{m.icon}</div>
                   <div className="font-medium text-xs text-foreground">{m.label}</div>

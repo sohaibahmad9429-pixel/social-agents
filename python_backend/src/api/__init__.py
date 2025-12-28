@@ -1,6 +1,7 @@
 """API package"""
 from .v1 import (
     content_router,
+    content_improvement_router,
     improve_media_prompts_router,
     media_generating_router,
     comments_router,
@@ -23,6 +24,7 @@ from .v1 import (
 
 __all__ = [
     "content_router",
+    "content_improvement_router",
     "improve_media_prompts_router",
     "media_generating_router",
     "comments_router",

@@ -1,7 +1,6 @@
 """
 Image Generation Service
-Production implementation using OpenAI Images API
-Supports: gpt-image-1.5, dall-e-3, dall-e-2
+OpenAI gpt-image-1.5 implementation per latest API docs
 """
 import logging
 import time
@@ -12,10 +11,12 @@ from typing import Optional
 from openai import AsyncOpenAI
 
 from .schemas import (
-    ImageGenerationRequest,
-    ImageGenerationResponse,
-    ImageGenerationMetadata,
+    FrontendImageRequest,
     ImageEditRequest,
+    ImageReferenceRequest,
+    ImageGenerationResponse,
+    ImageGenerationData,
+    ImageGenerationMetadata,
 )
 from ....config import settings
 
@@ -38,74 +39,78 @@ def get_openai_client() -> AsyncOpenAI:
     return _openai_client
 
 
-def build_request_params(request: ImageGenerationRequest) -> dict:
-    """
-    Build request parameters for OpenAI Images API
-    Handles model-specific parameter differences
-    """
-    model = request.model or "gpt-image-1.5"
-    
-    params = {
-        "model": model,
-        "prompt": request.prompt,
-        "response_format": "b64_json",  # Always get base64 for data URL
-    }
-    
-    # Size handling
-    if request.size and request.size != "auto":
-        params["size"] = request.size
-    else:
-        params["size"] = "1024x1024"
-    
-    # Model-specific parameters
-    if model == "gpt-image-1.5":
-        if request.quality and request.quality not in ["auto", "standard", "hd"]:
-            params["quality"] = request.quality
-        if request.background and request.background != "auto":
-            params["background"] = request.background
-    
-    elif model == "dall-e-3":
-        # Map quality to dall-e-3 values
-        if request.quality:
-            params["quality"] = "hd" if request.quality == "high" else "standard"
-        if request.style:
-            params["style"] = request.style
-        # dall-e-3 only supports n=1
-    
-    elif model == "dall-e-2":
-        if request.n and request.n > 1:
-            params["n"] = min(request.n, 10)
-    
-    return params
-
-
 def base64_to_data_url(b64_data: str, format: str = "png") -> str:
     """Convert base64 to data URL"""
     return f"data:image/{format};base64,{b64_data}"
 
 
-async def generate_image(request: ImageGenerationRequest) -> ImageGenerationResponse:
+async def url_to_bytes(url: str) -> tuple[bytes, str]:
+    """Convert URL or data URL to bytes and detect mime type"""
+    if url.startswith("data:"):
+        # Parse data URL
+        header, b64_data = url.split(",", 1)
+        mime_type = header.split(";")[0].split(":")[1] if ":" in header else "image/png"
+        return base64.b64decode(b64_data), mime_type
+    else:
+        # Fetch from HTTP URL
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.get(url)
+            response.raise_for_status()
+            content_type = response.headers.get("content-type", "image/png")
+            return response.content, content_type
+
+
+async def generate_image(request: FrontendImageRequest) -> ImageGenerationResponse:
     """
-    Generate image using OpenAI Images API
+    Generate image using OpenAI gpt-image-1.5
     
-    Supports:
-    - gpt-image-1.5: Latest model with best quality
-    - dall-e-3: High quality with style options
-    - dall-e-2: Fast, supports multiple images
-    
-    Args:
-        request: Image generation request
-        
-    Returns:
-        ImageGenerationResponse with data URL or error
+    Per docs:
+    - Sizes: 1024x1024, 1536x1024, 1024x1536
+    - Quality: low, medium, high, auto
+    - Background: transparent, opaque, auto
+    - Format: png, jpeg, webp
+    - Moderation: auto, low
     """
     start_time = time.time()
     
     try:
         client = get_openai_client()
-        params = build_request_params(request)
+        opts = request.options or {}
         
-        logger.info(f"Generating image with model={params.get('model')}, size={params.get('size')}")
+        # Get size, handle 'auto'
+        size = getattr(opts, 'size', None) or "1024x1024"
+        if size == "auto":
+            size = "1024x1024"
+        
+        # Build OpenAI API params
+        params = {
+            "model": "gpt-image-1.5",
+            "prompt": request.prompt,
+            "response_format": "b64_json",
+            "size": size,
+        }
+        
+        # Add quality
+        quality = getattr(opts, 'quality', None)
+        if quality and quality != "auto":
+            params["quality"] = quality
+        
+        # Add background
+        background = getattr(opts, 'background', None)
+        if background and background != "auto":
+            params["background"] = background
+        
+        # Add moderation
+        moderation = getattr(opts, 'moderation', None)
+        if moderation and moderation != "auto":
+            params["moderation"] = moderation
+        
+        # Add n (number of images)
+        n = getattr(opts, 'n', None)
+        if n and n > 1:
+            params["n"] = n
+        
+        logger.info(f"Generating image: size={size}, quality={quality}")
         
         response = await client.images.generate(**params)
         
@@ -125,99 +130,93 @@ async def generate_image(request: ImageGenerationRequest) -> ImageGenerationResp
             )
         
         # Convert to data URL
-        output_format = request.format or "png"
+        output_format = getattr(opts, 'format', None) or "png"
         image_url = base64_to_data_url(b64_image, output_format)
         
         generation_time = int((time.time() - start_time) * 1000)
         
         logger.info(f"Image generated successfully in {generation_time}ms")
         
+        metadata = ImageGenerationMetadata(
+            model="gpt-image-1.5",
+            promptUsed=request.prompt,
+            revisedPrompt=getattr(image_data, "revised_prompt", None),
+            size=size,
+            quality=quality,
+            format=output_format
+        )
+        
         return ImageGenerationResponse(
             success=True,
-            imageUrl=image_url,
-            metadata=ImageGenerationMetadata(
-                model=request.model or "gpt-image-1.5",
-                promptUsed=request.prompt,
-                revisedPrompt=getattr(image_data, "revised_prompt", None),
-                size=request.size,
-                quality=request.quality,
-                format=output_format
-            ),
-            generatedAt=int(time.time() * 1000),
-            generationTime=generation_time
+            data=ImageGenerationData(
+                imageUrl=image_url,
+                metadata=metadata
+            )
         )
         
     except ValueError as e:
         logger.error(f"Configuration error: {e}")
-        return ImageGenerationResponse(
-            success=False,
-            error=str(e)
-        )
+        return ImageGenerationResponse(success=False, error=str(e))
     
     except Exception as e:
         logger.error(f"Image generation error: {e}", exc_info=True)
-        
         error_msg = str(e)
         if "api_key" in error_msg.lower():
             error_msg = "Invalid API key"
         elif "rate_limit" in error_msg.lower():
             error_msg = "Rate limit exceeded"
         
-        return ImageGenerationResponse(
-            success=False,
-            error=error_msg
-        )
+        return ImageGenerationResponse(success=False, error=error_msg)
 
 
 async def generate_image_edit(request: ImageEditRequest) -> ImageGenerationResponse:
     """
-    Edit image with mask (inpainting)
+    Edit image with optional mask (inpainting)
     
-    Uses OpenAI images.edit() endpoint to modify specific areas
-    of an image based on a mask.
-    
-    Args:
-        request: Image edit request with original image, mask, and prompt
-        
-    Returns:
-        ImageGenerationResponse with edited image or error
+    Per OpenAI docs:
+    - Mask indicates areas to edit (alpha channel required)
+    - Supports all output options: size, quality, format, background
     """
     start_time = time.time()
     
     try:
         client = get_openai_client()
         
-        logger.info(f"Editing image with prompt: {request.prompt[:50]}...")
+        logger.info(f"Image edit request: {request.prompt[:50]}...")
         
-        # Helper to convert URL to bytes
-        async def url_to_bytes(url: str) -> tuple[bytes, str]:
-            """Convert URL or data URL to bytes and detect mime type"""
-            if url.startswith("data:"):
-                # Parse data URL
-                header, b64_data = url.split(",", 1)
-                mime_match = header.split(";")[0].split(":")[1] if ":" in header else "image/png"
-                return base64.b64decode(b64_data), mime_match
-            else:
-                # Fetch from HTTP URL
-                async with httpx.AsyncClient() as http_client:
-                    response = await http_client.get(url)
-                    response.raise_for_status()
-                    content_type = response.headers.get("content-type", "image/png")
-                    return response.content, content_type
+        # Get image bytes
+        image_bytes, _ = await url_to_bytes(request.originalImageUrl)
         
-        # Get image and mask bytes
-        image_bytes, image_mime = await url_to_bytes(request.originalImageUrl)
-        mask_bytes, mask_mime = await url_to_bytes(request.maskImageUrl)
+        # Get size, handle 'auto'
+        size = request.size or "1024x1024"
+        if size == "auto":
+            size = "1024x1024"
         
-        # Call OpenAI edit API
-        response = await client.images.edit(
-            model=request.model or "gpt-image-1.5",
-            image=image_bytes,
-            mask=mask_bytes,
-            prompt=request.prompt,
-            response_format="b64_json",
-            size=request.size or "1024x1024"
-        )
+        # Build params
+        params = {
+            "model": "gpt-image-1.5",
+            "image": image_bytes,
+            "prompt": request.prompt,
+            "response_format": "b64_json",
+            "size": size,
+        }
+        
+        # Add mask if provided
+        if request.maskImageUrl:
+            mask_bytes, _ = await url_to_bytes(request.maskImageUrl)
+            params["mask"] = mask_bytes
+        
+        # Add quality
+        if request.quality and request.quality != "auto":
+            params["quality"] = request.quality
+        
+        # Add background
+        if request.background and request.background != "auto":
+            params["background"] = request.background
+        
+        logger.info(f"Calling images.edit: size={size}, quality={request.quality}")
+        
+        response = await client.images.edit(**params)
         
         if not response.data or len(response.data) == 0:
             return ImageGenerationResponse(
@@ -233,26 +232,117 @@ async def generate_image_edit(request: ImageEditRequest) -> ImageGenerationRespo
                 error="No base64 data in edit response"
             )
         
-        image_url = base64_to_data_url(b64_image, "png")
+        # Use requested format
+        output_format = request.format or "png"
+        image_url = base64_to_data_url(b64_image, output_format)
         generation_time = int((time.time() - start_time) * 1000)
         
         logger.info(f"Image edited successfully in {generation_time}ms")
         
         return ImageGenerationResponse(
             success=True,
-            imageUrl=image_url,
-            metadata=ImageGenerationMetadata(
-                model=request.model or "gpt-image-1.5",
-                promptUsed=request.prompt,
-                size=request.size
-            ),
-            generatedAt=int(time.time() * 1000),
-            generationTime=generation_time
+            data=ImageGenerationData(
+                imageUrl=image_url,
+                metadata=ImageGenerationMetadata(
+                    model="gpt-image-1.5",
+                    promptUsed=request.prompt,
+                    size=size,
+                    quality=request.quality,
+                    format=output_format
+                )
+            )
         )
         
     except Exception as e:
         logger.error(f"Image edit error: {e}", exc_info=True)
+        return ImageGenerationResponse(success=False, error=str(e))
+
+
+async def generate_image_reference(request: ImageReferenceRequest) -> ImageGenerationResponse:
+    """
+    Generate image using reference images
+    
+    Per OpenAI docs:
+    - Multiple reference images supported (up to 5 with high fidelity for gpt-image-1.5)
+    - input_fidelity='high' preserves faces, logos, fine details
+    - Supports all output options: size, quality, format, background
+    """
+    start_time = time.time()
+    
+    try:
+        client = get_openai_client()
+        
+        logger.info(f"Reference image request: {request.prompt[:50]}...")
+        
+        # Get all reference image bytes
+        images = []
+        for url in request.referenceImages[:5]:  # Max 5 for high fidelity
+            img_bytes, _ = await url_to_bytes(url)
+            images.append(img_bytes)
+        
+        # Get size, handle 'auto'
+        size = request.size or "1024x1024"
+        if size == "auto":
+            size = "1024x1024"
+        
+        params = {
+            "model": "gpt-image-1.5",
+            "image": images,
+            "prompt": request.prompt,
+            "response_format": "b64_json",
+            "size": size,
+        }
+        
+        # Add input fidelity - key feature per docs
+        if request.input_fidelity == "high":
+            params["input_fidelity"] = "high"
+        
+        # Add quality
+        if request.quality and request.quality != "auto":
+            params["quality"] = request.quality
+        
+        # Add background
+        if request.background and request.background != "auto":
+            params["background"] = request.background
+        
+        logger.info(f"Calling images.edit with {len(images)} reference images, fidelity={request.input_fidelity}")
+        
+        response = await client.images.edit(**params)
+        
+        if not response.data or len(response.data) == 0:
+            return ImageGenerationResponse(
+                success=False,
+                error="No image data received"
+            )
+        
+        b64_image = response.data[0].b64_json
+        
+        if not b64_image:
+            return ImageGenerationResponse(
+                success=False,
+                error="No base64 data in response"
+            )
+        
+        output_format = request.format or "png"
+        image_url = base64_to_data_url(b64_image, output_format)
+        generation_time = int((time.time() - start_time) * 1000)
+        
+        logger.info(f"Reference image generated in {generation_time}ms")
+        
         return ImageGenerationResponse(
-            success=False,
-            error=str(e)
+            success=True,
+            data=ImageGenerationData(
+                imageUrl=image_url,
+                metadata=ImageGenerationMetadata(
+                    model="gpt-image-1.5",
+                    promptUsed=request.prompt,
+                    size=size,
+                    quality=request.quality,
+                    format=output_format
+                )
+            )
         )
+        
+    except Exception as e:
+        logger.error(f"Reference image error: {e}", exc_info=True)
+        return ImageGenerationResponse(success=False, error=str(e))

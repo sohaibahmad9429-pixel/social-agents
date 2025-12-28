@@ -98,44 +98,44 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
     // Convert technical errors to user-friendly messages
     const getUserFriendlyError = (error: unknown): string => {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        
+
         // API key issues
         if (errorMessage.includes('API_KEY') || errorMessage.includes('api_key') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
             return 'API key not configured. Please check your settings.';
         }
-        
+
         // Rate limiting / quota exceeded
         if (errorMessage.includes('429') || errorMessage.includes('rate') || errorMessage.includes('quota') || errorMessage.includes('insufficient')) {
             return 'Rate limit or quota exceeded. Add credits or try a different model.';
         }
-        
+
         // Model not found
         if (errorMessage.includes('model') && (errorMessage.includes('not found') || errorMessage.includes('does not exist'))) {
             return 'Selected model is unavailable. Try a different model.';
         }
-        
+
         // Module/import errors
         if (errorMessage.includes('MODULE_NOT_FOUND') || errorMessage.includes('Cannot find module')) {
             return 'Service temporarily unavailable. Please try again.';
         }
-        
+
         // Network errors
         if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('ECONNREFUSED')) {
             return 'Connection error. Please check your internet.';
         }
-        
+
         // Timeout
         if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
             return 'Request timed out. Please try again.';
         }
-        
+
         // Generic fallback - keep it short
         return 'Failed to improve content. Please try again.';
     };
 
     const handleImproveWithAI = (platform: Platform) => {
         const currentContent = editStates[platform]?.content;
-        
+
         if (!currentContent || currentContent.trim().length === 0) {
             setImprovementError('Please enter some content first');
             setTimeout(() => setImprovementError(null), 3000);
@@ -149,7 +149,7 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
 
     const handleSubmitImprovement = async () => {
         const currentContent = editStates[activePlatform]?.content;
-        
+
         if (!currentContent) return;
 
         setIsImprovingWithAI(true);
@@ -157,7 +157,7 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
         setShowImprovementModal(false);
 
         try {
-            const response = await fetch('/api/ai/content/improve', {
+            const response = await fetch('http://localhost:8000/api/v1/content/improve', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
             }));
             setHasChanges(true);
             setSaveSuccess(false);
-            
+
             // Clear instructions for next time
             setImprovementInstructions('');
 
@@ -308,27 +308,27 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
 
                     {/* Platform Tabs - Top Right */}
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                    {post.platforms.map(platform => {
-                        const info = PLATFORMS.find(p => p.id === platform);
-                        if (!info) return null;
-                        const Icon = info.icon;
-                        const colors = platformColors[platform];
-                        const isActive = activePlatform === platform;
+                        {post.platforms.map(platform => {
+                            const info = PLATFORMS.find(p => p.id === platform);
+                            if (!info) return null;
+                            const Icon = info.icon;
+                            const colors = platformColors[platform];
+                            const isActive = activePlatform === platform;
 
-                        return (
-                            <button
-                                key={platform}
-                                onClick={() => setActivePlatform(platform)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium text-sm whitespace-nowrap ${isActive
+                            return (
+                                <button
+                                    key={platform}
+                                    onClick={() => setActivePlatform(platform)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium text-sm whitespace-nowrap ${isActive
                                         ? `${colors.bg} ${colors.text} shadow-lg scale-105`
                                         : 'bg-background text-foreground hover:bg-muted border border-border'
-                                    }`}
-                            >
-                                <Icon className="w-4 h-4" />
-                                <span>{info.name}</span>
-                            </button>
-                        );
-                    })}
+                                        }`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span>{info.name}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -341,8 +341,8 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
                                 <span>{currentLabels.secondary || 'Title'}</span>
                                 {currentLimit.title && (
                                     <span className={`text-xs font-normal ${(currentEditState?.title?.length || 0) > currentLimit.title
-                                            ? 'text-red-500'
-                                            : 'text-muted-foreground'
+                                        ? 'text-red-500'
+                                        : 'text-muted-foreground'
                                         }`}>
                                         {currentEditState?.title?.length || 0}/{currentLimit.title}
                                     </span>
@@ -354,8 +354,8 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
                                 onChange={(e) => handleContentChange(activePlatform, 'title', e.target.value)}
                                 placeholder="Enter video title..."
                                 className={`w-full px-4 py-3 rounded-xl border-2 transition-colors bg-muted/50 text-foreground placeholder-muted-foreground ${(currentEditState?.title?.length || 0) > (currentLimit.title || 100)
-                                        ? 'border-red-500 focus:border-red-500'
-                                        : 'focus:border-primary border-border'
+                                    ? 'border-red-500 focus:border-red-500'
+                                    : 'focus:border-primary border-border'
                                     }`}
                             />
                         </div>
@@ -377,11 +377,11 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
                                 placeholder={`Enter your ${currentLabels.main.toLowerCase()}...`}
                                 rows={8}
                                 className={`w-full px-4 py-3 rounded-xl border-2 transition-colors resize-none bg-muted/50 text-foreground placeholder-muted-foreground ${isOverLimit
-                                        ? 'border-red-500 focus:border-red-500'
-                                        : 'focus:border-primary border-border'
+                                    ? 'border-red-500 focus:border-red-500'
+                                    : 'focus:border-primary border-border'
                                     }`}
                             />
-                            
+
                             {/* AI Improve Button */}
                             <div className="mt-2 flex items-center justify-between">
                                 <button
@@ -402,7 +402,7 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
                                         </>
                                     )}
                                 </button>
-                                
+
                                 {improvementError && (
                                     <span className="text-xs text-red-500 flex items-center gap-1">
                                         <AlertCircle className="w-3 h-3" />
@@ -527,7 +527,7 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
                                         <span>{getModelDisplayName(selectedModelId)}</span>
                                         <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
                                     </button>
-                                    
+
                                     {showModelDropdown && (
                                         <div className="absolute top-full left-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto whitespace-nowrap">
                                             {AI_MODELS.map((model) => (
@@ -538,9 +538,8 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
                                                         setSelectedModelId(model.id);
                                                         setShowModelDropdown(false);
                                                     }}
-                                                    className={`w-full px-3 py-1.5 text-left hover:bg-muted transition-colors flex items-center gap-2 text-xs ${
-                                                        selectedModelId === model.id ? 'bg-primary/10' : ''
-                                                    }`}
+                                                    className={`w-full px-3 py-1.5 text-left hover:bg-muted transition-colors flex items-center gap-2 text-xs ${selectedModelId === model.id ? 'bg-primary/10' : ''
+                                                        }`}
                                                 >
                                                     <span className="text-foreground">{model.name} <span className="text-muted-foreground">({model.providerLabel})</span></span>
                                                     {selectedModelId === model.id && (
