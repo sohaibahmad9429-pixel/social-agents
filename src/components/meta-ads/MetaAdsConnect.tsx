@@ -60,9 +60,9 @@ export default function MetaAdsConnect({ onConnect }: MetaAdsConnectProps) {
     try {
       const response = await fetch('/api/meta-ads/status');
       const data = await response.json();
-      
+
       setConnectionStatus(data);
-      
+
       if (data.isConnected && data.canRunAds) {
         // Already fully connected - trigger onConnect
         onConnect();
@@ -87,7 +87,7 @@ export default function MetaAdsConnect({ onConnect }: MetaAdsConnectProps) {
     try {
       const response = await fetch('/api/meta-ads/auth/url');
       const data = await response.json();
-      
+
       if (response.ok && data.url) {
         // Redirect to Meta OAuth
         window.location.href = data.url;
@@ -106,12 +106,12 @@ export default function MetaAdsConnect({ onConnect }: MetaAdsConnectProps) {
 
   const handleUseExisting = async () => {
     setIsConnecting(true);
-    
+
     try {
       // Try to fetch ad account using existing Facebook credentials
       const response = await fetch('/api/meta-ads/status');
       const data = await response.json();
-      
+
       if (data.canRunAds) {
         onConnect();
       } else {
@@ -127,34 +127,35 @@ export default function MetaAdsConnect({ onConnect }: MetaAdsConnectProps) {
     }
   };
 
+  // Meta Marketing API v24.0 Features
   const features = [
     {
       icon: Target,
       title: 'Advanced Targeting',
-      description: 'Reach your ideal audience with demographics, interests, and behaviors',
+      description: 'Reach ideal audiences - Note: Some interests deprecated Jan 2026',
     },
     {
       icon: BarChart3,
-      title: 'Real-time Analytics',
-      description: 'Track performance with detailed insights and reporting',
+      title: 'v24.0 Analytics',
+      description: 'Track Instagram profile visits, ROAS, and conversion metrics',
     },
     {
       icon: Users,
-      title: 'Custom Audiences',
-      description: 'Create lookalike and retargeting audiences',
+      title: 'Custom & Lookalike',
+      description: 'Create audiences with mandatory lookalike_spec format',
     },
     {
       icon: Zap,
-      title: 'Automated Optimization',
-      description: 'Let AI optimize your campaigns for best results',
+      title: 'Advantage+ AI',
+      description: 'Automated optimization with unified campaign structure',
     },
   ];
 
   const permissions = [
-    'Manage your ad campaigns',
-    'View ad account insights',
-    'Create and manage audiences',
-    'Access Facebook & Instagram pages',
+    'Manage ad campaigns (v24.0 OUTCOME objectives)',
+    'View insights (instagram_profile_visits metric)',
+    'Create audiences (lookalike_spec mandatory Jan 2026)',
+    'Access Facebook & Instagram Pages',
   ];
 
   if (step === 'loading') {
@@ -189,7 +190,7 @@ export default function MetaAdsConnect({ onConnect }: MetaAdsConnectProps) {
                   <CheckCircle2 className="w-4 h-4 text-white" />
                 </div>
               </div>
-              
+
               <h2 className="text-xl font-bold mb-2">Facebook Already Connected</h2>
               <p className="text-muted-foreground mb-4">
                 Your Facebook account is connected. We can use it for Meta Ads.
@@ -318,7 +319,7 @@ export default function MetaAdsConnect({ onConnect }: MetaAdsConnectProps) {
             Connect Meta Ads Manager
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Manage your Facebook and Instagram advertising campaigns with our powerful, 
+            Manage your Facebook and Instagram advertising campaigns with our powerful,
             enterprise-grade ads management platform.
           </p>
         </div>

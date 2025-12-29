@@ -73,16 +73,16 @@ export default function MetaAdsManager() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isConnected, setIsConnected] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const [datePreset, setDatePreset] = useState<DatePreset>('last_7d');
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [showCreateAdSet, setShowCreateAdSet] = useState(false);
   const [showCreateAd, setShowCreateAd] = useState(false);
-  
+
   // For hierarchical workflow - store IDs for pre-selection
   const [preselectedCampaignId, setPreselectedCampaignId] = useState<string | null>(null);
   const [preselectedAdSetId, setPreselectedAdSetId] = useState<string | null>(null);
-  
+
   // Business Portfolio state
   const [availableBusinesses, setAvailableBusinesses] = useState<any[]>([]);
   const [activeBusiness, setActiveBusiness] = useState<any>(null);
@@ -162,8 +162,13 @@ export default function MetaAdsManager() {
         } else {
           setState(prev => ({ ...prev, loading: false }));
         }
+      } else {
+        // Handle 401, 404, and other non-200 responses
+        setIsConnected(false);
+        setState(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
+      setIsConnected(false);
       setState(prev => ({ ...prev, loading: false, error: 'Failed to check connection status' }));
     }
   };
@@ -233,143 +238,143 @@ export default function MetaAdsManager() {
 
   return (
     <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Megaphone className="h-4 w-4" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-semibold">Meta Ads Manager</h1>
-                  <div className="flex items-center gap-1.5">
-                    <Facebook className="w-3 h-3 text-blue-500" />
-                    <Instagram className="w-3 h-3 text-pink-500" />
-                    
-                    {/* Business Portfolio Selector */}
-                    {availableBusinesses.length > 1 ? (
-                      <div className="relative" data-business-selector>
-                        <button
-                          onClick={() => setShowBusinessSelector(!showBusinessSelector)}
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
-                        >
-                          <Building2 className="w-3 h-3" />
-                          <span className="max-w-[150px] truncate">{activeBusiness?.name || 'Select Business'}</span>
-                          <ChevronDown className="w-3 h-3" />
-                        </button>
-                        
-                        {showBusinessSelector && (
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-popover border rounded-lg shadow-lg z-50 p-2">
-                            <p className="text-xs font-medium text-muted-foreground px-2 py-1">Business Portfolios</p>
-                            {availableBusinesses.map((business) => (
-                              <button
-                                key={business.id}
-                                onClick={() => handleSwitchBusiness(business.id)}
-                                disabled={isSwitchingBusiness}
-                                className={cn(
-                                  "w-full flex items-center justify-between px-2 py-2 text-left text-sm rounded hover:bg-muted transition-colors",
-                                  business.id === activeBusiness?.id && "bg-muted"
-                                )}
-                              >
-                                <div>
-                                  <p className="font-medium">{business.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {business.adAccounts?.length || 0} ad account(s)
-                                  </p>
-                                </div>
-                                {business.id === activeBusiness?.id ? (
-                                  <Check className="w-4 h-4 text-green-500" />
-                                ) : isSwitchingBusiness ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : null}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        {activeBusiness?.name || state.adAccount?.name || 'Ad Account'}
-                      </span>
-                    )}
-                    
-                    <span className="text-xs text-muted-foreground">•</span>
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <Megaphone className="h-4 w-4" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold">Meta Ads Manager</h1>
+                <div className="flex items-center gap-1.5">
+                  <Facebook className="w-3 h-3 text-blue-500" />
+                  <Instagram className="w-3 h-3 text-pink-500" />
+
+                  {/* Business Portfolio Selector */}
+                  {availableBusinesses.length > 1 ? (
+                    <div className="relative" data-business-selector>
+                      <button
+                        onClick={() => setShowBusinessSelector(!showBusinessSelector)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
+                      >
+                        <Building2 className="w-3 h-3" />
+                        <span className="max-w-[150px] truncate">{activeBusiness?.name || 'Select Business'}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+
+                      {showBusinessSelector && (
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-popover border rounded-lg shadow-lg z-50 p-2">
+                          <p className="text-xs font-medium text-muted-foreground px-2 py-1">Business Portfolios</p>
+                          {availableBusinesses.map((business) => (
+                            <button
+                              key={business.id}
+                              onClick={() => handleSwitchBusiness(business.id)}
+                              disabled={isSwitchingBusiness}
+                              className={cn(
+                                "w-full flex items-center justify-between px-2 py-2 text-left text-sm rounded hover:bg-muted transition-colors",
+                                business.id === activeBusiness?.id && "bg-muted"
+                              )}
+                            >
+                              <div>
+                                <p className="font-medium">{business.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {business.adAccounts?.length || 0} ad account(s)
+                                </p>
+                              </div>
+                              {business.id === activeBusiness?.id ? (
+                                <Check className="w-4 h-4 text-green-500" />
+                              ) : isSwitchingBusiness ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : null}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
                     <span className="text-xs text-muted-foreground">
-                      {activeBusiness?.adAccount?.name || state.adAccount?.name || 'Ad Account'}
+                      {activeBusiness?.name || state.adAccount?.name || 'Ad Account'}
                     </span>
-                    <span className="text-xs text-muted-foreground">•</span>
-                    <span className="text-xs text-muted-foreground">{state.adAccount?.currency || 'USD'}</span>
-                  </div>
+                  )}
+
+                  <span className="text-xs text-muted-foreground">•</span>
+                  <span className="text-xs text-muted-foreground">
+                    {activeBusiness?.adAccount?.name || state.adAccount?.name || 'Ad Account'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">•</span>
+                  <span className="text-xs text-muted-foreground">{state.adAccount?.currency || 'USD'}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                {/* Date Range Selector */}
-                <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DatePreset)}>
-                  <SelectTrigger className="w-[160px] h-9">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DATE_PRESETS.map((preset) => (
-                      <SelectItem key={preset.value} value={preset.value}>
-                        {preset.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={loadDashboardData}
-                  disabled={isRefreshing}
-                  className="gap-2"
-                >
-                  <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-                  Refresh
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => {
-                    setActiveTab('campaigns');
-                    setShowCreateCampaign(true);
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Create
-                </Button>
-              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Date Range Selector */}
+              <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DatePreset)}>
+                <SelectTrigger className="w-[160px] h-9">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_PRESETS.map((preset) => (
+                    <SelectItem key={preset.value} value={preset.value}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadDashboardData}
+                disabled={isRefreshing}
+                className="gap-2"
+              >
+                <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+                Refresh
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setActiveTab('campaigns');
+                  setShowCreateCampaign(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                Create
+              </Button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="bg-muted p-1 h-auto">
-                <TabsTrigger value="overview" className="gap-1.5 text-xs">
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger value="campaigns" className="gap-1.5 text-xs">
-                  <Megaphone className="w-3.5 h-3.5" />
-                  Campaigns
-                </TabsTrigger>
-{/* Ad Sets and Ads are now managed within Campaigns hierarchically */}
-                <TabsTrigger value="audiences" className="gap-1.5 text-xs">
-                  <Users className="w-3.5 h-3.5" />
-                  Audiences
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-1.5 text-xs">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  Analytics
-                </TabsTrigger>
-                <TabsTrigger value="drafts" className="gap-1.5 text-xs">
-                  <FileImage className="w-3.5 h-3.5" />
-                  Library
-                </TabsTrigger>
-              </TabsList>
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="bg-muted p-1 h-auto">
+              <TabsTrigger value="overview" className="gap-1.5 text-xs">
+                <BarChart3 className="w-3.5 h-3.5" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="campaigns" className="gap-1.5 text-xs">
+                <Megaphone className="w-3.5 h-3.5" />
+                Campaigns
+              </TabsTrigger>
+              {/* Ad Sets and Ads are now managed within Campaigns hierarchically */}
+              <TabsTrigger value="audiences" className="gap-1.5 text-xs">
+                <Users className="w-3.5 h-3.5" />
+                Audiences
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-1.5 text-xs">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="drafts" className="gap-1.5 text-xs">
+                <FileImage className="w-3.5 h-3.5" />
+                Library
+              </TabsTrigger>
+            </TabsList>
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
@@ -510,7 +515,7 @@ export default function MetaAdsManager() {
                 onRefresh={loadDashboardData}
                 showCreate={showCreateCampaign}
                 onShowCreateChange={setShowCreateCampaign}
-onCreateAdSet={(campaignId) => {
+                onCreateAdSet={(campaignId) => {
                   setPreselectedCampaignId(campaignId);
                   setShowCreateAdSet(true);
                   // Stay on campaigns tab - modal will open

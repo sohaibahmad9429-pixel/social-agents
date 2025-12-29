@@ -87,6 +87,8 @@ export interface CampaignInsights {
   conversions?: number;
   cost_per_conversion?: number;
   roas?: number;
+  // v24.0 new metrics
+  instagram_profile_visits?: number;
   actions?: ActionBreakdown[];
 }
 
@@ -102,19 +104,19 @@ export interface ActionBreakdown {
 export type OptimizationGoal =
   | 'REACH' | 'IMPRESSIONS' | 'LINK_CLICKS' | 'LANDING_PAGE_VIEWS'
   | 'POST_ENGAGEMENT' | 'PAGE_LIKES' | 'THRUPLAY' | 'VIDEO_VIEWS'
-  | 'LEAD_GENERATION' | 'OFFSITE_CONVERSIONS' | 'VALUE' | 'APP_INSTALLS'
-  | 'CONVERSATIONS' | 'MESSAGING_PURCHASE_CONVERSION'
-  // New v24.0 optimization goals
+  | 'LEAD_GENERATION' | 'OFFSITE_CONVERSIONS' | 'ONSITE_CONVERSIONS' | 'VALUE' | 'APP_INSTALLS'
+  | 'APP_INSTALLS_AND_OFFSITE_CONVERSIONS' | 'CONVERSATIONS' | 'MESSAGING_PURCHASE_CONVERSION'
+  // v24.0 optimization goals
   | 'QUALITY_CALL' | 'QUALITY_LEAD' | 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS'
   | 'VISIT_INSTAGRAM_PROFILE' | 'AD_RECALL_LIFT' | 'ENGAGED_USERS'
   | 'EVENT_RESPONSES' | 'REMINDERS_SET';
 
 // Official billing events from Meta API docs v24.0
-export type BillingEvent = 
-  | 'IMPRESSIONS' 
-  | 'LINK_CLICKS' 
-  | 'THRUPLAY' 
-  | 'PAGE_LIKES' 
+export type BillingEvent =
+  | 'IMPRESSIONS'
+  | 'LINK_CLICKS'
+  | 'THRUPLAY'
+  | 'PAGE_LIKES'
   | 'POST_ENGAGEMENT'
   | 'VIDEO_VIEWS'
   | 'APP_INSTALLS'
@@ -124,19 +126,22 @@ export type BillingEvent =
   | 'NONE'; // For certain optimization goals
 
 // Destination types for ad sets (v24.0)
-export type DestinationType = 
+export type DestinationType =
   | 'WEBSITE'
   | 'APP'
   | 'MESSENGER'
   | 'WHATSAPP'
   | 'INSTAGRAM_DIRECT'
+  | 'INSTAGRAM_PROFILE' // v24.0 new
   | 'PHONE_CALL'
   | 'SHOP'
   | 'ON_AD'
   | 'ON_POST'
   | 'ON_EVENT'
   | 'ON_VIDEO'
-  | 'ON_PAGE';
+  | 'ON_PAGE'
+  | 'FACEBOOK' // v24.0 new
+  | 'APPLINKS_AUTOMATIC'; // v24.0 new
 
 export type AdSetStatus = 'ACTIVE' | 'PAUSED' | 'DELETED' | 'ARCHIVED';
 
@@ -160,6 +165,9 @@ export interface AdSet {
   promoted_object?: PromotedObject;
   destination_type?: DestinationType; // v24.0 - required for messaging/call ads
   attribution_spec?: AttributionSpec[]; // v24.0 - conversion attribution
+  // v24.0 NEW fields
+  is_adset_budget_sharing_enabled?: boolean; // Share up to 20% budget between ad sets
+  placement_soft_opt_out?: boolean; // Allow 5% spend on excluded placements (Sales/Leads only)
   created_time: string;
   updated_time: string;
   insights?: AdSetInsights;
@@ -434,12 +442,12 @@ export interface AdVideo {
 // AUDIENCE TYPES
 // ============================================
 
-export type AudienceSubtype = 
-  | 'CUSTOM' 
-  | 'WEBSITE' 
-  | 'APP' 
-  | 'ENGAGEMENT' 
-  | 'LOOKALIKE' 
+export type AudienceSubtype =
+  | 'CUSTOM'
+  | 'WEBSITE'
+  | 'APP'
+  | 'ENGAGEMENT'
+  | 'LOOKALIKE'
   | 'VIDEO'
   | 'LEAD_GEN_FORM'
   | 'INSTANT_EXPERIENCE'
@@ -448,7 +456,7 @@ export type AudienceSubtype =
   | 'FB_EVENT'
   | 'OFFLINE';
 
-export type AudienceOperationStatus = 
+export type AudienceOperationStatus =
   | 'NORMAL'
   | 'PROCESSING'
   | 'READY'
@@ -511,18 +519,18 @@ export interface AdAccount {
   min_daily_budget?: number;
 }
 
-export type DatePreset = 
-  | 'today' 
-  | 'yesterday' 
+export type DatePreset =
+  | 'today'
+  | 'yesterday'
   | 'this_week_sun_today'
   | 'this_week_mon_today'
   | 'last_week_sun_sat'
   | 'last_week_mon_sun'
-  | 'last_7d' 
-  | 'last_14d' 
-  | 'last_30d' 
-  | 'last_90d' 
-  | 'this_month' 
+  | 'last_7d'
+  | 'last_14d'
+  | 'last_30d'
+  | 'last_90d'
+  | 'this_month'
   | 'last_month'
   | 'this_quarter'
   | 'last_quarter'
@@ -531,15 +539,15 @@ export type DatePreset =
   | 'lifetime'
   | 'maximum';
 
-export type Breakdown = 
-  | 'age' 
-  | 'gender' 
-  | 'country' 
+export type Breakdown =
+  | 'age'
+  | 'gender'
+  | 'country'
   | 'region'
   | 'dma'
   | 'impression_device'
-  | 'platform_position' 
-  | 'publisher_platform' 
+  | 'platform_position'
+  | 'publisher_platform'
   | 'device_platform'
   | 'product_id'
   | 'hourly_stats_aggregated_by_advertiser_time_zone'
@@ -731,28 +739,28 @@ export const OPTIMIZATION_GOALS: { value: OptimizationGoal; label: string; objec
   { value: 'AD_RECALL_LIFT', label: 'Ad Recall Lift', objectives: ['OUTCOME_AWARENESS'], billingEvent: 'IMPRESSIONS' },
   { value: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS', label: '2-Second Video Views', objectives: ['OUTCOME_AWARENESS', 'OUTCOME_ENGAGEMENT'], billingEvent: 'IMPRESSIONS' },
   { value: 'THRUPLAY', label: 'ThruPlay', objectives: ['OUTCOME_AWARENESS', 'OUTCOME_ENGAGEMENT'], billingEvent: 'THRUPLAY' },
-  
+
   // Traffic objectives
   { value: 'LINK_CLICKS', label: 'Link Clicks', objectives: ['OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT'], billingEvent: 'IMPRESSIONS' },
   { value: 'LANDING_PAGE_VIEWS', label: 'Landing Page Views', objectives: ['OUTCOME_TRAFFIC'], billingEvent: 'IMPRESSIONS' },
   { value: 'VISIT_INSTAGRAM_PROFILE', label: 'Instagram Profile Visits', objectives: ['OUTCOME_TRAFFIC'], billingEvent: 'IMPRESSIONS' },
-  
+
   // Engagement objectives
   { value: 'POST_ENGAGEMENT', label: 'Post Engagement', objectives: ['OUTCOME_ENGAGEMENT'], billingEvent: 'IMPRESSIONS' },
   { value: 'PAGE_LIKES', label: 'Page Likes', objectives: ['OUTCOME_ENGAGEMENT'], billingEvent: 'IMPRESSIONS' },
   { value: 'EVENT_RESPONSES', label: 'Event Responses', objectives: ['OUTCOME_ENGAGEMENT'], billingEvent: 'IMPRESSIONS' },
   { value: 'REMINDERS_SET', label: 'Reminders Set', objectives: ['OUTCOME_ENGAGEMENT'], billingEvent: 'IMPRESSIONS' },
-  
+
   // Lead objectives
   { value: 'LEAD_GENERATION', label: 'Leads', objectives: ['OUTCOME_LEADS'], billingEvent: 'IMPRESSIONS' },
   { value: 'QUALITY_LEAD', label: 'Quality Leads', objectives: ['OUTCOME_LEADS'], billingEvent: 'IMPRESSIONS' },
   { value: 'CONVERSATIONS', label: 'Conversations', objectives: ['OUTCOME_LEADS', 'OUTCOME_ENGAGEMENT'], billingEvent: 'IMPRESSIONS' },
   { value: 'QUALITY_CALL', label: 'Quality Calls', objectives: ['OUTCOME_LEADS', 'OUTCOME_ENGAGEMENT', 'OUTCOME_SALES'], billingEvent: 'IMPRESSIONS' },
-  
+
   // Sales objectives
   { value: 'OFFSITE_CONVERSIONS', label: 'Conversions', objectives: ['OUTCOME_SALES', 'OUTCOME_LEADS'], billingEvent: 'IMPRESSIONS' },
   { value: 'VALUE', label: 'Value', objectives: ['OUTCOME_SALES'], billingEvent: 'IMPRESSIONS' },
-  
+
   // App objectives
   { value: 'APP_INSTALLS', label: 'App Installs', objectives: ['OUTCOME_APP_PROMOTION'], billingEvent: 'IMPRESSIONS' },
 ];

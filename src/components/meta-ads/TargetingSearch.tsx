@@ -32,7 +32,12 @@ interface TargetingSearchProps {
   maxItems?: number;
 }
 
-// Mock data for interests - in production, this would come from Meta's Targeting Search API
+// Meta Marketing API v24.0 - IMPORTANT:
+// From October 8, 2025: Some detailed targeting interest options deprecated
+// From January 6-15, 2026: Existing campaigns using deprecated interests will stop delivery
+// Use combined/suggested options instead
+
+// Mock data for interests - in production, use Meta's Targeting Search API
 const MOCK_INTERESTS: TargetingEntity[] = [
   { id: '6003139266461', name: 'Fitness and wellness', audience_size_lower_bound: 500000000, audience_size_upper_bound: 600000000, path: ['Interests', 'Fitness and wellness'] },
   { id: '6003107902433', name: 'Shopping and fashion', audience_size_lower_bound: 800000000, audience_size_upper_bound: 900000000, path: ['Interests', 'Shopping and fashion'] },
@@ -99,15 +104,15 @@ export default function TargetingSearch({
     }
 
     setIsSearching(true);
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     const mockData = type === 'interests' ? MOCK_INTERESTS : MOCK_BEHAVIORS;
     const filtered = mockData.filter(item =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
+
     setResults(filtered);
     setIsSearching(false);
   }, [type]);
@@ -117,7 +122,7 @@ export default function TargetingSearch({
     const timer = setTimeout(() => {
       searchTargeting(query);
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [query, searchTargeting]);
 
@@ -128,14 +133,14 @@ export default function TargetingSearch({
         setIsOpen(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleSelect = (item: TargetingEntity) => {
     const isSelected = selectedItems.some(i => i.id === item.id);
-    
+
     if (isSelected) {
       onSelect(selectedItems.filter(i => i.id !== item.id));
     } else if (selectedItems.length < maxItems) {
@@ -197,7 +202,7 @@ export default function TargetingSearch({
                 {results.map((item) => {
                   const isSelected = selectedItems.some(i => i.id === item.id);
                   const Icon = getCategoryIcon(item.path);
-                  
+
                   return (
                     <button
                       key={item.id}

@@ -34,10 +34,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { 
-  Campaign, 
-  AdSet, 
-  Ad, 
+import type {
+  Campaign,
+  AdSet,
+  Ad,
   DeliveryStatus,
   TableColumn,
   SortConfig,
@@ -62,6 +62,7 @@ interface AdsDataTableProps {
   currency?: string;
 }
 
+// Meta Marketing API v24.0 - Table Columns
 const DEFAULT_COLUMNS: TableColumn[] = [
   { id: 'name', label: 'Name', accessor: 'name', type: 'text', sortable: true, frozen: true, minWidth: 250 },
   { id: 'delivery', label: 'Delivery', accessor: 'delivery_status', type: 'status', sortable: true, width: 130 },
@@ -73,6 +74,11 @@ const DEFAULT_COLUMNS: TableColumn[] = [
   { id: 'ctr', label: 'CTR', accessor: 'insights.ctr', type: 'percentage', sortable: true, width: 80 },
   { id: 'cpc', label: 'CPC', accessor: 'insights.cpc', type: 'currency', sortable: true, width: 90 },
   { id: 'cpm', label: 'CPM', accessor: 'insights.cpm', type: 'currency', sortable: true, width: 90 },
+  // v24.0 Enhanced Metrics
+  { id: 'conversions', label: 'Conversions', accessor: 'insights.conversions', type: 'number', sortable: true, width: 110 },
+  { id: 'roas', label: 'ROAS', accessor: 'insights.roas', type: 'number', sortable: true, width: 80 },
+  { id: 'frequency', label: 'Frequency', accessor: 'insights.frequency', type: 'number', sortable: true, width: 100 },
+  { id: 'ig_visits', label: 'IG Visits', accessor: 'insights.instagram_profile_visits', type: 'number', sortable: true, width: 100 },
 ];
 
 function getNestedValue(obj: any, path: string): any {
@@ -88,10 +94,10 @@ function DeliveryStatusBadge({ status, itemStatus }: { status?: DeliveryStatus; 
       </Badge>
     );
   }
-  
+
   const color = getDeliveryStatusColor(status);
   const label = getDeliveryStatusLabel(status);
-  
+
   return (
     <Badge variant="secondary" className="gap-1 font-normal">
       <div className={cn("w-2 h-2 rounded-full", color)} />
@@ -138,21 +144,21 @@ export default function AdsDataTable({
   // Sort data
   const sortedData = useMemo(() => {
     if (!sortConfig) return data;
-    
+
     return [...data].sort((a, b) => {
       const aValue = getNestedValue(a, sortConfig.field);
       const bValue = getNestedValue(b, sortConfig.field);
-      
+
       if (aValue === undefined || aValue === null) return 1;
       if (bValue === undefined || bValue === null) return -1;
-      
+
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
       }
-      
+
       const aStr = String(aValue).toLowerCase();
       const bStr = String(bValue).toLowerCase();
-      
+
       if (sortConfig.direction === 'asc') {
         return aStr.localeCompare(bStr);
       }
@@ -163,7 +169,7 @@ export default function AdsDataTable({
   const handleSort = (columnId: string) => {
     const column = DEFAULT_COLUMNS.find(c => c.id === columnId);
     if (!column?.sortable) return;
-    
+
     setSortConfig(prev => {
       if (prev?.field === column.accessor) {
         if (prev.direction === 'asc') {
@@ -215,7 +221,7 @@ export default function AdsDataTable({
 
   const renderCellValue = (column: TableColumn, item: DataItem) => {
     const value = getNestedValue(item, column.accessor);
-    
+
     switch (column.type) {
       case 'currency':
         return value !== undefined ? formatCurrency(value, currency) : '-';
@@ -225,9 +231,9 @@ export default function AdsDataTable({
         return value !== undefined ? formatPercentage(value) : '-';
       case 'status':
         return (
-          <DeliveryStatusBadge 
-            status={(item as any).delivery_status} 
-            itemStatus={(item as any).status} 
+          <DeliveryStatusBadge
+            status={(item as any).delivery_status}
+            itemStatus={(item as any).status}
           />
         );
       case 'date':
@@ -455,7 +461,7 @@ export default function AdsDataTable({
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => onDelete(item.id, viewLevel)}
                             className="text-destructive"
                           >

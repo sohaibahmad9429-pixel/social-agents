@@ -341,10 +341,11 @@ function CreateAudienceModal({
     description: '',
     subtype: 'WEBSITE' as AudienceSubtype,
     retention_days: 30,
-    // Lookalike specific
+    // Lookalike specific - v24.0 mandatory lookalike_spec
     source_audience_id: '',
     country: 'US',
     ratio: 0.01,
+    type: 'similarity' as 'similarity' | 'reach' | 'custom_ratio', // v24.0 mandatory from Jan 2026
   });
 
   const handleSubmit = async () => {

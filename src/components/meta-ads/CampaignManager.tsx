@@ -67,13 +67,14 @@ interface CampaignManagerProps {
   onCreateAd?: (adSetId: string) => void;
 }
 
+// Meta Marketing API v24.0 - Campaign Objectives (ODAX)
 const OBJECTIVES = [
-  { value: 'OUTCOME_AWARENESS', label: 'Awareness', description: 'Show ads to people most likely to remember them' },
-  { value: 'OUTCOME_TRAFFIC', label: 'Traffic', description: 'Send people to a destination like a website or app' },
-  { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement', description: 'Get more messages, video views, post engagement' },
-  { value: 'OUTCOME_LEADS', label: 'Leads', description: 'Collect leads for your business' },
-  { value: 'OUTCOME_APP_PROMOTION', label: 'App Promotion', description: 'Get people to install your app' },
-  { value: 'OUTCOME_SALES', label: 'Sales', description: 'Find people likely to purchase' },
+  { value: 'OUTCOME_AWARENESS', label: 'Awareness', description: 'Maximize reach and ad recall - includes video views and brand awareness', icon: '👁️' },
+  { value: 'OUTCOME_TRAFFIC', label: 'Traffic', description: 'Drive traffic to website, app, or Instagram profile (v24.0)', icon: '🔗' },
+  { value: 'OUTCOME_ENGAGEMENT', label: 'Engagement', description: 'Get messages, video views, post engagement, Page likes, event responses', icon: '💬' },
+  { value: 'OUTCOME_LEADS', label: 'Leads', description: 'Collect leads via forms, calls, or messaging - includes Quality Leads (v24.0)', icon: '📋' },
+  { value: 'OUTCOME_APP_PROMOTION', label: 'App Promotion', description: 'Drive app installs and in-app events', icon: '📱' },
+  { value: 'OUTCOME_SALES', label: 'Sales', description: 'Find buyers - supports ONSITE_CONVERSIONS and Value optimization (v24.0)', icon: '🛒' },
 ];
 
 const initialFormData: CampaignFormData = {
@@ -90,7 +91,7 @@ const initialFormData: CampaignFormData = {
 export default function CampaignManager({ campaigns = [], adSets = [], ads = [], onRefresh, showCreate, onShowCreateChange, onCreateAdSet, onCreateAd }: CampaignManagerProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  
+
   // Sync with external showCreate prop
   React.useEffect(() => {
     if (showCreate !== undefined) {
@@ -113,7 +114,7 @@ export default function CampaignManager({ campaigns = [], adSets = [], ads = [],
   if (selectedCampaign) {
     const campaignAdSets = adSets.filter(as => as.campaign_id === selectedCampaign.id);
     const campaignAds = ads.filter(ad => campaignAdSets.some(as => as.id === ad.adset_id));
-    
+
     return (
       <CampaignDetailView
         campaign={selectedCampaign}
@@ -413,127 +414,127 @@ function CampaignRow({
     : '0.00';
 
   return (
-      <tr className="border-b hover:bg-muted/30 transition-colors">
-        <td className="p-4">
-          <div 
-            className="flex items-center gap-3 cursor-pointer group"
-            onClick={onSelect}
-          >
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white flex-shrink-0">
-              <Megaphone className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-medium group-hover:text-primary transition-colors">{campaign.name}</p>
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                {campaign.objective.replace('OUTCOME_', '')}
-                <span 
-                  className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded hover:bg-primary/20 cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); onSelect(); }}
-                >
-                  {adSets.length} Ad Set{adSets.length !== 1 ? 's' : ''} →
-                </span>
-              </p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+    <tr className="border-b hover:bg-muted/30 transition-colors">
+      <td className="p-4">
+        <div
+          className="flex items-center gap-3 cursor-pointer group"
+          onClick={onSelect}
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white flex-shrink-0">
+            <Megaphone className="w-5 h-5" />
           </div>
-        </td>
-        <td className="p-4">
-          <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", statusColors[campaign.status])}>
-            {campaign.status}
-          </span>
-        </td>
-        <td className="p-4 text-right">
-          <span className="font-medium">
-            ${campaign.daily_budget ? (campaign.daily_budget / 100).toFixed(2) : '0.00'}
-          </span>
-          <span className="text-xs text-muted-foreground">/day</span>
-        </td>
-        <td className="p-4 text-right font-medium">
-          ${(campaign.insights?.spend || 0).toFixed(2)}
-        </td>
-        <td className="p-4 text-right font-medium">
-          {formatNumber(campaign.insights?.impressions || 0)}
-        </td>
-        <td className="p-4 text-right font-medium">
-          {formatNumber(campaign.insights?.clicks || 0)}
-        </td>
-        <td className="p-4 text-right">
-          <div className="flex items-center justify-end gap-1">
-            <span className="font-medium">{ctr}%</span>
-            {parseFloat(ctr) > 2 ? (
-              <TrendingUp className="w-4 h-4 text-green-500" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-red-500" />
-            )}
+          <div>
+            <p className="font-medium group-hover:text-primary transition-colors">{campaign.name}</p>
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              {campaign.objective.replace('OUTCOME_', '')}
+              <span
+                className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded hover:bg-primary/20 cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); onSelect(); }}
+              >
+                {adSets.length} Ad Set{adSets.length !== 1 ? 's' : ''} →
+              </span>
+            </p>
           </div>
-        </td>
-        <td className="p-4">
-          <div className="flex items-center justify-center gap-1">
-            {campaign.status === 'ACTIVE' ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onStatusChange(campaign.id, 'PAUSED')}
-              >
-                <Pause className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onStatusChange(campaign.id, 'ACTIVE')}
-              >
-                <Play className="w-4 h-4" />
-              </Button>
-            )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+          <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+      </td>
+      <td className="p-4">
+        <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", statusColors[campaign.status])}>
+          {campaign.status}
+        </span>
+      </td>
+      <td className="p-4 text-right">
+        <span className="font-medium">
+          ${campaign.daily_budget ? (campaign.daily_budget / 100).toFixed(2) : '0.00'}
+        </span>
+        <span className="text-xs text-muted-foreground">/day</span>
+      </td>
+      <td className="p-4 text-right font-medium">
+        ${(campaign.insights?.spend || 0).toFixed(2)}
+      </td>
+      <td className="p-4 text-right font-medium">
+        {formatNumber(campaign.insights?.impressions || 0)}
+      </td>
+      <td className="p-4 text-right font-medium">
+        {formatNumber(campaign.insights?.clicks || 0)}
+      </td>
+      <td className="p-4 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <span className="font-medium">{ctr}%</span>
+          {parseFloat(ctr) > 2 ? (
+            <TrendingUp className="w-4 h-4 text-green-500" />
+          ) : (
+            <TrendingDown className="w-4 h-4 text-red-500" />
+          )}
+        </div>
+      </td>
+      <td className="p-4">
+        <div className="flex items-center justify-center gap-1">
+          {campaign.status === 'ACTIVE' ? (
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8"
-              onClick={() => onEdit(campaign)}
-              title="Edit campaign"
+              onClick={() => onStatusChange(campaign.id, 'PAUSED')}
             >
-              <Edit className="w-4 h-4" />
+              <Pause className="w-4 h-4" />
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onSelect}>
-                  <Layers className="w-4 h-4 mr-2" />
-                  View Ad Sets
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onCreateAdSet?.(campaign.id)}>
-                  <Target className="w-4 h-4 mr-2" />
-                  Add Ad Set
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onEdit(campaign)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Campaign
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDuplicate(campaign)}>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Duplicate
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => onDelete(campaign)}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Campaign
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </td>
-      </tr>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onStatusChange(campaign.id, 'ACTIVE')}
+            >
+              <Play className="w-4 h-4" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onEdit(campaign)}
+            title="Edit campaign"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onSelect}>
+                <Layers className="w-4 h-4 mr-2" />
+                View Ad Sets
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onCreateAdSet?.(campaign.id)}>
+                <Target className="w-4 h-4 mr-2" />
+                Add Ad Set
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onEdit(campaign)}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Campaign
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDuplicate(campaign)}>
+                <Copy className="w-4 h-4 mr-2" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(campaign)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Campaign
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -643,10 +644,10 @@ function CampaignDetailView({
             <div className="space-y-4">
               {adSets.map((adSet) => {
                 const adSetAds = ads.filter(a => a.adset_id === adSet.id);
-                const adSetCtr = adSet.insights?.impressions 
-                  ? ((adSet.insights.clicks / adSet.insights.impressions) * 100).toFixed(2) 
+                const adSetCtr = adSet.insights?.impressions
+                  ? ((adSet.insights.clicks / adSet.insights.impressions) * 100).toFixed(2)
                   : '0.00';
-                
+
                 return (
                   <div key={adSet.id} className="border rounded-lg">
                     {/* Ad Set Header */}
@@ -686,8 +687,8 @@ function CampaignDetailView({
                         <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", statusColors[adSet.status] || statusColors.PAUSED)}>
                           {adSet.status}
                         </span>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline"
                           onClick={() => onCreateAd?.(adSet.id)}
                         >
@@ -696,7 +697,7 @@ function CampaignDetailView({
                         </Button>
                       </div>
                     </div>
-                    
+
                     {/* Ads within this Ad Set */}
                     {adSetAds.length > 0 && (
                       <div className="border-t bg-muted/20 p-4">
@@ -706,7 +707,7 @@ function CampaignDetailView({
                         </p>
                         <div className="grid gap-2">
                           {adSetAds.map((ad) => (
-                            <div 
+                            <div
                               key={ad.id}
                               className="flex items-center justify-between p-3 rounded-md bg-background border"
                             >
@@ -743,12 +744,12 @@ function CampaignDetailView({
                         </div>
                       </div>
                     )}
-                    
+
                     {adSetAds.length === 0 && (
                       <div className="border-t bg-muted/10 p-4 text-center">
                         <p className="text-sm text-muted-foreground">No ads yet</p>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="link"
                           onClick={() => onCreateAd?.(adSet.id)}
                         >
@@ -780,12 +781,12 @@ function CampaignDetailView({
 }
 
 // Ad Set Row Component (nested within Campaign - kept for reference but not used in detail view)
-function AdSetRow({ 
-  adSet, 
+function AdSetRow({
+  adSet,
   ads,
-  onCreateAd 
-}: { 
-  adSet: any; 
+  onCreateAd
+}: {
+  adSet: any;
   ads: any[];
   onCreateAd?: (adSetId: string) => void;
 }) {
@@ -800,7 +801,7 @@ function AdSetRow({
 
   return (
     <div className="border rounded-lg bg-background">
-      <div 
+      <div
         className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -832,8 +833,8 @@ function AdSetRow({
           <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", statusColors[adSet.status] || statusColors.PAUSED)}>
             {adSet.status}
           </span>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
@@ -846,7 +847,7 @@ function AdSetRow({
           </Button>
         </div>
       </div>
-      
+
       {/* Expanded Ads */}
       {isExpanded && (
         <div className="border-t p-3 pl-12 bg-muted/10">
@@ -856,11 +857,11 @@ function AdSetRow({
               Ads in this Ad Set
             </h5>
           </div>
-          
+
           {ads.length > 0 ? (
             <div className="space-y-1">
               {ads.map((ad) => (
-                <div 
+                <div
                   key={ad.id}
                   className="flex items-center justify-between p-2 rounded-md bg-background border"
                 >
@@ -879,8 +880,8 @@ function AdSetRow({
           ) : (
             <div className="text-center py-4 text-muted-foreground">
               <p className="text-xs">No ads yet</p>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="link"
                 onClick={() => onCreateAd?.(adSet.id)}
                 className="text-xs h-6"
@@ -1004,7 +1005,7 @@ function CreateCampaignModal({
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                         (cat === 'NONE' && formData.special_ad_categories.length === 0) ||
-                        formData.special_ad_categories.includes(cat as SpecialAdCategory)
+                          formData.special_ad_categories.includes(cat as SpecialAdCategory)
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted hover:bg-muted/80"
                       )}
@@ -1241,9 +1242,9 @@ function EditCampaignModal({
             <Button
               variant={formData.is_campaign_budget_optimization ? "default" : "outline"}
               size="sm"
-              onClick={() => setFormData(prev => ({ 
-                ...prev, 
-                is_campaign_budget_optimization: !prev.is_campaign_budget_optimization 
+              onClick={() => setFormData(prev => ({
+                ...prev,
+                is_campaign_budget_optimization: !prev.is_campaign_budget_optimization
               }))}
             >
               {formData.is_campaign_budget_optimization ? 'On' : 'Off'}

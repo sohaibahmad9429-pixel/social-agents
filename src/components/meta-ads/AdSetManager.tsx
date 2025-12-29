@@ -53,33 +53,50 @@ interface AdSetManagerProps {
   preselectedCampaignId?: string;
 }
 
-// Optimization goals mapped to campaign objectives
+// Optimization goals mapped to campaign objectives - v24.0
 // Each objective has valid goals, with the first being the default
 const OBJECTIVE_OPTIMIZATION_GOALS: Record<string, { value: string; label: string; description: string }[]> = {
   'OUTCOME_AWARENESS': [
     { value: 'REACH', label: 'Reach', description: 'Show ads to maximum unique people' },
     { value: 'IMPRESSIONS', label: 'Impressions', description: 'Show ads as many times as possible' },
+    { value: 'AD_RECALL_LIFT', label: 'Ad Recall Lift', description: 'Maximize brand recall' },
+    { value: 'THRUPLAY', label: 'ThruPlay', description: 'Video views (15+ seconds)' },
+    { value: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS', label: '2-Second Views', description: 'Video views (2+ seconds)' },
   ],
   'OUTCOME_TRAFFIC': [
     { value: 'LINK_CLICKS', label: 'Link Clicks', description: 'Get people to click your link' },
     { value: 'LANDING_PAGE_VIEWS', label: 'Landing Page Views', description: 'Get people to view your landing page' },
+    { value: 'REACH', label: 'Reach', description: 'Show ads to maximum people' },
+    { value: 'IMPRESSIONS', label: 'Impressions', description: 'Maximize impressions' },
   ],
   'OUTCOME_ENGAGEMENT': [
     { value: 'POST_ENGAGEMENT', label: 'Post Engagement', description: 'Get likes, comments, shares' },
     { value: 'THRUPLAY', label: 'ThruPlay', description: 'Get video views (15+ seconds)' },
+    { value: 'TWO_SECOND_CONTINUOUS_VIDEO_VIEWS', label: '2-Second Views', description: 'Quick video views' },
+    { value: 'PAGE_LIKES', label: 'Page Likes', description: 'Grow your Page followers' },
+    { value: 'EVENT_RESPONSES', label: 'Event Responses', description: 'Get event RSVPs' },
+    { value: 'CONVERSATIONS', label: 'Conversations', description: 'Start messaging conversations' },
   ],
   'OUTCOME_LEADS': [
     { value: 'LEAD_GENERATION', label: 'Lead Generation', description: 'Collect leads with forms' },
+    { value: 'QUALITY_LEAD', label: 'Quality Leads', description: 'Higher quality lead form submissions' },
     { value: 'CONVERSATIONS', label: 'Conversations', description: 'Start messaging conversations' },
+    { value: 'LINK_CLICKS', label: 'Link Clicks', description: 'Drive traffic to your website' },
+    { value: 'OFFSITE_CONVERSIONS', label: 'Website Conversions', description: 'Track website conversions' },
+    { value: 'ONSITE_CONVERSIONS', label: 'On-Site Conversions', description: 'In-app conversions' },
   ],
   'OUTCOME_SALES': [
+    { value: 'OFFSITE_CONVERSIONS', label: 'Website Conversions', description: 'Optimize for purchases' },
+    { value: 'ONSITE_CONVERSIONS', label: 'On-Site Conversions', description: 'In-app purchases' },
+    { value: 'VALUE', label: 'Value', description: 'Maximize purchase value' },
     { value: 'LINK_CLICKS', label: 'Link Clicks', description: 'Drive traffic to your website' },
     { value: 'LANDING_PAGE_VIEWS', label: 'Landing Page Views', description: 'Get people to view your page' },
-    // Note: OFFSITE_CONVERSIONS requires pixel setup
   ],
   'OUTCOME_APP_PROMOTION': [
     { value: 'APP_INSTALLS', label: 'App Installs', description: 'Get people to install your app' },
+    { value: 'APP_INSTALLS_AND_OFFSITE_CONVERSIONS', label: 'App Events', description: 'In-app actions' },
     { value: 'LINK_CLICKS', label: 'Link Clicks', description: 'Get clicks to app store' },
+    { value: 'REACH', label: 'Reach', description: 'Show ads to maximum people' },
   ],
 };
 
@@ -446,10 +463,10 @@ function CreateAdSetModal({
   // Check if selected campaign uses Campaign Budget Optimization (CBO)
   const selectedCampaign = campaigns.find(c => c.id === formData.campaign_id);
   const campaignUsesCBO = !!(selectedCampaign?.daily_budget || selectedCampaign?.lifetime_budget);
-  
+
   // Check if campaign's bid_strategy requires bid_amount
   const strategiesRequiringBidAmount = ['LOWEST_COST_WITH_BID_CAP', 'COST_CAP', 'LOWEST_COST_WITH_MIN_ROAS'];
-  const campaignRequiresBidAmount = selectedCampaign?.bid_strategy && 
+  const campaignRequiresBidAmount = selectedCampaign?.bid_strategy &&
     strategiesRequiringBidAmount.includes(selectedCampaign.bid_strategy);
 
   return (
@@ -462,9 +479,9 @@ function CreateAdSetModal({
             <h2 className="text-xl font-bold">Create Ad Set</h2>
             <p className="text-sm text-muted-foreground">Step {step} of 4 - {
               step === 1 ? 'Basic Info' :
-              step === 2 ? 'Targeting' :
-              step === 3 ? 'Placements' :
-              'Budget & Schedule'
+                step === 2 ? 'Targeting' :
+                  step === 3 ? 'Placements' :
+                    'Budget & Schedule'
             }</p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -509,13 +526,13 @@ function CreateAdSetModal({
                   onValueChange={(value) => {
                     // Find the selected campaign and set the default optimization goal
                     const selectedCampaign = campaigns.find(c => c.id === value);
-                    const defaultGoals = selectedCampaign?.objective 
+                    const defaultGoals = selectedCampaign?.objective
                       ? (OBJECTIVE_OPTIMIZATION_GOALS[selectedCampaign.objective] || DEFAULT_OPTIMIZATION_GOALS)
                       : DEFAULT_OPTIMIZATION_GOALS;
                     const defaultGoal = defaultGoals[0]?.value || 'LINK_CLICKS';
-                    
-                    setFormData(prev => ({ 
-                      ...prev, 
+
+                    setFormData(prev => ({
+                      ...prev,
                       campaign_id: value,
                       optimization_goal: defaultGoal as OptimizationGoal
                     }));
@@ -542,7 +559,7 @@ function CreateAdSetModal({
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   {(() => {
                     const selectedCampaign = campaigns.find(c => c.id === formData.campaign_id);
-                    const goals = selectedCampaign?.objective 
+                    const goals = selectedCampaign?.objective
                       ? (OBJECTIVE_OPTIMIZATION_GOALS[selectedCampaign.objective] || DEFAULT_OPTIMIZATION_GOALS)
                       : DEFAULT_OPTIMIZATION_GOALS;
                     return goals.map((goal: { value: string; label: string; description: string }) => (
@@ -787,7 +804,7 @@ function CreateAdSetModal({
                     <div>
                       <p className="font-medium text-blue-900 dark:text-blue-100">Campaign Budget Optimization Enabled</p>
                       <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                        This campaign uses a campaign-level budget (${((selectedCampaign?.daily_budget || selectedCampaign?.lifetime_budget || 0) / 100).toFixed(2)}/day). 
+                        This campaign uses a campaign-level budget (${((selectedCampaign?.daily_budget || selectedCampaign?.lifetime_budget || 0) / 100).toFixed(2)}/day).
                         The budget will be automatically distributed across ad sets.
                       </p>
                     </div>
@@ -803,7 +820,7 @@ function CreateAdSetModal({
                     <div>
                       <p className="font-medium text-amber-900 dark:text-amber-100">Bid Amount Required</p>
                       <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                        This campaign uses <strong>{selectedCampaign?.bid_strategy?.replace(/_/g, ' ')}</strong> bid strategy. 
+                        This campaign uses <strong>{selectedCampaign?.bid_strategy?.replace(/_/g, ' ')}</strong> bid strategy.
                         You must provide a bid amount for this ad set.
                       </p>
                     </div>
@@ -813,56 +830,56 @@ function CreateAdSetModal({
 
               {/* Budget - only show if campaign doesn't use CBO */}
               {!campaignUsesCBO && (
-              <>
-              <div>
-                <Label>Budget Type</Label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <button
-                    onClick={() => setFormData(prev => ({ ...prev, budget_type: 'daily' }))}
-                    className={cn(
-                      "p-4 rounded-xl border-2 text-left transition-all",
-                      formData.budget_type === 'daily'
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <Calendar className="w-5 h-5 mb-2 text-primary" />
-                    <p className="font-medium">Daily Budget</p>
-                    <p className="text-xs text-muted-foreground">Spend up to this amount each day</p>
-                  </button>
-                  <button
-                    onClick={() => setFormData(prev => ({ ...prev, budget_type: 'lifetime' }))}
-                    className={cn(
-                      "p-4 rounded-xl border-2 text-left transition-all",
-                      formData.budget_type === 'lifetime'
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <DollarSign className="w-5 h-5 mb-2 text-primary" />
-                    <p className="font-medium">Lifetime Budget</p>
-                    <p className="text-xs text-muted-foreground">Spend over the ad set duration</p>
-                  </button>
-                </div>
-              </div>
+                <>
+                  <div>
+                    <Label>Budget Type</Label>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button
+                        onClick={() => setFormData(prev => ({ ...prev, budget_type: 'daily' }))}
+                        className={cn(
+                          "p-4 rounded-xl border-2 text-left transition-all",
+                          formData.budget_type === 'daily'
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <Calendar className="w-5 h-5 mb-2 text-primary" />
+                        <p className="font-medium">Daily Budget</p>
+                        <p className="text-xs text-muted-foreground">Spend up to this amount each day</p>
+                      </button>
+                      <button
+                        onClick={() => setFormData(prev => ({ ...prev, budget_type: 'lifetime' }))}
+                        className={cn(
+                          "p-4 rounded-xl border-2 text-left transition-all",
+                          formData.budget_type === 'lifetime'
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <DollarSign className="w-5 h-5 mb-2 text-primary" />
+                        <p className="font-medium">Lifetime Budget</p>
+                        <p className="text-xs text-muted-foreground">Spend over the ad set duration</p>
+                      </button>
+                    </div>
+                  </div>
 
-              <div>
-                <Label htmlFor="budget-amount">
-                  {formData.budget_type === 'daily' ? 'Daily' : 'Lifetime'} Budget (USD)
-                </Label>
-                <div className="relative mt-2">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="budget-amount"
-                    type="number"
-                    value={formData.budget_amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, budget_amount: parseFloat(e.target.value) || 0 }))}
-                    className="pl-10"
-                    min={1}
-                  />
-                </div>
-              </div>
-              </>
+                  <div>
+                    <Label htmlFor="budget-amount">
+                      {formData.budget_type === 'daily' ? 'Daily' : 'Lifetime'} Budget (USD)
+                    </Label>
+                    <div className="relative mt-2">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="budget-amount"
+                        type="number"
+                        value={formData.budget_amount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, budget_amount: parseFloat(e.target.value) || 0 }))}
+                        className="pl-10"
+                        min={1}
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
               {/* Bid Strategy - Only show if campaign doesn't use CBO */}
@@ -871,8 +888,8 @@ function CreateAdSetModal({
                   <Label>Bid Strategy</Label>
                   <Select
                     value={formData.bid_strategy || 'LOWEST_COST_WITHOUT_CAP'}
-                    onValueChange={(value) => setFormData(prev => ({ 
-                      ...prev, 
+                    onValueChange={(value) => setFormData(prev => ({
+                      ...prev,
                       bid_strategy: value as BidStrategy,
                       // Clear bid_amount if switching to lowest cost
                       bid_amount: value === 'LOWEST_COST_WITHOUT_CAP' ? undefined : prev.bid_amount
@@ -888,15 +905,15 @@ function CreateAdSetModal({
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formData.bid_strategy === 'LOWEST_COST_WITH_BID_CAP' 
+                    {formData.bid_strategy === 'LOWEST_COST_WITH_BID_CAP'
                       ? 'Set a maximum bid for each optimization event'
                       : formData.bid_strategy === 'COST_CAP'
-                      ? 'Set an average cost target per optimization event'
-                      : 'Get the most results at the lowest cost'}
+                        ? 'Set an average cost target per optimization event'
+                        : 'Get the most results at the lowest cost'}
                   </p>
                 </div>
               )}
-              
+
               {/* Show campaign bid strategy info when CBO is used */}
               {campaignUsesCBO && (
                 <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
@@ -913,8 +930,8 @@ function CreateAdSetModal({
               {(campaignRequiresBidAmount || (formData.bid_strategy && formData.bid_strategy !== 'LOWEST_COST_WITHOUT_CAP')) && (
                 <div>
                   <Label htmlFor="bid-amount">
-                    {(selectedCampaign?.bid_strategy === 'LOWEST_COST_WITH_BID_CAP' || formData.bid_strategy === 'LOWEST_COST_WITH_BID_CAP') 
-                      ? 'Bid Cap' 
+                    {(selectedCampaign?.bid_strategy === 'LOWEST_COST_WITH_BID_CAP' || formData.bid_strategy === 'LOWEST_COST_WITH_BID_CAP')
+                      ? 'Bid Cap'
                       : 'Cost Cap'} (USD) <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative mt-2">
@@ -931,7 +948,7 @@ function CreateAdSetModal({
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formData.bid_strategy === 'LOWEST_COST_WITH_BID_CAP' 
+                    {formData.bid_strategy === 'LOWEST_COST_WITH_BID_CAP'
                       ? 'Maximum amount you\'ll pay per result'
                       : 'Average amount you want to pay per result'}
                   </p>
@@ -974,14 +991,14 @@ function CreateAdSetModal({
           <Button
             onClick={() => step < 4 ? setStep(step + 1) : onSubmit()}
             disabled={
-              isSubmitting || 
+              isSubmitting ||
               (step === 1 && (!formData.name || !formData.campaign_id)) ||
               (step === 4 && (
                 // Require bid_amount if campaign's bid_strategy needs it
                 (campaignRequiresBidAmount && !formData.bid_amount) ||
                 // Or if ad set's bid_strategy needs it
-                (formData.bid_strategy && 
-                  formData.bid_strategy !== 'LOWEST_COST_WITHOUT_CAP' && 
+                (formData.bid_strategy &&
+                  formData.bid_strategy !== 'LOWEST_COST_WITHOUT_CAP' &&
                   !formData.bid_amount)
               ))
             }

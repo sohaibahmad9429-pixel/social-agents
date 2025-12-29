@@ -50,24 +50,42 @@ interface AdCreativeManagerProps {
   preselectedAdSetId?: string;
 }
 
+// Meta Marketing API v24.0 - Call to Action Types
 const CTA_OPTIONS = [
-  { value: 'LEARN_MORE', label: 'Learn More' },
-  { value: 'SHOP_NOW', label: 'Shop Now' },
-  { value: 'SIGN_UP', label: 'Sign Up' },
-  { value: 'SUBSCRIBE', label: 'Subscribe' },
-  { value: 'CONTACT_US', label: 'Contact Us' },
-  { value: 'DOWNLOAD', label: 'Download' },
-  { value: 'GET_QUOTE', label: 'Get Quote' },
-  { value: 'BOOK_TRAVEL', label: 'Book Now' },
-  { value: 'SEND_MESSAGE', label: 'Send Message' },
-  { value: 'CALL_NOW', label: 'Call Now' },
-  { value: 'APPLY_NOW', label: 'Apply Now' },
-  { value: 'BUY_NOW', label: 'Buy Now' },
-  { value: 'ORDER_NOW', label: 'Order Now' },
-  { value: 'LIKE_PAGE', label: 'Like Page' },
-  { value: 'MESSAGE_PAGE', label: 'Message Page' },
-  { value: 'GET_PROMOTIONS', label: 'Get Promotions' },
-  { value: 'WHATSAPP_MESSAGE', label: 'WhatsApp' },
+  // General
+  { value: 'LEARN_MORE', label: 'Learn More', category: 'general' },
+  { value: 'SEE_MORE', label: 'See More', category: 'general' },
+  { value: 'WATCH_MORE', label: 'Watch More', category: 'video' },
+  // E-commerce
+  { value: 'SHOP_NOW', label: 'Shop Now', category: 'ecommerce' },
+  { value: 'BUY_NOW', label: 'Buy Now', category: 'ecommerce' },
+  { value: 'ORDER_NOW', label: 'Order Now', category: 'ecommerce' },
+  { value: 'GET_OFFER', label: 'Get Offer', category: 'ecommerce' },
+  { value: 'GET_PROMOTIONS', label: 'Get Promotions', category: 'ecommerce' },
+  // Lead Generation
+  { value: 'SIGN_UP', label: 'Sign Up', category: 'leads' },
+  { value: 'SUBSCRIBE', label: 'Subscribe', category: 'leads' },
+  { value: 'CONTACT_US', label: 'Contact Us', category: 'leads' },
+  { value: 'GET_QUOTE', label: 'Get Quote', category: 'leads' },
+  { value: 'APPLY_NOW', label: 'Apply Now', category: 'leads' },
+  // App
+  { value: 'DOWNLOAD', label: 'Download', category: 'app' },
+  { value: 'INSTALL_APP', label: 'Install App', category: 'app' },
+  { value: 'USE_APP', label: 'Use App', category: 'app' },
+  { value: 'PLAY_GAME', label: 'Play Game', category: 'app' },
+  // Messaging - v24.0 enhanced
+  { value: 'SEND_MESSAGE', label: 'Send Message', category: 'messaging' },
+  { value: 'MESSAGE_PAGE', label: 'Message Page', category: 'messaging' },
+  { value: 'WHATSAPP_MESSAGE', label: 'WhatsApp', category: 'messaging' },
+  // Local/Booking
+  { value: 'CALL_NOW', label: 'Call Now', category: 'local' },
+  { value: 'BOOK_TRAVEL', label: 'Book Now', category: 'booking' },
+  { value: 'REQUEST_TIME', label: 'Request Time', category: 'booking' },
+  { value: 'GET_DIRECTIONS', label: 'Get Directions', category: 'local' },
+  { value: 'SEE_MENU', label: 'See Menu', category: 'local' },
+  // Engagement
+  { value: 'LIKE_PAGE', label: 'Like Page', category: 'engagement' },
+  { value: 'DONATE_NOW', label: 'Donate Now', category: 'nonprofit' },
 ];
 
 const initialFormData: AdFormData = {
@@ -122,7 +140,7 @@ export default function AdCreativeManager({ ads, adSets, onRefresh, showCreate, 
       // Prepare request data - carousel items should already be in formData.creative.carousel_items
       // from the CreateAdModal component
       const requestData = { ...formData };
-      
+
       const response = await fetch('/api/meta-ads/ads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -139,12 +157,12 @@ export default function AdCreativeManager({ ads, adSets, onRefresh, showCreate, 
       } else {
         // Handle error response
         const errorMessage = data.error || 'Failed to create ad';
-        const errorDetails = data.details 
-          ? (Array.isArray(data.details) 
-              ? data.details.map((d: any) => `${d.path}: ${d.message}`).join(', ')
-              : data.details)
+        const errorDetails = data.details
+          ? (Array.isArray(data.details)
+            ? data.details.map((d: any) => `${d.path}: ${d.message}`).join(', ')
+            : data.details)
           : data.message || 'Unknown error';
-        
+
         toast.error(`${errorMessage}: ${errorDetails}`);
       }
     } catch (error) {
@@ -436,7 +454,7 @@ function CreateAdModal({
       }
     } else {
       // Single item
-      updateCreative({ 
+      updateCreative({
         image_url: media.url,
         video_id: media.type === 'video' ? media.id : undefined,
       });
@@ -567,9 +585,9 @@ function CreateAdModal({
                           </div>
                         ) : (
                           <div className="aspect-video">
-                            <img 
-                              src={formData.creative.image_url} 
-                              alt="Preview" 
+                            <img
+                              src={formData.creative.image_url}
+                              alt="Preview"
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -588,7 +606,7 @@ function CreateAdModal({
                         </button>
                       </div>
                     ) : (
-                      <div 
+                      <div
                         className="border-2 border-dashed rounded-xl p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
                         onClick={() => setMediaPickerOpen(true)}
                       >
@@ -847,8 +865,8 @@ function CreateAdModal({
         multiple={creativeType === 'carousel'}
         maxItems={10}
         title={creativeType === 'carousel' ? 'Select Carousel Media' : 'Select Media'}
-        description={creativeType === 'carousel' 
-          ? 'Choose 2-10 images or videos for your carousel ad' 
+        description={creativeType === 'carousel'
+          ? 'Choose 2-10 images or videos for your carousel ad'
           : `Choose ${creativeType === 'video' ? 'a video' : 'an image'} from your media library`
         }
       />

@@ -135,6 +135,20 @@ class Settings(BaseSettings):
     CANVA_CLIENT_ID: Optional[str] = Field(default=None, description="Canva Client ID")
     CANVA_CLIENT_SECRET: Optional[str] = Field(default=None, description="Canva Client Secret")
     
+    # Meta Ads Configuration (uses Facebook App credentials)
+    META_ADS_REDIRECT_URI: Optional[str] = Field(default=None, description="Meta Ads OAuth redirect URI")
+    NEXT_PUBLIC_APP_URL: Optional[str] = Field(default=None, description="Next.js app URL for redirects")
+    
+    @property
+    def FACEBOOK_APP_ID(self) -> Optional[str]:
+        """Alias for Meta App ID (uses Facebook Client ID)"""
+        return self.FACEBOOK_CLIENT_ID
+    
+    @property
+    def FACEBOOK_APP_SECRET(self) -> Optional[str]:
+        """Alias for Meta App Secret (uses Facebook Client Secret)"""
+        return self.FACEBOOK_CLIENT_SECRET
+    
     # Cloudinary Configuration (Media Storage & CDN)
     CLOUDINARY_CLOUD_NAME: Optional[str] = Field(default=None, description="Cloudinary cloud name")
     CLOUDINARY_API_KEY: Optional[str] = Field(default=None, description="Cloudinary API key")

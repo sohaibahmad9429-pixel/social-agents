@@ -6,7 +6,7 @@
  * Allows assigning drafts to existing campaigns or creating new ones
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Image as ImageIcon,
   Video,
@@ -20,6 +20,10 @@ import {
   ExternalLink,
   Calendar,
   Send,
+  Search,
+  Filter,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +98,7 @@ interface AdDraftsManagerProps {
 
 export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
   const { workspaceId } = useAuth();
-  
+
   // State
   const [drafts, setDrafts] = useState<AdDraft[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -104,11 +108,29 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [selectedDrafts, setSelectedDrafts] = useState<Set<string>>(new Set());
+
   // Assign to campaign state
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
   const [selectedAdSetId, setSelectedAdSetId] = useState<string>('');
   const [filteredAdSets, setFilteredAdSets] = useState<AdSet[]>([]);
+
+  // Filtered drafts
+  const filteredDrafts = useMemo(() => {
+    return drafts.filter(draft => {
+      const matchesSearch = !searchQuery ||
+        draft.creative.headline?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        draft.creative.primary_text?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || draft.status === statusFilter;
+      const matchesType = typeFilter === 'all' || draft.ad_type === typeFilter;
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [drafts, searchQuery, statusFilter, typeFilter]);
 
   // Load data
   useEffect(() => {
@@ -130,7 +152,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
   const loadData = async () => {
     if (!workspaceId) return;
     setIsLoading(true);
-    
+
     try {
       // Load drafts, campaigns, and ad sets in parallel
       const [draftsRes, campaignsRes, adSetsRes] = await Promise.all([
@@ -162,7 +184,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
   // Delete draft
   const handleDelete = async (draftId: string) => {
     if (!confirm('Delete this ad from library?')) return;
-    
+
     setActionLoading(draftId);
     try {
       const response = await fetch(`/api/meta-ads/ads/draft/${draftId}`, {
@@ -190,7 +212,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
     }
 
     setActionLoading(selectedDraft.id);
-    
+
     try {
       const response = await fetch('/api/meta-ads/ads', {
         method: 'POST',
@@ -225,9 +247,9 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
           }),
         });
 
-        setDrafts(prev => prev.map(d => 
-          d.id === selectedDraft.id 
-            ? { ...d, status: 'published' as const, meta_ad_id: data.ad?.id } 
+        setDrafts(prev => prev.map(d =>
+          d.id === selectedDraft.id
+            ? { ...d, status: 'published' as const, meta_ad_id: data.ad?.id }
             : d
         ));
 
@@ -285,6 +307,34 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
     );
   }
 
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (!confirm(`Delete ${selectedDrafts.size} selected ads?`)) return;
+    for (const id of selectedDrafts) {
+      await handleDelete(id);
+    }
+    setSelectedDrafts(new Set());
+  };
+
+  // Toggle selection
+  const toggleSelection = (id: string) => {
+    setSelectedDrafts(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Select all
+  const selectAll = () => {
+    if (selectedDrafts.size === filteredDrafts.length) {
+      setSelectedDrafts(new Set());
+    } else {
+      setSelectedDrafts(new Set(filteredDrafts.map(d => d.id)));
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -292,33 +342,107 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
         <div>
           <h2 className="text-lg font-semibold">Ad Library</h2>
           <p className="text-sm text-muted-foreground">
-            {drafts.length} ad{drafts.length !== 1 ? 's' : ''} saved
+            {filteredDrafts.length} of {drafts.length} ad{drafts.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadData}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedDrafts.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete ({selectedDrafts.size})
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={loadData}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search ads..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="published">Published</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="single_image">Image</SelectItem>
+            <SelectItem value="single_video">Video</SelectItem>
+            <SelectItem value="carousel">Carousel</SelectItem>
+          </SelectContent>
+        </Select>
+        {filteredDrafts.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={selectAll}>
+            {selectedDrafts.size === filteredDrafts.length ? (
+              <><CheckSquare className="w-4 h-4 mr-1" /> Deselect All</>
+            ) : (
+              <><Square className="w-4 h-4 mr-1" /> Select All</>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Empty State */}
-      {drafts.length === 0 ? (
+      {filteredDrafts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
               <ImageIcon className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h3 className="font-medium mb-1">No Ads in Library</h3>
+            <h3 className="font-medium mb-1">
+              {drafts.length === 0 ? 'No Ads in Library' : 'No Matching Ads'}
+            </h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Create ads from your media library using the "Send to Ad" button on any content.
+              {drafts.length === 0
+                ? 'Create ads from your media library using the "Send to Ad" button on any content.'
+                : 'Try adjusting your filters to find what you\'re looking for.'}
             </p>
           </CardContent>
         </Card>
       ) : (
         /* Drafts Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {drafts.map((draft) => (
-            <Card key={draft.id} className="overflow-hidden group">
+          {filteredDrafts.map((draft) => (
+            <Card key={draft.id} className={`overflow-hidden group ${selectedDrafts.has(draft.id) ? 'ring-2 ring-primary' : ''}`}>
+              {/* Selection checkbox overlay */}
+              <div className="absolute top-2 left-2 z-10">
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleSelection(draft.id); }}
+                  className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${selectedDrafts.has(draft.id)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-white/80 hover:bg-white'
+                    }`}
+                >
+                  {selectedDrafts.has(draft.id) ? (
+                    <CheckSquare className="w-4 h-4" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
               {/* Media Preview */}
               <div className="relative aspect-square bg-muted">
                 {draft.creative.media_type === 'video' ? (
@@ -334,10 +458,10 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
                     className="w-full h-full object-cover"
                   />
                 )}
-                
+
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
-                
+
                 {/* Quick Actions */}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <DropdownMenu>
@@ -369,7 +493,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         className="text-red-600"
                         onClick={() => handleDelete(draft.id)}
                         disabled={actionLoading === draft.id}
@@ -402,7 +526,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
                   </h3>
                   {getStatusBadge(draft.status)}
                 </div>
-                
+
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                   {draft.creative.primary_text || 'No description'}
                 </p>
@@ -412,10 +536,10 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
                     <Calendar className="w-3 h-3" />
                     {new Date(draft.created_at).toLocaleDateString()}
                   </span>
-                  
+
                   {draft.status === 'draft' && (
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       className="h-7 text-xs"
                       onClick={() => openAssignDialog(draft)}
@@ -440,7 +564,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
               {selectedDraft?.creative.headline}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedDraft && (
             <div className="space-y-4">
               {/* Media */}
@@ -466,14 +590,14 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
                   <Label className="text-xs text-muted-foreground">Headline</Label>
                   <p className="font-medium">{selectedDraft.creative.headline}</p>
                 </div>
-                
+
                 {selectedDraft.creative.primary_text && (
                   <div>
                     <Label className="text-xs text-muted-foreground">Primary Text</Label>
                     <p className="text-sm">{selectedDraft.creative.primary_text}</p>
                   </div>
                 )}
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Call to Action</Label>
@@ -488,7 +612,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
                 {selectedDraft.creative.destination_url && (
                   <div>
                     <Label className="text-xs text-muted-foreground">Destination URL</Label>
-                    <a 
+                    <a
                       href={selectedDraft.creative.destination_url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -557,15 +681,15 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
             {/* Ad Set Selection */}
             <div className="space-y-2">
               <Label>Ad Set</Label>
-              <Select 
-                value={selectedAdSetId} 
+              <Select
+                value={selectedAdSetId}
                 onValueChange={setSelectedAdSetId}
                 disabled={!selectedCampaignId}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={
-                    !selectedCampaignId 
-                      ? "Select a campaign first" 
+                    !selectedCampaignId
+                      ? "Select a campaign first"
                       : "Select an ad set"
                   } />
                 </SelectTrigger>
@@ -623,7 +747,7 @@ export default function AdDraftsManager({ onRefresh }: AdDraftsManagerProps) {
             <Button variant="outline" onClick={() => setIsAssignOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleAssign}
               disabled={!selectedCampaignId || !selectedAdSetId || actionLoading !== null}
             >
