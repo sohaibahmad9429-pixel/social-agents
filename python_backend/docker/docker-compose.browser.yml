@@ -1,0 +1,50 @@
+services:
+  # Browser automation service with live view
+  browser-agent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.browser
+    image: content-creator-browser:latest
+    container_name: browser-agent
+    environment:
+      # API Keys (from .env file)
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      # Display settings
+      - DISPLAY_WIDTH=1280
+      - DISPLAY_HEIGHT=720
+    ports:
+      - "8000:8000"   # FastAPI
+      - "5900:5900"   # VNC (direct)
+      - "6080:6080"   # noVNC (browser-based)
+    volumes:
+      # Mount source code for development
+      - ../src:/app/src:ro
+    env_file:
+      - ../.env
+    restart: unless-stopped
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Standalone noVNC viewer (if you want a separate container)
+  # novnc-viewer:
+  #   image: theasp/novnc:latest
+  #   ports:
+  #     - "6081:8080"
+  #   environment:
+  #     - DISPLAY_WIDTH=1280
+  #     - DISPLAY_HEIGHT=720
+  #   depends_on:
+  #     - browser-agent
+
+volumes:
+  browser-data:
