@@ -205,6 +205,13 @@ services:
           name: content-creator-backend
           property: host
       
+      # Server-side Python Backend URL (for API routes running on the server)
+      - key: PYTHON_BACKEND_URL
+        fromService:
+          type: web
+          name: content-creator-backend
+          property: host
+      
       # Supabase Client (set in Render Dashboard)
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false

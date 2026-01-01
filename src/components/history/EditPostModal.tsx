@@ -157,7 +157,8 @@ export function EditPostModal({ post, onSave, onClose }: EditPostModalProps) {
         setShowImprovementModal(false);
 
         try {
-            const response = await fetch('http://localhost:8000/api/v1/content/improve', {
+            // Use the Next.js proxy path which routes to the Python backend
+            const response = await fetch('/py-api/content/improve', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -39,7 +39,15 @@ const nextConfig = {
 
     // Ensure URL has a protocol
     if (!pythonBackendUrl.startsWith('http://') && !pythonBackendUrl.startsWith('https://')) {
-      pythonBackendUrl = `http://${pythonBackendUrl}`;
+      // Check if it's a Render internal hostname (no dots, not localhost)
+      if (!pythonBackendUrl.includes('.') && !pythonBackendUrl.includes('localhost') && !pythonBackendUrl.includes('127.0.0.1')) {
+        // It's a Render service name, add .onrender.com and use https
+        pythonBackendUrl = `https://${pythonBackendUrl}.onrender.com`;
+      } else if (pythonBackendUrl.includes('localhost') || pythonBackendUrl.includes('127.0.0.1')) {
+        pythonBackendUrl = `http://${pythonBackendUrl}`;
+      } else {
+        pythonBackendUrl = `https://${pythonBackendUrl}`;
+      }
     }
 
     return [

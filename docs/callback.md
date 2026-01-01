@@ -1,0 +1,1 @@
+https://content-creator-backend-67ah.onrender.com/api/v1/auth/instagram/callback

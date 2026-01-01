@@ -11,8 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-
-const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || 'http://localhost:8000';
+import { PYTHON_BACKEND_URL } from '@/lib/backend-url';
 
 // Configuration
 const CONFIG = {
