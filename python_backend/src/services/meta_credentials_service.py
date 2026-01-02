@@ -74,23 +74,29 @@ class MetaCredentialsService:
             
             for platform in platforms:
                 try:
+                    # Use limit(1) instead of maybe_single() - safer for empty results
                     result = client.table("social_accounts").select(
                         "id, platform, credentials_encrypted, page_id, page_name, "
                         "account_id, account_name, username, expires_at, access_token_expires_at, "
-                        "ig_user_id, business_id"
-                    ).eq("workspace_id", workspace_id).eq("platform", platform).maybe_single().execute()
+                        "ig_user_id, business_id, is_connected"
+                    ).eq("workspace_id", workspace_id).eq("platform", platform).eq("is_connected", True).limit(1).execute()
                     
-                    if not result.data or not result.data.get("credentials_encrypted"):
+                    # Check if we got any results
+                    if not result.data or len(result.data) == 0:
+                        continue
+                    
+                    row = result.data[0]
+                    
+                    if not row.get("credentials_encrypted"):
                         continue
                 except Exception as query_error:
-                    # Handle case where maybe_single() throws an error (no results)
-                    logger.debug(f"No {platform} credentials found for workspace {workspace_id}: {query_error}")
+                    logger.warning(f"Query error for {platform}: {query_error}")
                     continue
                 
                 # Decrypt credentials
                 try:
                     credentials = MetaCredentialsService._decrypt_credentials(
-                        result.data["credentials_encrypted"],
+                        row["credentials_encrypted"],
                         workspace_id
                     )
                     
@@ -100,7 +106,7 @@ class MetaCredentialsService:
                     access_token = credentials.get("accessToken")
                     
                     # Check token expiration
-                    expires_at = result.data.get("expires_at") or result.data.get("access_token_expires_at")
+                    expires_at = row.get("expires_at") or row.get("access_token_expires_at")
                     is_expired, expires_soon = MetaCredentialsService._check_token_expiration(expires_at)
                     
                     if is_expired:
@@ -118,22 +124,22 @@ class MetaCredentialsService:
                     return {
                         "access_token": access_token,
                         "user_access_token": credentials.get("userAccessToken"),
-                        "page_id": result.data.get("page_id") or credentials.get("pageId"),
-                        "page_name": result.data.get("page_name") or credentials.get("pageName"),
+                        "page_id": row.get("page_id") or credentials.get("pageId"),
+                        "page_name": row.get("page_name") or credentials.get("pageName"),
                         "page_access_token": credentials.get("pageAccessToken"),
-                        "account_id": result.data.get("account_id") or credentials.get("adAccountId"),
-                        "account_name": result.data.get("account_name") or credentials.get("adAccountName"),
-                        "ig_user_id": result.data.get("ig_user_id") or credentials.get("igUserId"),
-                        "username": result.data.get("username") or credentials.get("username"),
+                        "account_id": row.get("account_id") or credentials.get("adAccountId"),
+                        "account_name": row.get("account_name") or credentials.get("adAccountName"),
+                        "ig_user_id": row.get("ig_user_id") or credentials.get("igUserId"),
+                        "username": row.get("username") or credentials.get("username"),
                         "expires_at": str(expires_at) if expires_at else None,
                         "is_expired": is_expired,
                         "expires_soon": expires_soon,
                         "currency": credentials.get("currency"),
                         "timezone": credentials.get("timezone"),
-                        "business_id": result.data.get("business_id") or credentials.get("businessId"),
+                        "business_id": row.get("business_id") or credentials.get("businessId"),
                         "business_name": credentials.get("businessName"),
                         "platform": platform,
-                        "social_account_id": result.data.get("id"),
+                        "social_account_id": row.get("id"),
                         "token_info": token_info,
                     }
                 except Exception as decrypt_error:
