@@ -528,48 +528,90 @@ class MetaCredentialsService:
     
     @staticmethod
     async def _fetch_ad_account_from_sdk(access_token: str) -> Optional[Dict[str, Any]]:
-        """Fetch ad account from Meta API using SDK"""
+        """Fetch ad account from Meta API using Graph API directly (more reliable than SDK)"""
         try:
-            sdk_client = create_meta_sdk_client(access_token)
+            import httpx
             
-            # Get user's businesses
-            businesses = await sdk_client.get_businesses()
+            GRAPH_API_VERSION = "v21.0"
+            GRAPH_BASE_URL = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
             
-            if not businesses:
-                # Try getting ad accounts directly
-                ad_accounts = await sdk_client.get_ad_accounts()
-                if ad_accounts:
-                    first_account = ad_accounts[0]
-                    return {
-                        "account_id": first_account.get("account_id") or first_account.get("id", "").replace("act_", ""),
-                        "account_name": first_account.get("name"),
-                        "currency": first_account.get("currency"),
-                        "timezone": first_account.get("timezone_name"),
-                    }
-                return None
+            logger.info("Fetching ad accounts via Graph API")
             
-            # Get ad accounts from first business
-            for business in businesses:
-                ad_accounts = await sdk_client.get_business_ad_accounts(business["id"])
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # First try to get businesses
+                businesses_url = f"{GRAPH_BASE_URL}/me/businesses"
+                params = {
+                    "access_token": access_token,
+                    "fields": "id,name"
+                }
                 
-                if ad_accounts:
-                    first_account = ad_accounts[0]
-                    return {
-                        "account_id": first_account.get("account_id") or first_account.get("id", "").replace("act_", ""),
-                        "account_name": first_account.get("name"),
-                        "currency": first_account.get("currency"),
-                        "timezone": first_account.get("timezone_name"),
-                        "business_id": business["id"],
-                        "business_name": business.get("name"),
-                    }
-            
-            return None
-            
-        except MetaSDKError as e:
-            logger.error(f"SDK error fetching ad account: {e.message}")
-            return None
+                resp = await client.get(businesses_url, params=params)
+                
+                if resp.status_code == 200:
+                    data = resp.json()
+                    businesses = data.get("data", [])
+                    
+                    # Get ad accounts from each business
+                    for business in businesses:
+                        ad_accounts_url = f"{GRAPH_BASE_URL}/{business['id']}/owned_ad_accounts"
+                        ad_params = {
+                            "access_token": access_token,
+                            "fields": "id,account_id,name,account_status,currency,timezone_name"
+                        }
+                        
+                        ad_resp = await client.get(ad_accounts_url, params=ad_params)
+                        
+                        if ad_resp.status_code == 200:
+                            ad_data = ad_resp.json()
+                            ad_accounts = ad_data.get("data", [])
+                            
+                            if ad_accounts:
+                                first_account = ad_accounts[0]
+                                logger.info(f"Found ad account from business: {first_account.get('name')}")
+                                return {
+                                    "account_id": first_account.get("account_id") or first_account.get("id", "").replace("act_", ""),
+                                    "account_name": first_account.get("name"),
+                                    "currency": first_account.get("currency"),
+                                    "timezone": first_account.get("timezone_name"),
+                                    "business_id": business["id"],
+                                    "business_name": business.get("name"),
+                                }
+                else:
+                    error_data = resp.json() if resp.content else {}
+                    logger.warning(f"Failed to get businesses: {resp.status_code} - {error_data.get('error', {}).get('message', 'Unknown')}")
+                
+                # Fallback: Try getting ad accounts directly from user
+                logger.info("Trying direct ad accounts fallback")
+                ad_accounts_url = f"{GRAPH_BASE_URL}/me/adaccounts"
+                ad_params = {
+                    "access_token": access_token,
+                    "fields": "id,account_id,name,account_status,currency,timezone_name"
+                }
+                
+                ad_resp = await client.get(ad_accounts_url, params=ad_params)
+                
+                if ad_resp.status_code == 200:
+                    ad_data = ad_resp.json()
+                    ad_accounts = ad_data.get("data", [])
+                    
+                    if ad_accounts:
+                        first_account = ad_accounts[0]
+                        logger.info(f"Found direct ad account: {first_account.get('name')}")
+                        return {
+                            "account_id": first_account.get("account_id") or first_account.get("id", "").replace("act_", ""),
+                            "account_name": first_account.get("name"),
+                            "currency": first_account.get("currency"),
+                            "timezone": first_account.get("timezone_name"),
+                        }
+                else:
+                    error_data = ad_resp.json() if ad_resp.content else {}
+                    logger.warning(f"Failed to get direct ad accounts: {ad_resp.status_code} - {error_data.get('error', {}).get('message', 'Unknown')}")
+                
+                logger.warning("No ad accounts found via any method")
+                return None
+                
         except Exception as e:
-            logger.error(f"Error fetching ad account from SDK: {e}")
+            logger.error(f"Error fetching ad account from Graph API: {e}", exc_info=True)
             return None
     
     @staticmethod
