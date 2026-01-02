@@ -434,9 +434,18 @@ class MetaCredentialsService:
     ) -> Optional[Dict[str, Any]]:
         """
         Decrypt credentials
-        Handles both encrypted and plain JSON (backwards compatibility)
+        Handles dict (JSONB), plain JSON string, and encrypted string
         """
         try:
+            # If already a dict (JSONB from Supabase), return directly
+            if isinstance(encrypted, dict):
+                return encrypted
+            
+            # If not a string, can't process
+            if not isinstance(encrypted, str):
+                logger.error(f"Unexpected credentials type: {type(encrypted)}")
+                return None
+            
             # Try parsing as plain JSON first (backwards compatibility)
             if encrypted.startswith("{"):
                 return json.loads(encrypted)
