@@ -73,13 +73,18 @@ class MetaCredentialsService:
             platforms = ["meta_ads", "facebook", "instagram"]
             
             for platform in platforms:
-                result = client.table("social_accounts").select(
-                    "id, platform, credentials_encrypted, page_id, page_name, "
-                    "account_id, account_name, username, expires_at, access_token_expires_at, "
-                    "ig_user_id, business_id"
-                ).eq("workspace_id", workspace_id).eq("platform", platform).maybe_single().execute()
-                
-                if not result.data or not result.data.get("credentials_encrypted"):
+                try:
+                    result = client.table("social_accounts").select(
+                        "id, platform, credentials_encrypted, page_id, page_name, "
+                        "account_id, account_name, username, expires_at, access_token_expires_at, "
+                        "ig_user_id, business_id"
+                    ).eq("workspace_id", workspace_id).eq("platform", platform).maybe_single().execute()
+                    
+                    if not result.data or not result.data.get("credentials_encrypted"):
+                        continue
+                except Exception as query_error:
+                    # Handle case where maybe_single() throws an error (no results)
+                    logger.debug(f"No {platform} credentials found for workspace {workspace_id}: {query_error}")
                     continue
                 
                 # Decrypt credentials
