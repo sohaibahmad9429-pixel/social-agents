@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from src.services.supabase_service import get_supabase_client
+from src.services.supabase_service import get_supabase_client, get_supabase_admin_client
 from src.services.meta_credentials_service import MetaCredentialsService
 from src.middleware.auth import get_current_user
 
@@ -67,7 +67,8 @@ async def get_connection_status(
         if not workspace_id:
             raise HTTPException(status_code=404, detail="Workspace not found")
         
-        supabase = get_supabase_client()
+        # Use admin client to bypass RLS - we already verified user has access via JWT
+        supabase = get_supabase_admin_client()
         
         # Get all credentials for the workspace
         result = supabase.table("social_accounts").select(
