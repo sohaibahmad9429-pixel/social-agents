@@ -192,15 +192,31 @@ class MetaSDKClient:
         """
         Get user's pages using direct HTTP call with v24 API.
         Uses v24 for credential operations (v25 for ads only).
+        Includes appsecret_proof for server-side security.
         """
         self._ensure_initialized()
         
         import httpx
+        import hmac
+        import hashlib
+        
+        # Get app secret for appsecret_proof
+        app_secret = settings.FACEBOOK_CLIENT_SECRET
+        if not app_secret:
+            raise MetaSDKError("FACEBOOK_CLIENT_SECRET not configured")
+        
+        # Calculate appsecret_proof = HMAC-SHA256(access_token, app_secret)
+        appsecret_proof = hmac.new(
+            app_secret.encode('utf-8'),
+            self._access_token.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
         
         # Use v24 for credential/pages operations
         url = f"https://graph.facebook.com/v24.0/me/accounts"
         params = {
             'access_token': self._access_token,
+            'appsecret_proof': appsecret_proof,
             'fields': 'id,name,access_token,category,instagram_business_account,picture'
         }
         
