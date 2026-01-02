@@ -6,7 +6,7 @@ Uses Python's secrets module for cryptographically secure random generation
 import secrets
 import hashlib
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
 
@@ -129,7 +129,7 @@ async def create_oauth_state(
         code_challenge_method = pkce['code_challenge_method']
     
     # Calculate expiration (5 minutes)
-    expires_at = datetime.utcnow() + timedelta(minutes=5)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
     
     # Store in database
     result = await db_insert(
@@ -212,9 +212,9 @@ async def verify_oauth_state(
     if state_record.get('is_used'):
         return {'valid': False, 'error': 'State already used (replay attack detected)'}
     
-    # Check if expired
+    # Check if expired - use timezone-aware UTC datetime
     expires_at = datetime.fromisoformat(state_record['expires_at'].replace('Z', '+00:00'))
-    if datetime.utcnow() > expires_at:
+    if datetime.now(timezone.utc) > expires_at:
         return {'valid': False, 'error': 'State expired'}
     
     # Mark as used atomically to prevent race conditions
@@ -223,7 +223,7 @@ async def verify_oauth_state(
         table='oauth_states',
         data={
             'is_used': True,
-            'used_at': datetime.utcnow().isoformat()
+            'used_at': datetime.now(timezone.utc).isoformat()
         },
         filters={
             'id': state_record['id'],
@@ -257,7 +257,7 @@ async def cleanup_expired_states() -> int:
     result = await db_delete(
         table='oauth_states',
         filters={
-            'expires_at': {'lt': datetime.utcnow().isoformat()}
+            'expires_at': {'lt': datetime.now(timezone.utc).isoformat()}
         }
     )
     
