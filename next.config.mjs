@@ -61,11 +61,8 @@ const nextConfig = {
         source: '/api/auth/:path*',
         destination: `${pythonBackendUrl}/api/v1/auth/:path*`,
       },
-      // Credentials API routes
-      {
-        source: '/api/credentials/:path*',
-        destination: `${pythonBackendUrl}/api/v1/credentials/:path*`,
-      },
+      // NOTE: /api/credentials/* handled by Next.js API route at src/app/api/credentials/
+      // which adds proper server-side authentication before forwarding to Python backend
 
       // Media Studio API routes
       {
