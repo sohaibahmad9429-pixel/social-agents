@@ -87,7 +87,7 @@ async def get_connection_status(
             if cred and cred.get("is_connected"):
                 is_expired, is_expiring_soon = check_token_status(cred.get("expires_at"))
                 status[platform] = {
-                    "connected": not is_expired,
+                    "isConnected": not is_expired,
                     "accountId": cred.get("account_id"),
                     "accountName": cred.get("account_name"),
                     "pageId": cred.get("page_id"),
@@ -101,7 +101,7 @@ async def get_connection_status(
                 }
             else:
                 status[platform] = {
-                    "connected": False
+                    "isConnected": False
                 }
         
         return status

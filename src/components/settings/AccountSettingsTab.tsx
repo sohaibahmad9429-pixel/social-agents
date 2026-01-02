@@ -101,28 +101,11 @@ const AccountSettingsTab: React.FC = () => {
       if (!response.ok) throw new Error('Failed to load status')
       const data = await response.json()
 
-      // DEBUG: Log raw API response
-      console.log('[AccountSettingsTab] Raw API response:', JSON.stringify(data, null, 2))
-      console.log('[AccountSettingsTab] Facebook data:', data.facebook)
-
-      // Map the connection status response
-      const mappedStatus: Record<Platform, any> = {
-        twitter: { isConnected: data.twitter?.connected ?? false, ...data.twitter },
-        linkedin: { isConnected: data.linkedin?.connected ?? false, ...data.linkedin },
-        facebook: { isConnected: data.facebook?.connected ?? false, ...data.facebook },
-        instagram: { isConnected: data.instagram?.connected ?? false, ...data.instagram },
-        tiktok: { isConnected: data.tiktok?.connected ?? false, ...data.tiktok },
-        youtube: { isConnected: data.youtube?.connected ?? false, ...data.youtube },
-      }
-
-      // DEBUG: Log mapped status
-      console.log('[AccountSettingsTab] Mapped status:', mappedStatus)
-      console.log('[AccountSettingsTab] Facebook isConnected:', mappedStatus.facebook.isConnected)
-
-      setStatusInfo(mappedStatus)
+      // Set status info directly from API response (backend returns isConnected)
+      setStatusInfo(data)
       setConnectedAccounts(
         Object.fromEntries(
-          Object.entries(mappedStatus).map(([platform, info]: [string, any]) => [
+          Object.entries(data).map(([platform, info]: [string, any]) => [
             platform,
             info.isConnected,
           ])
