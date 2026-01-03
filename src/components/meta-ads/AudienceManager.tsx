@@ -117,7 +117,7 @@ const ENGAGEMENT_EVENTS = [
   { value: 'page_engaged', label: 'Everyone who engaged with your Page' },
   { value: 'page_visited', label: 'Anyone who visited your Page' },
   { value: 'page_liked', label: 'People who currently like or follow your Page' },
-  { value: 'post_engagement', label: 'People who engaged with any post or ad' },
+  { value: 'page_post_interaction', label: 'People who engaged with any post or ad' },
 ];
 
 const LEAD_FORM_EVENTS = [
@@ -616,42 +616,40 @@ function CreateAudienceModal({
       }
 
       // Construct rule for ENGAGEMENT audiences
+      // NOTE: Meta docs say subtype ENGAGEMENT is NOT supported, so we delete subtype and use only rule
       if (type === 'custom' && formData.subtype === 'ENGAGEMENT' && selectedPage) {
+        // Remove subtype for page engagement - Meta doesn't support ENGAGEMENT subtype
+        delete payload.subtype;
+
         payload.rule = {
           inclusions: {
             operator: "or",
             rules: [{
               event_sources: [{ type: "page", id: selectedPage }],
-              retention_seconds: formData.retention_days * 86400,
-              filter: {
-                operator: "eq",
-                field: "event",
-                value: formData.engagement_event
-              }
+              retention_seconds: formData.retention_days * 86400
             }]
           }
         };
       }
 
       // Construct rule for LEAD_AD audiences
+      // NOTE: Meta docs say subtype for engagement (except VIDEO) is NOT supported
       if (type === 'custom' && formData.subtype === 'LEAD_AD' && selectedPage) {
+        // Remove subtype for lead form - Meta doesn't support LEAD_AD subtype
+        delete payload.subtype;
+
         payload.rule = {
           inclusions: {
             operator: "or",
             rules: [{
-              event_sources: [{ type: "page", id: selectedPage }],
-              retention_seconds: formData.retention_days * 86400,
-              filter: {
-                operator: "eq",
-                field: "event",
-                value: formData.lead_event
-              }
+              event_sources: [{ type: "lead", id: selectedPage }],
+              retention_seconds: formData.retention_days * 86400
             }]
           }
         };
       }
 
-      // Construct rule for VIDEO audiences (simplified - using page as source)
+      // Construct rule for VIDEO audiences - uses video_watched action type
       if (type === 'custom' && formData.subtype === 'VIDEO' && selectedPage) {
         payload.rule = {
           inclusions: {
@@ -660,9 +658,12 @@ function CreateAudienceModal({
               event_sources: [{ type: "page", id: selectedPage }],
               retention_seconds: formData.retention_days * 86400,
               filter: {
-                operator: "eq",
-                field: "event",
-                value: "video_view"  // Simplified - could add video engagement levels selector
+                operator: "and",
+                filters: [{
+                  operator: "gte",
+                  field: "video_watched",
+                  value: 3  // 3 seconds watched - minimum threshold
+                }]
               }
             }]
           }

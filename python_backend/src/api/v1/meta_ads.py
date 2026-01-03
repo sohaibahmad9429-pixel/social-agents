@@ -96,6 +96,22 @@ async def get_verified_credentials(workspace_id: str, user_id: str):
     return credentials
 
 
+def generate_appsecret_proof(access_token: str) -> str:
+    """Generate appsecret_proof for Meta API server-side calls"""
+    import hmac
+    import hashlib
+    
+    app_secret = settings.FACEBOOK_APP_SECRET
+    if not app_secret:
+        return None
+    
+    return hmac.new(
+        app_secret.encode('utf-8'),
+        access_token.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
+
 # ============================================================================
 # STATUS ENDPOINTS
 # ============================================================================
@@ -1057,11 +1073,14 @@ async def create_custom_audience(request: Request):
         
         body = await request.json()
         
-        subtype = body.get("subtype", "CUSTOM")
+        # subtype can be missing for engagement audiences (Meta doesn't support ENGAGEMENT/LEAD_AD subtypes)
+        subtype = body.get("subtype")
         rule = body.get("rule")
         
         # Validate that rule-based audiences have a rule
-        rule_required_subtypes = ["WEBSITE", "ENGAGEMENT", "VIDEO", "LEAD_AD", "APP"]
+        # Note: ENGAGEMENT and LEAD_AD subtypes are NOT supported by Meta, frontend removes them
+        # Only WEBSITE, VIDEO, APP require subtype + rule validation
+        rule_required_subtypes = ["WEBSITE", "VIDEO", "APP"]
         if subtype in rule_required_subtypes and not rule:
             raise HTTPException(
                 status_code=400,
@@ -1178,8 +1197,6 @@ async def list_pixels(request: Request):
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        client = create_meta_sdk_client(credentials["access_token"])
-        
         # Fetch pixels using Meta SDK
         import httpx
         account_id = credentials["account_id"]
@@ -1191,6 +1208,11 @@ async def list_pixels(request: Request):
             "access_token": credentials["access_token"],
             "fields": "id,name,code"
         }
+        
+        # Add appsecret_proof for server-side calls
+        proof = generate_appsecret_proof(credentials["access_token"])
+        if proof:
+            params["appsecret_proof"] = proof
         
         async with httpx.AsyncClient() as http_client:
             response = await http_client.get(url, params=params)
@@ -1239,6 +1261,11 @@ async def list_pages(request: Request):
                 "fields": "id,name,category,access_token"
             }
             
+            # Add appsecret_proof for server-side calls
+            proof = generate_appsecret_proof(credentials["access_token"])
+            if proof:
+                params["appsecret_proof"] = proof
+            
             async with httpx.AsyncClient() as http_client:
                 response = await http_client.get(url, params=params)
                 if response.is_success:
@@ -1282,6 +1309,11 @@ async def list_apps(request: Request):
             "fields": "id,name"
         }
         
+        # Add appsecret_proof for server-side calls
+        proof = generate_appsecret_proof(credentials["access_token"])
+        if proof:
+            businesses_params["appsecret_proof"] = proof
+        
         async with httpx.AsyncClient() as http_client:
             businesses_response = await http_client.get(businesses_url, params=businesses_params)
             businesses_response.raise_for_status()
@@ -1295,6 +1327,8 @@ async def list_apps(request: Request):
                     "access_token": credentials["access_token"],
                     "fields": "id,name,namespace"
                 }
+                if proof:
+                    apps_params["appsecret_proof"] = proof
                 apps_response = await http_client.get(apps_url, params=apps_params)
                 if apps_response.is_success:
                     apps_data = apps_response.json()
