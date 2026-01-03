@@ -298,14 +298,37 @@ async def list_businesses(request: Request):
     GET /api/v1/meta-ads/switch-business
     
     List available business portfolios with their ad accounts
+    Returns both availableBusinesses and activeBusiness for the frontend
     """
     try:
         user_id, workspace_id = await get_user_context(request)
         
+        # Get available businesses with ad accounts
         businesses = await MetaCredentialsService.get_available_businesses(workspace_id, user_id)
         
+        # Get current credentials to find active business/ad account
+        credentials = await MetaCredentialsService.get_meta_credentials(workspace_id, user_id)
+        
+        active_business = None
+        if credentials:
+            ad_account_id = credentials.get("account_id")
+            ad_account_name = credentials.get("account_name")
+            business_id = credentials.get("business_id")
+            business_name = credentials.get("business_name")
+            
+            if ad_account_id:
+                active_business = {
+                    "id": business_id,
+                    "name": business_name,
+                    "adAccount": {
+                        "id": ad_account_id,
+                        "name": ad_account_name,
+                    }
+                }
+        
         return JSONResponse(content={
-            "businesses": businesses
+            "availableBusinesses": businesses,
+            "activeBusiness": active_business
         })
         
     except HTTPException:

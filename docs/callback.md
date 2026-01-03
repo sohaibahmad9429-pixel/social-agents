@@ -1,1 +1,1 @@
-https://content-creator-backend-67ah.onrender.com/api/v1/auth/instagram/callback
+https://content-creator-backend-yxih.onrender.com/api/v1/auth/oauth/facebook/callback
