@@ -356,10 +356,6 @@ class TargetingSpec(BaseModel):
     
     # Locales/Languages
     locales: Optional[List[int]] = None
-    
-    # Targeting optimization
-    targeting_optimization: Optional[str] = None
-    targeting_relaxation_types: Optional[Dict[str, int]] = None
 
 
 class PromotedObject(BaseModel):
@@ -396,7 +392,7 @@ class AttributionSpec(BaseModel):
         # Only 1-day view-through is allowed.
         # Click-through still supports 1, 7, 28.
         if info.data.get('event_type') == 'VIEW_THROUGH' and v > 1:
-            raise ValueError('View-through attribution is limited to 1 day as of Jan 2026')
+            raise ValueError('View-through attribution is strictly limited to 1 day as of 2026 (v25.0+)')
         return v
 
 
@@ -688,19 +684,35 @@ class AdCreative(BaseModel):
     # v25.0+: Media type automation for Advantage+ Catalog Ads
     media_type_automation: Optional[MediaTypeAutomation] = None
     
+    # v25.0+ Advantage+ Creative (Standard Enhancements)
+    advantage_plus_creative: Optional[bool] = True
+    
+    # v25.0+: Granular AI Enhancement Levers (degrees_of_freedom_spec)
+    # Dictionary containing creative_features_spec with supported fields:
+    # Core Features (pre-2026):
+    #   - standard_enhancements: Bundle of basic AI optimizations
+    #   - image_enhancement: Image touch-ups and adjustments
+    #   - video_auto_crop: Automatic aspect ratio adjustment for videos
+    #   - text_optimizations: AI-powered text optimization
+    #   - image_templates: Apply templates to images for better placement fit
+    #   - adapt_to_placement: 9:16 image display in Stories/Reels
+    # New 2026 Features (v25.0):
+    #   - inline_comment: Display relevant comments below ad for social proof
+    #   - expand_image: AI-powered image expansion for better placement coverage
+    #   - dynamic_media: Display catalog videos alongside images (e-commerce)
+    #   - add_stickers: AI-generated creative stickers
+    #   - description_automation: Automated description generation
+    degrees_of_freedom_spec: Optional[Dict[str, Any]] = None
+    
+    # v25.0+: Ad Disclaimer (Legal/Political Disclosure)
+    ad_disclaimer_spec: Optional[Dict[str, Any]] = None
+    
     # v25.0+: Gen AI Disclosure (Required for AI-generated content)
     gen_ai_disclosure: Optional[bool] = False
-    
-    # v25.0+ Advantage+ Creative (Standard Enhancements)
-    # Defaults to True for new ads
-    advantage_plus_creative: Optional[bool] = True
     
     # v25.0+: Format Automation for Catalog Ads
     format_automation: Optional[bool] = False
     product_set_id: Optional[str] = None
-    
-    # Asset feed spec for dynamic creative
-    asset_feed_spec: Optional[Dict[str, Any]] = None
     
     @field_validator('carousel_items')
     @classmethod

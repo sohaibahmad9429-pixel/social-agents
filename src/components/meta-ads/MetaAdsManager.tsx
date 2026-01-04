@@ -54,6 +54,8 @@ import { cn } from '@/lib/utils';
 
 // Import sub-components
 import CampaignManager from './CampaignManager';
+import AdSetManager from './AdSetManager';
+import AdCreativeManager from './AdCreativeManager';
 import AudienceManager from './AudienceManager';
 import AdsAnalytics from './AdsAnalytics';
 import ReportsBuilder from './ReportsBuilder';
@@ -94,6 +96,14 @@ export default function MetaAdsManager() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [datePreset, setDatePreset] = useState<DatePreset>('last_7d');
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
+
+  // Ad Set creation modal state
+  const [showCreateAdSet, setShowCreateAdSet] = useState(false);
+  const [createAdSetCampaignId, setCreateAdSetCampaignId] = useState<string | undefined>(undefined);
+
+  // Ad creation modal state
+  const [showCreateAd, setShowCreateAd] = useState(false);
+  const [createAdAdSetId, setCreateAdAdSetId] = useState<string | undefined>(undefined);
 
   // Business Portfolio state
   const [availableBusinesses, setAvailableBusinesses] = useState<any[]>([]);
@@ -208,6 +218,18 @@ export default function MetaAdsManager() {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  // Handler for opening the Create Ad Set modal
+  const handleCreateAdSet = (campaignId?: string) => {
+    setCreateAdSetCampaignId(campaignId);
+    setShowCreateAdSet(true);
+  };
+
+  // Handler for opening the Create Ad modal
+  const handleCreateAd = (adSetId?: string) => {
+    setCreateAdAdSetId(adSetId);
+    setShowCreateAd(true);
   };
 
   // Calculate metrics
@@ -628,6 +650,8 @@ export default function MetaAdsManager() {
                 onRefresh={loadDashboardData}
                 showCreate={showCreateCampaign}
                 onShowCreateChange={setShowCreateCampaign}
+                onCreateAdSet={handleCreateAdSet}
+                onCreateAd={handleCreateAd}
               />
             </TabsContent>
 
@@ -657,6 +681,50 @@ export default function MetaAdsManager() {
           </Tabs>
         </div>
       </div>
+
+      {/* Ad Set Creation Modal */}
+      {showCreateAdSet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateAdSet(false)} />
+          <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto mx-4 p-6">
+            <AdSetManager
+              adSets={state.adSets}
+              campaigns={state.campaigns}
+              onRefresh={() => {
+                loadDashboardData();
+                setShowCreateAdSet(false);
+              }}
+              showCreate={true}
+              onShowCreateChange={(show) => {
+                if (!show) setShowCreateAdSet(false);
+              }}
+              preselectedCampaignId={createAdSetCampaignId}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Ad Creation Modal */}
+      {showCreateAd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateAd(false)} />
+          <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-auto mx-4 p-6">
+            <AdCreativeManager
+              ads={state.ads}
+              adSets={state.adSets}
+              onRefresh={() => {
+                loadDashboardData();
+                setShowCreateAd(false);
+              }}
+              showCreate={true}
+              onShowCreateChange={(show) => {
+                if (!show) setShowCreateAd(false);
+              }}
+              preselectedAdSetId={createAdAdSetId}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -51,7 +51,7 @@ interface AdCreativeManagerProps {
   preselectedAdSetId?: string;
 }
 
-// Meta Marketing API v25.0+ - Call to Action Types
+// Meta Marketing API v24.0+ - Call to Action Types
 const CTA_OPTIONS = [
   // General
   { value: 'LEARN_MORE', label: 'Learn More', category: 'general' },
@@ -99,8 +99,28 @@ const initialFormData: AdFormData = {
     call_to_action_type: 'LEARN_MORE',
     link_url: '',
     image_url: '',
-    advantage_plus_creative: true, // v25.0+ Default
-    gen_ai_disclosure: false, // v25.0+
+    advantage_plus_creative: true,
+    gen_ai_disclosure: false,
+    format_automation: false,
+    degrees_of_freedom_spec: {
+      creative_features_spec: {
+        standard_enhancements: { enroll_status: 'OPT_IN' },
+        image_enhancement: { enroll_status: 'OPT_IN' },
+        video_auto_crop: { enroll_status: 'OPT_IN' },
+        text_optimizations: { enroll_status: 'OPT_IN' },
+        // v25.0+ 2026 Additional Features
+        inline_comment: { enroll_status: 'OPT_IN' },
+        expand_image: { enroll_status: 'OPT_IN' },
+        dynamic_media: { enroll_status: 'OPT_IN' },
+        add_stickers: { enroll_status: 'OPT_OUT' }, // Opt-out by default - may not fit all brands
+        description_automation: { enroll_status: 'OPT_OUT' }, // Opt-out by default - brand control
+      },
+    },
+    ad_disclaimer_spec: {
+      title: '',
+      body: '',
+      is_fully_enforced: false,
+    },
   },
 };
 
@@ -602,17 +622,124 @@ function CreateAdModal({
                     onCheckedChange={(checked) => updateCreative({ gen_ai_disclosure: checked === true })}
                   />
                   <div className="grid gap-1.5 leading-none">
-                    <Label
-                      htmlFor="gen_ai_disclosure"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
+                    <Label htmlFor="gen_ai_disclosure">
                       Gen AI Disclosure
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      I used AI to generate this content.
+                      Mandatory for 2026 if AI content is used.
                     </p>
                   </div>
                 </div>
+
+                {/* Granular Advantage+ Enhancements (v25.0+) */}
+                {formData.creative.advantage_plus_creative && (
+                  <div className="ml-6 space-y-3 p-4 border-l-2 border-blue-200 dark:border-blue-900 bg-blue-50/10 rounded-r-xl">
+                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase">AI Enhancement Levers (v25.0 2026)</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { key: 'standard_enhancements', label: 'Standard', description: 'Bundle of basic optimizations' },
+                        { key: 'image_enhancement', label: 'Image Touch-ups', description: 'Enhance image appearance' },
+                        { key: 'video_auto_crop', label: 'Video Auto-crop', description: 'Auto aspect ratio adjust' },
+                        { key: 'text_optimizations', label: 'Text Optimize', description: 'Optimize ad copy' },
+                        { key: 'inline_comment', label: 'Inline Comments', description: 'Show relevant comments' },
+                        { key: 'expand_image', label: 'Expand Image', description: 'AI-powered expansion' },
+                        { key: 'dynamic_media', label: 'Dynamic Media', description: 'Videos + images mix' },
+                        { key: 'add_stickers', label: 'Add Stickers', description: 'AI-generated stickers' },
+                        { key: 'description_automation', label: 'Auto Descriptions', description: 'Generate copy' },
+                      ].map((item) => (
+                        <div key={item.key} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-background border">
+                          <span className="text-xs font-medium">{item.label}</span>
+                          <button
+                            onClick={() => {
+                              const current = formData.creative.degrees_of_freedom_spec?.creative_features_spec?.[item.key as keyof typeof formData.creative.degrees_of_freedom_spec.creative_features_spec]?.enroll_status || 'OPT_IN';
+                              updateCreative({
+                                degrees_of_freedom_spec: {
+                                  ...formData.creative.degrees_of_freedom_spec,
+                                  creative_features_spec: {
+                                    ...formData.creative.degrees_of_freedom_spec?.creative_features_spec,
+                                    [item.key]: { enroll_status: current === 'OPT_IN' ? 'OPT_OUT' : 'OPT_IN' }
+                                  }
+                                }
+                              });
+                            }}
+                            className={cn(
+                              "w-8 h-4 rounded-full transition-colors relative",
+                              formData.creative.degrees_of_freedom_spec?.creative_features_spec?.[item.key as keyof typeof formData.creative.degrees_of_freedom_spec.creative_features_spec]?.enroll_status === 'OPT_IN'
+                                ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"
+                            )}
+                          >
+                            <div className={cn(
+                              "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform",
+                              formData.creative.degrees_of_freedom_spec?.creative_features_spec?.[item.key as keyof typeof formData.creative.degrees_of_freedom_spec.creative_features_spec]?.enroll_status === 'OPT_IN'
+                                ? "translate-x-4.5" : "translate-x-0.5"
+                            )} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ad Disclaimer Spec (v25.0+) */}
+                <div className="space-y-4 p-4 border rounded-xl bg-orange-50/10 border-orange-200 dark:border-orange-900">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-orange-600" />
+                    <Label className="font-semibold text-orange-900 dark:text-orange-100">Ad Disclaimer (Legal/Political)</Label>
+                  </div>
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Disclaimer Title"
+                      value={formData.creative.ad_disclaimer_spec?.title || ''}
+                      onChange={(e) => updateCreative({
+                        ad_disclaimer_spec: { ...formData.creative.ad_disclaimer_spec!, title: e.target.value }
+                      })}
+                      className="text-sm bg-background"
+                    />
+                    <Textarea
+                      placeholder="Disclaimer Body"
+                      value={formData.creative.ad_disclaimer_spec?.body || ''}
+                      onChange={(e) => updateCreative({
+                        ad_disclaimer_spec: { ...formData.creative.ad_disclaimer_spec!, body: e.target.value }
+                      })}
+                      className="text-sm bg-background"
+                      rows={2}
+                    />
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="disclaimer-enforcement"
+                        checked={formData.creative.ad_disclaimer_spec?.is_fully_enforced || false}
+                        onCheckedChange={(checked) => updateCreative({
+                          ad_disclaimer_spec: { ...formData.creative.ad_disclaimer_spec!, is_fully_enforced: checked === true }
+                        })}
+                      />
+                      <Label htmlFor="disclaimer-enforcement" className="text-xs text-muted-foreground">
+                        Enforce disclaimer display in all placements
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Format Automation (v25.0+) - Only for Carousel/Catalog */}
+                {creativeType === 'carousel' && (
+                  <div className="flex items-center space-x-2 border p-3 rounded-lg bg-muted/40">
+                    <Checkbox
+                      id="format_automation"
+                      checked={formData.creative.format_automation}
+                      onCheckedChange={(checked) => updateCreative({ format_automation: checked === true })}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label
+                        htmlFor="format_automation"
+                        className="text-sm font-medium leading-none"
+                      >
+                        Format Automation
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Automatically transform carousel to collection for better performance.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <Label>Media</Label>
                   <div className="mt-2 space-y-3">
@@ -802,7 +929,13 @@ function CreateAdModal({
                   </div>
                   <div className="p-3 bg-muted/50">
                     <p className="text-xs text-muted-foreground uppercase mb-1">
-                      {formData.creative.link_url ? new URL(formData.creative.link_url).hostname : 'example.com'}
+                      {(() => {
+                        try {
+                          return formData.creative.link_url ? new URL(formData.creative.link_url).hostname : 'example.com';
+                        } catch {
+                          return 'example.com';
+                        }
+                      })()}
                     </p>
                     <p className="font-semibold text-sm">
                       {formData.creative.title || 'Your headline here'}
@@ -921,7 +1054,7 @@ function CreateAdModal({
           : `Choose ${creativeType === 'video' ? 'a video' : 'an image'} from your media library`
         }
       />
-    </div>
+    </div >
   );
 }
 

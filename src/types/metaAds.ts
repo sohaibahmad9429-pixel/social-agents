@@ -182,7 +182,9 @@ export interface AdSet {
   optimization_goal: OptimizationGoal;
   billing_event: BillingEvent;
   bid_amount?: number;
-  bid_strategy?: BidStrategy;
+  bid_strategy: BidStrategy;
+  advantage_audience: boolean;
+  advantage_placements: boolean;
   daily_budget?: number;
   lifetime_budget?: number;
   start_time?: string;
@@ -201,9 +203,10 @@ export interface AdSet {
 }
 
 // Attribution specification for conversion tracking
+// 2026 Update: View-through is strictly limited to 1 day.
 export interface AttributionSpec {
-  event_type: string;
-  window_days: number;
+  event_type: 'CLICK_THROUGH' | 'VIEW_THROUGH';
+  window_days: 1 | 7 | 28; // 1/7/28 for Click, 1 only for View
 }
 
 export interface AdSetInsights {
@@ -249,7 +252,6 @@ export interface TargetingSpec {
   audience_network_positions?: string[];
   threads_positions?: string[]; // Threads placements
   locales?: number[];
-  targeting_optimization?: 'none' | 'expansion_all';
 }
 
 export interface GeoLocations {
@@ -324,32 +326,28 @@ export interface AdCreative {
   video_id?: string;
   thumbnail_url?: string;
   object_story_spec?: ObjectStorySpec;
-  asset_feed_spec?: AssetFeedSpec;
   degrees_of_freedom_spec?: DegreesOfFreedomSpec;
   carousel_items?: CarouselItem[];
   // v25.0+ Advantage+ Creative & Gen AI
-  advantage_plus_creative?: boolean;
-  gen_ai_disclosure?: boolean;
+  advantage_plus_creative: boolean;
+  gen_ai_disclosure: boolean;
   // v25.0+ Format Automation for Catalog Ads
   format_automation?: boolean;
   product_set_id?: string;
+
+  ad_disclaimer_spec?: {
+    title: string;
+    body: string;
+    is_fully_enforced: boolean;
+  };
 }
 
 export interface CarouselItem {
   image_url?: string;
+  video_id?: string;
   title?: string;
   description?: string;
   link?: string;
-}
-
-export interface AssetFeedSpec {
-  images?: { hash: string }[];
-  videos?: { video_id: string; thumbnail_hash?: string }[];
-  bodies?: { text: string }[];
-  titles?: { text: string }[];
-  descriptions?: { text: string }[];
-  link_urls?: { website_url: string }[];
-  call_to_action_types?: CallToActionType[];
 }
 
 // Advantage+ Creative enhancements
@@ -357,9 +355,16 @@ export interface DegreesOfFreedomSpec {
   creative_features_spec?: {
     standard_enhancements?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
     image_enhancement?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
-    text_generation?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
+    video_auto_crop?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
+    text_optimizations?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
     image_templates?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
     adapt_to_placement?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
+    // v25.0+ 2026 Additional Advantage+ Creative Features
+    inline_comment?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
+    expand_image?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
+    dynamic_media?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
+    add_stickers?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
+    description_automation?: { enroll_status: 'OPT_IN' | 'OPT_OUT' };
   };
 }
 
@@ -706,6 +711,10 @@ export interface AdSetFormData {
   promoted_object?: PromotedObject;
   // v25.0+ Advantage+ Audience - defaults to true
   advantage_audience?: boolean;
+  // v25.0+ Advantage+ Placements - defaults to true
+  advantage_placements?: boolean;
+  // v25.0+ Attribution Settings
+  attribution_spec?: AttributionSpec[];
 }
 
 export interface AdFormData {

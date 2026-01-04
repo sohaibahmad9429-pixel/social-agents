@@ -788,12 +788,13 @@ async def create_ad(request: Request, body: CreateAdRequest):
                 body.creative.image_url,
                 body.creative.title
             )
-            if upload_result.get("success"):
-                image_hash = upload_result["hash"]
+            # upload_ad_image returns {"data": {"hash": ...}, "error": ...}
+            if upload_result.get("data") and upload_result["data"].get("hash"):
+                image_hash = upload_result["data"]["hash"]
             else:
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Failed to upload image: {upload_result.get('error')}"
+                    detail=f"Failed to upload image: {upload_result.get('error', 'Unknown error')}"
                 )
         else:
             image_hash = body.creative.image_hash

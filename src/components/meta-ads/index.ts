@@ -20,3 +20,7 @@ export { default as ReportsBuilder } from './ReportsBuilder';
 export { default as AudienceBuilder } from './AudienceBuilder';
 export { default as CompetitorAnalysis } from './CompetitorAnalysis';
 export { default as SDKToolbox } from './SDKToolbox';
+export { default as TargetingSearch } from './TargetingSearch';
+export { default as MediaLibraryPicker } from './MediaLibraryPicker';
+export { default as AdsDataTable } from './AdsDataTable';
+export { default as AdsSidebar } from './AdsSidebar';

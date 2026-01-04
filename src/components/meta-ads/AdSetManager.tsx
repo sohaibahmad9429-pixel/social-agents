@@ -90,6 +90,7 @@ const initialFormData: AdSetFormData = {
   budget_amount: 10,
   bid_strategy: 'LOWEST_COST_WITHOUT_CAP', // Default - no bid amount needed
   advantage_audience: true, // v25.0+ default: Enable Advantage+ Audience
+  advantage_placements: true, // v25.0+ default: Advantage+ Placements (Automatic)
   targeting: {
     age_min: 18,
     age_max: 65,
@@ -100,6 +101,10 @@ const initialFormData: AdSetFormData = {
     facebook_positions: ['feed', 'story'],
     instagram_positions: ['stream', 'story', 'reels'],
   },
+  attribution_spec: [
+    { event_type: 'CLICK_THROUGH', window_days: 7 },
+    { event_type: 'VIEW_THROUGH', window_days: 1 },
+  ],
 };
 
 export default function AdSetManager({ adSets, campaigns, onRefresh, showCreate, onShowCreateChange, preselectedCampaignId }: AdSetManagerProps) {
@@ -568,7 +573,7 @@ function CreateAdSetModal({
                 </div>
                 {formData.advantage_audience && (
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                    ✓ Recommended for v25.0+ API. Age/gender/interests become signals, not strict limits.
+                    ✓ Advantage+ Audience is active. Targeting (Age, Location, Interests) is used as advisory signals to find more people.
                   </p>
                 )}
               </div>
@@ -677,108 +682,146 @@ function CreateAdSetModal({
 
           {step === 3 && (
             <div className="space-y-6">
-              {/* Device Platforms */}
-              <div>
-                <Label className="flex items-center gap-2 mb-3">
-                  <Smartphone className="w-4 h-4" />
-                  Device Platforms
-                </Label>
-                <div className="flex gap-3">
-                  {[
-                    { value: 'mobile', label: 'Mobile', icon: Smartphone },
-                    { value: 'desktop', label: 'Desktop', icon: Monitor },
-                  ].map((device) => (
-                    <button
-                      key={device.value}
-                      onClick={() => {
-                        const platforms = formData.targeting.device_platforms || [];
-                        const newPlatforms = platforms.includes(device.value as 'mobile' | 'desktop')
-                          ? platforms.filter(p => p !== device.value)
-                          : [...platforms, device.value as 'mobile' | 'desktop'];
-                        updateTargeting({ device_platforms: newPlatforms });
-                      }}
-                      className={cn(
-                        "flex-1 p-4 rounded-xl border-2 transition-all",
-                        formData.targeting.device_platforms?.includes(device.value as 'mobile' | 'desktop')
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      )}
-                    >
-                      <device.icon className="w-6 h-6 mx-auto mb-2" />
-                      <p className="font-medium text-sm">{device.label}</p>
-                    </button>
-                  ))}
+              {/* v25.0+ Advantage+ Placements Toggle */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
+                      <Globe className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-blue-900 dark:text-blue-100">Advantage+ Placements</p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Maximize your budget across all Meta platforms.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setFormData(prev => ({ ...prev, advantage_placements: !prev.advantage_placements }))}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative",
+                      formData.advantage_placements ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gray-300 dark:bg-gray-600"
+                    )}
+                  >
+                    <div className={cn(
+                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform",
+                      formData.advantage_placements ? "translate-x-7" : "translate-x-1"
+                    )} />
+                  </button>
                 </div>
+                {formData.advantage_placements && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                    ✓ Recommended. Meta's AI will automatically allocate budget to best performing placements.
+                  </p>
+                )}
               </div>
 
-              {/* Placements */}
-              <div>
-                <Label className="flex items-center gap-2 mb-3">
-                  <Globe className="w-4 h-4" />
-                  Placements
-                </Label>
-                <div className="space-y-4">
-                  {/* Facebook Placements */}
-                  <div className="p-4 rounded-xl bg-muted/50">
-                    <p className="font-medium mb-3 flex items-center gap-2">
-                      <span className="w-5 h-5 rounded bg-blue-500 flex items-center justify-center text-white text-xs">f</span>
-                      Facebook
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {LOCAL_PLACEMENTS.facebook.map((placement) => (
+              {!formData.advantage_placements && (
+                <>
+                  {/* Device Platforms */}
+                  <div>
+                    <Label className="flex items-center gap-2 mb-3">
+                      <Smartphone className="w-4 h-4" />
+                      Device Platforms
+                    </Label>
+                    <div className="flex gap-3">
+                      {[
+                        { value: 'mobile', label: 'Mobile', icon: Smartphone },
+                        { value: 'desktop', label: 'Desktop', icon: Monitor },
+                      ].map((device) => (
                         <button
-                          key={placement.id}
+                          key={device.value}
                           onClick={() => {
-                            const positions = formData.targeting.facebook_positions || [];
-                            const newPositions = positions.includes(placement.id)
-                              ? positions.filter(p => p !== placement.id)
-                              : [...positions, placement.id];
-                            updateTargeting({ facebook_positions: newPositions });
+                            const platforms = formData.targeting.device_platforms || [];
+                            const newPlatforms = platforms.includes(device.value as 'mobile' | 'desktop')
+                              ? platforms.filter(p => p !== device.value)
+                              : [...platforms, device.value as 'mobile' | 'desktop'];
+                            updateTargeting({ device_platforms: newPlatforms });
                           }}
                           className={cn(
-                            "px-3 py-1.5 rounded-lg text-sm transition-colors",
-                            formData.targeting.facebook_positions?.includes(placement.id)
-                              ? "bg-blue-500 text-white"
-                              : "bg-background hover:bg-muted"
+                            "flex-1 p-4 rounded-xl border-2 transition-all",
+                            formData.targeting.device_platforms?.includes(device.value as 'mobile' | 'desktop')
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50"
                           )}
                         >
-                          {placement.label}
+                          <device.icon className="w-6 h-6 mx-auto mb-2" />
+                          <p className="font-medium text-sm">{device.label}</p>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Instagram Placements */}
-                  <div className="p-4 rounded-xl bg-muted/50">
-                    <p className="font-medium mb-3 flex items-center gap-2">
-                      <span className="w-5 h-5 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs">ig</span>
-                      Instagram
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {LOCAL_PLACEMENTS.instagram.map((placement) => (
-                        <button
-                          key={placement.id}
-                          onClick={() => {
-                            const positions = formData.targeting.instagram_positions || [];
-                            const newPositions = positions.includes(placement.id)
-                              ? positions.filter(p => p !== placement.id)
-                              : [...positions, placement.id];
-                            updateTargeting({ instagram_positions: newPositions });
-                          }}
-                          className={cn(
-                            "px-3 py-1.5 rounded-lg text-sm transition-colors",
-                            formData.targeting.instagram_positions?.includes(placement.id)
-                              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                              : "bg-background hover:bg-muted"
-                          )}
-                        >
-                          {placement.label}
-                        </button>
-                      ))}
+                  {/* Placements */}
+                  <div>
+                    <Label className="flex items-center gap-2 mb-3">
+                      <Globe className="w-4 h-4" />
+                      Placements
+                    </Label>
+                    <div className="space-y-4">
+                      {/* Facebook Placements */}
+                      <div className="p-4 rounded-xl bg-muted/50">
+                        <p className="font-medium mb-3 flex items-center gap-2">
+                          <span className="w-5 h-5 rounded bg-blue-500 flex items-center justify-center text-white text-xs">f</span>
+                          Facebook
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {LOCAL_PLACEMENTS.facebook.map((placement) => (
+                            <button
+                              key={placement.id}
+                              onClick={() => {
+                                const positions = formData.targeting.facebook_positions || [];
+                                const newPositions = positions.includes(placement.id)
+                                  ? positions.filter(p => p !== placement.id)
+                                  : [...positions, placement.id];
+                                updateTargeting({ facebook_positions: newPositions });
+                              }}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-sm transition-colors",
+                                formData.targeting.facebook_positions?.includes(placement.id)
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-background hover:bg-muted"
+                              )}
+                            >
+                              {placement.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Instagram Placements */}
+                      <div className="p-4 rounded-xl bg-muted/50">
+                        <p className="font-medium mb-3 flex items-center gap-2">
+                          <span className="w-5 h-5 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs">ig</span>
+                          Instagram
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {LOCAL_PLACEMENTS.instagram.map((placement) => (
+                            <button
+                              key={placement.id}
+                              onClick={() => {
+                                const positions = formData.targeting.instagram_positions || [];
+                                const newPositions = positions.includes(placement.id)
+                                  ? positions.filter(p => p !== placement.id)
+                                  : [...positions, placement.id];
+                                updateTargeting({ instagram_positions: newPositions });
+                              }}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-sm transition-colors",
+                                formData.targeting.instagram_positions?.includes(placement.id)
+                                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                                  : "bg-background hover:bg-muted"
+                              )}
+                            >
+                              {placement.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -962,6 +1005,45 @@ function CreateAdSetModal({
                     onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
                     className="mt-2"
                   />
+                </div>
+              </div>
+
+              {/* Attribution Settings (v25.0+) */}
+              <div className="pt-4 border-t space-y-4">
+                <Label className="flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Attribution Settings (v25.0)
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Click-Through Window</Label>
+                    <Select
+                      value={formData.attribution_spec?.find(s => s.event_type === 'CLICK_THROUGH')?.window_days.toString() || '7'}
+                      onValueChange={(val) => {
+                        const days = parseInt(val) as 1 | 7 | 28;
+                        const others = formData.attribution_spec?.filter(s => s.event_type !== 'CLICK_THROUGH') || [];
+                        setFormData(prev => ({ ...prev, attribution_spec: [...others, { event_type: 'CLICK_THROUGH', window_days: days }] }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Day</SelectItem>
+                        <SelectItem value="7">7 Days</SelectItem>
+                        <SelectItem value="28">28 Days (Limited)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">View-Through Window</Label>
+                    <div className="p-2 rounded border bg-muted/50 text-sm font-medium">
+                      1 Day (Forced for 2026)
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase">
+                      ✓ meta compliance strike applied
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

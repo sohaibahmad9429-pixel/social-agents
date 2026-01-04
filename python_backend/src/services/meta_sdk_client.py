@@ -90,10 +90,18 @@ def async_sdk_call(func):
             # Run sync SDK call in thread pool
             return await asyncio.to_thread(func, *args, **kwargs)
         except FacebookRequestError as e:
-            logger.error(f"Meta SDK error: {e.api_error_message()}")
+            error_details = {
+                'message': e.api_error_message(),
+                'code': e.api_error_code(),
+                'type': e.api_error_type(),
+                'subcode': e.api_error_subcode() if hasattr(e, 'api_error_subcode') else None,
+                'user_title': e.get_message() if hasattr(e, '​get_message') else None,
+                'body': str(e.body()) if hasattr(e, 'body') else None
+            }
+            logger.error(f"Meta SDK error details: {error_details}")
             raise MetaSDKError.from_facebook_error(e)
         except Exception as e:
-            logger.error(f"Unexpected error in SDK call: {str(e)}")
+            logger.error(f"Unexpected error in SDK call: {str(e)}", exc_info=True)
             raise MetaSDKError(message=str(e))
     return wrapper
 
@@ -987,6 +995,14 @@ class MetaSDKClient:
         if bid_amount:
             params['bid_amount'] = bid_amount
         
+        # v25.0+ 2026 Requirement: Targeting Automation (Advantage+ Audience) 
+        # Enforce modern structure. Legacy targeting expansion is deprecated.
+        if targeting.get('advantage_audience') or targeting.get('targeting_automation'):
+             params['targeting']['targeting_automation'] = {'advantage_audience': 1}
+        
+        # Advantage+ Placements (Automatic Placements) is default in v25.0+
+        # If no specific placements are defined, Meta optimizes automatically.
+        
         adset = account.create_ad_set(params=params)
         return {'id': adset.get('id'), 'adset_id': adset.get('id')}
     
@@ -1056,6 +1072,9 @@ class MetaSDKClient:
             params['lifetime_budget'] = lifetime_budget
         if targeting:
             params['targeting'] = targeting
+            # v25.0+ 2026 Requirement: Ensure Targeting Automation is handled in updates too
+            if targeting.get('advantage_audience') or targeting.get('targeting_automation'):
+                 params['targeting']['targeting_automation'] = {'advantage_audience': 1}
         
         adset.api_update(params=params)
         return {'success': True, 'id': adset_id}
@@ -1137,10 +1156,12 @@ class MetaSDKClient:
         message: Optional[str] = None,
         link: Optional[str] = None,
         call_to_action_type: Optional[str] = None,
-        advantage_plus_creative: bool = True,  # v25.0+ default: Enable Standard Enhancements
-        gen_ai_disclosure: bool = False,  # v25.0+ AI transparency flag
-        format_automation: bool = False,  # v25.0+ Format Automation for catalog ads
-        product_set_id: Optional[str] = None  # Product set for catalog ads
+        advantage_plus_creative: bool = True,
+        gen_ai_disclosure: bool = False,
+        format_automation: bool = False,
+        degrees_of_freedom_spec: Optional[Dict[str, Any]] = None,
+        ad_disclaimer_spec: Optional[Dict[str, Any]] = None,
+        product_set_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Create an ad creative"""
         self._ensure_initialized()
@@ -1183,40 +1204,39 @@ class MetaSDKClient:
             'object_story_spec': object_story_spec
         }
 
-        # v25.0+: Advantage+ Creative Granular Features
-        # "standard_enhancements" is legacy; using specific AI features verified in docs
-        if advantage_plus_creative:
+        # v25.0+ 2026 Update: Move to degrees_of_freedom_spec as primary optimization field
+        # Legacy creative_features_spec outside degrees_of_freedom_spec is deprecated.
+        if degrees_of_freedom_spec:
+            params['degrees_of_freedom_spec'] = degrees_of_freedom_spec
+        elif advantage_plus_creative:
             params['degrees_of_freedom_spec'] = {
                 'creative_features_spec': {
-                    'image_touchups': {'enroll_status': 'OPT_IN'},
-                    'image_templates': {'enroll_status': 'OPT_IN'},
-                    'text_optimizations': {'enroll_status': 'OPT_IN'},
-                    'text_generation': {'enroll_status': 'OPT_IN'},
-                    'image_brightness_and_contrast': {'enroll_status': 'OPT_IN'},
-                    'inline_comment': {'enroll_status': 'OPT_IN'},
-                    'video_auto_crop': {'enroll_status': 'OPT_IN'},
-                    'image_uncrop': {'enroll_status': 'OPT_IN'},
-                    'image_background_gen': {'enroll_status': 'OPT_IN'}
-                }
+                    'standard_enhancements': {'enroll_status': 'OPT_IN'},
+                    'image_enhancement': {'enroll_status': 'OPT_IN'},
+                    'video_auto_crop': {'enroll_status': 'OPT_IN'}  # Fixed: was video_enhancement
+                },
+                'degrees_of_freedom_type': 'FILTER_REDUNDANT'
             }
         
-        # v25.0+: Gen AI Disclosure (AI Transparency)
-        # When true, indicates creative content was generated using AI
-        if gen_ai_disclosure:
+        # Gen AI Disclosure is now mandatory for 2026 if AI is used.
+        if ad_disclaimer_spec:
+            params['ad_disclaimer_spec'] = ad_disclaimer_spec
+            if gen_ai_disclosure:
+                params['is_ai_generated'] = True
+        elif gen_ai_disclosure:
             params['is_ai_generated'] = True
+            params['ad_disclaimer_spec'] = {
+                'title': 'AI Disclosure',
+                'body': 'This content was generated or altered with AI.'
+            }
         
         # v25.0+: Format Automation for Advantage+ Catalog Ads
-        # Enables automatic format transformation (carousel to collection)
+        # 2026 Update: Stripped legacy asset_feed_spec as it is deprecated.
+        # Format choice is now handled via Advantage+ levers in degrees_of_freedom_spec.
         if format_automation and product_set_id:
             params['product_set_id'] = product_set_id
-            params['asset_feed_spec'] = {
-                'ad_formats': ['CAROUSEL', 'COLLECTION'],
-                'optimization_type': 'FORMAT_AUTOMATION'
-            }
-            params['format_transformation_spec'] = [{
-                'format': 'da_collection',
-                'data_source': ['catalog']
-            }]
+            # Advantage+ Creative now handles the "best format" choice automatically 
+            # when degrees_of_freedom_spec is active.
         
         creative = account.create_ad_creative(params=params)
         return {'id': creative.get('id'), 'creative_id': creative.get('id')}
@@ -1233,9 +1253,11 @@ class MetaSDKClient:
         link: Optional[str] = None,
         call_to_action_type: Optional[str] = None,
         advantage_plus_creative: bool = True,
-        gen_ai_disclosure: bool = False,  # v25.0+ AI transparency
-        format_automation: bool = False,  # v25.0+ Format Automation
-        product_set_id: Optional[str] = None  # Product set for catalog ads
+        gen_ai_disclosure: bool = False,
+        format_automation: bool = False,
+        degrees_of_freedom_spec: Optional[Dict[str, Any]] = None,
+        ad_disclaimer_spec: Optional[Dict[str, Any]] = None,
+        product_set_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create an Ad Creative.
@@ -1258,7 +1280,8 @@ class MetaSDKClient:
         return await self._create_ad_creative_sync(
             ad_account_id, name, page_id, image_hash, image_url, video_id,
             message, link, call_to_action_type, advantage_plus_creative, 
-            gen_ai_disclosure, format_automation, product_set_id
+            gen_ai_disclosure, format_automation, degrees_of_freedom_spec,
+            ad_disclaimer_spec, product_set_id
         )
     
     @async_sdk_call

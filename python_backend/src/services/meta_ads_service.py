@@ -22,28 +22,12 @@ from .meta_sdk_client import create_meta_sdk_client, MetaSDKError
 
 logger = logging.getLogger(__name__)
 
-# Meta API Configuration - v24.0
+# Meta API Configuration - v24.0 (supports v25.0 features)
 META_API_VERSION = "v24.0"
 
-# Objective mapping from legacy to OUTCOME-based (API v25.0++)
+# Objective mapping - strictly OUTCOME-based (API v25.0++)
+# Legacy objectives (LINK_CLICKS, TRAFFIC, etc.) are purged for 2026 compliance.
 OBJECTIVE_MAPPING: Dict[str, str] = {
-    "LINK_CLICKS": "OUTCOME_TRAFFIC",
-    "TRAFFIC": "OUTCOME_TRAFFIC",
-    "CONVERSIONS": "OUTCOME_SALES",
-    "SALES": "OUTCOME_SALES",
-    "LEAD_GENERATION": "OUTCOME_LEADS",
-    "LEADS": "OUTCOME_LEADS",
-    "BRAND_AWARENESS": "OUTCOME_AWARENESS",
-    "AWARENESS": "OUTCOME_AWARENESS",
-    "REACH": "OUTCOME_AWARENESS",
-    "POST_ENGAGEMENT": "OUTCOME_ENGAGEMENT",
-    "ENGAGEMENT": "OUTCOME_ENGAGEMENT",
-    "VIDEO_VIEWS": "OUTCOME_ENGAGEMENT",
-    "PAGE_LIKES": "OUTCOME_ENGAGEMENT",
-    "APP_INSTALLS": "OUTCOME_APP_PROMOTION",
-    "APP_PROMOTION": "OUTCOME_APP_PROMOTION",
-    "MESSAGES": "OUTCOME_ENGAGEMENT",
-    # New objectives pass through
     "OUTCOME_TRAFFIC": "OUTCOME_TRAFFIC",
     "OUTCOME_SALES": "OUTCOME_SALES",
     "OUTCOME_LEADS": "OUTCOME_LEADS",
@@ -293,17 +277,17 @@ class MetaAdsService:
         access_token: str,
         campaign_id: str,
         name: str,
-        optimization_goal: str = "LINK_CLICKS",
+        optimization_goal: str,
         billing_event: str = "IMPRESSIONS",
-        budget_type: str = "DAILY",
-        budget_amount: float = 10.0,
-        targeting: Optional[Dict[str, Any]] = None,
+        targeting: Dict[str, Any] = None,
         status: str = "PAUSED",
+        daily_budget: Optional[int] = None,
+        lifetime_budget: Optional[int] = None,
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
         bid_amount: Optional[float] = None,
-        destination_type: Optional[str] = None,
-        advantage_audience: bool = True,  # v25.0+ default: Enable Advantage+ Audience
+        # v25.0+ 2026 default: Enable Advantage+ Audience
+        advantage_audience: bool = True,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -315,13 +299,12 @@ class MetaAdsService:
         - Detailed targeting becomes advisory (signals) when enabled
         """
         try:
-            # Determine budget
-            daily_budget = None
-            lifetime_budget = None
-            if budget_type == "LIFETIME":
-                lifetime_budget = int(budget_amount * 100)
-            else:
-                daily_budget = int(budget_amount * 100)
+            # Daily budget and lifetime budget are already provided as parameters
+            # Convert to cents if provided
+            if daily_budget is not None:
+                daily_budget = int(daily_budget) if isinstance(daily_budget, (int, float)) else daily_budget
+            if lifetime_budget is not None:
+                lifetime_budget = int(lifetime_budget) if isinstance(lifetime_budget, (int, float)) else lifetime_budget
             
             # Default targeting if not provided
             if not targeting:
@@ -444,10 +427,12 @@ class MetaAdsService:
         body: Optional[str] = None,
         link_url: Optional[str] = None,
         call_to_action_type: str = "LEARN_MORE",
-        advantage_plus_creative: bool = True,  # v25.0+ Standard Enhancements
-        gen_ai_disclosure: bool = False,  # v25.0+ AI transparency
-        format_automation: bool = False,  # v25.0+ Format Automation
-        product_set_id: Optional[str] = None  # Catalog product set
+        advantage_plus_creative: bool = True,
+        gen_ai_disclosure: bool = False,
+        format_automation: bool = False,
+        degrees_of_freedom_spec: Optional[Dict[str, Any]] = None,
+        ad_disclaimer_spec: Optional[Dict[str, Any]] = None,
+        product_set_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Create an ad creative using SDK"""
         try:
@@ -464,6 +449,8 @@ class MetaAdsService:
                 advantage_plus_creative=advantage_plus_creative,
                 gen_ai_disclosure=gen_ai_disclosure,
                 format_automation=format_automation,
+                degrees_of_freedom_spec=degrees_of_freedom_spec,
+                ad_disclaimer_spec=ad_disclaimer_spec,
                 product_set_id=product_set_id
             )
             
@@ -886,6 +873,11 @@ class MetaAdsService:
                 img_response.raise_for_status()
                 image_data = img_response.content
             
+            # Determine content type from URL
+            content_type = 'image/png' if '.png' in image_url.lower() else 'image/jpeg'
+            extension = '.png' if content_type == 'image/png' else '.jpg'
+            file_name = (name or 'image') + extension
+            
             # Generate app secret proof
             app_secret_proof = hmac.new(
                 self.app_secret.encode('utf-8'),
@@ -897,18 +889,19 @@ class MetaAdsService:
             if not account_id.startswith('act_'):
                 account_id = f'act_{account_id}'
             
-            # Upload to Meta
+            # Upload to Meta using 'bytes' field per Meta API docs
             async with httpx.AsyncClient(timeout=60.0) as client:
+                import base64
                 response = await client.post(
-                    f'https://graph.facebook.com/v25.0+/{account_id}/adimages',
+                    f'https://graph.facebook.com/v24.0/{account_id}/adimages',
                     data={
                         'access_token': access_token,
-                        'appsecret_proof': app_secret_proof
-                    },
-                    files={
-                        'filename': (name or 'image.jpg', image_data, 'image/jpeg')
+                        'appsecret_proof': app_secret_proof,
+                        'bytes': base64.b64encode(image_data).decode('utf-8')
                     }
                 )
+                
+                logger.info(f"Image upload response: {response.status_code}")
                 
                 if response.is_success:
                     data = response.json()
@@ -921,7 +914,9 @@ class MetaAdsService:
                         }
                 
                 error_data = response.json() if response.content else {}
-                return {"data": None, "error": error_data.get("error", {}).get("message", "Upload failed")}
+                error_msg = error_data.get("error", {}).get("message", "Upload failed")
+                logger.error(f"Meta image upload error: {error_msg} - Full response: {error_data}")
+                return {"data": None, "error": error_msg}
             
         except Exception as e:
             logger.error(f"Error uploading ad image: {e}")
