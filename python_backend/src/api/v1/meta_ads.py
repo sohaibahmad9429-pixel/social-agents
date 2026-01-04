@@ -1977,7 +1977,7 @@ async def create_automation_rule(request: Request):
                 "schedule_type": schedule.get("schedule_type", "DAILY")
             }
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.create_automation_rule(
@@ -2019,7 +2019,7 @@ async def list_automation_rules(request: Request):
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.get_automation_rules(
@@ -2054,7 +2054,7 @@ async def update_automation_rule(
         
         body = await request.json()
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.update_automation_rule(
@@ -2088,7 +2088,7 @@ async def delete_automation_rule(
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.delete_automation_rule(rule_id=rule_id)
@@ -2143,7 +2143,7 @@ async def get_creative_library(
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.get_creative_library(
@@ -2179,7 +2179,7 @@ async def upload_creative(request: Request):
         
         body = await request.json()
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.upload_creative(
@@ -2223,7 +2223,7 @@ async def search_ad_library(
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         countries_list = [c.strip() for c in countries.split(",")]
@@ -2277,7 +2277,7 @@ async def send_capi_events(request: Request):
         if not events:
             raise HTTPException(status_code=400, detail="events array is required")
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.send_capi_events(
@@ -2338,7 +2338,7 @@ async def test_capi_event(request: Request):
                 detail="pixel_id, event, and test_event_code are required"
             )
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.send_capi_events(
@@ -2370,7 +2370,7 @@ async def get_capi_diagnostics(
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.get_capi_diagnostics(pixel_id=pixel_id)
@@ -2409,7 +2409,7 @@ async def check_compliance(request: Request):
         
         body = await request.json()
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client("dummy")  # Local check only
         
         result = client.check_campaign_compliance(
@@ -2472,7 +2472,7 @@ async def generate_report(request: Request):
         
         body = await request.json()
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.generate_report(
@@ -2548,7 +2548,7 @@ async def list_audiences(request: Request):
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.get_audiences(
@@ -2586,7 +2586,7 @@ async def create_custom_audience(request: Request):
         
         body = await request.json()
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.create_custom_audience(
@@ -2630,7 +2630,7 @@ async def get_audience_size(
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.get_audience_size(audience_id=audience_id)
@@ -2674,7 +2674,7 @@ async def get_budget_recommendations(request: Request):
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         # Get campaigns with insights
@@ -2745,7 +2745,7 @@ async def search_competitor_ads(
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         result = await client.search_competitor_ads(
@@ -2779,7 +2779,7 @@ async def get_competitor_trends(
         user_id, workspace_id = await get_user_context(request)
         credentials = await get_verified_credentials(workspace_id, user_id)
         
-        from ..services.meta_sdk_client import create_meta_sdk_client
+        from ...services.meta_sdk_client import create_meta_sdk_client
         client = create_meta_sdk_client(credentials["access_token"])
         
         # Search ads first
