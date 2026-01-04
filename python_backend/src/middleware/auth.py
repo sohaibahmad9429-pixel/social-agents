@@ -77,6 +77,7 @@ PUBLIC_PATHS = [
     "/redoc",
     "/api/v1/providers",
     "/api/v1/workspace/invites/",
+    "/api/v1/cloudinary/",  # Allow public access to Cloudinary uploads
 ]
 
 OPTIONAL_AUTH_PATHS = [
