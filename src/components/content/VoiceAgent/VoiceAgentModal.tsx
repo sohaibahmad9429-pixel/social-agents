@@ -84,12 +84,28 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 
 // Python backend WebSocket URL
 const getWebSocketUrl = () => {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  // In development, connect to Python backend on port 8000
-  const host = process.env.NODE_ENV === 'development'
-    ? 'localhost:8000'
-    : window.location.host;
-  return `${protocol}//${host}/api/v1/voice/live`;
+  // Import is not possible here (client component), so replicate the logic
+  // Use NEXT_PUBLIC_PYTHON_BACKEND_URL which is already configured in render.yaml
+  let backendUrl = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || 'localhost:8000';
+
+  // Normalize URL
+  if (!backendUrl.startsWith('http://') && !backendUrl.startsWith('https://')) {
+    // Handle Render service hostname
+    if (backendUrl.includes('localhost') || backendUrl.includes('127.0.0.1')) {
+      backendUrl = `http://${backendUrl}`;
+    } else {
+      // Render internal hostname - add .onrender.com if needed
+      backendUrl = backendUrl.replace(/:\d+$/, '');
+      if (!backendUrl.includes('.')) {
+        backendUrl = `${backendUrl}.onrender.com`;
+      }
+      backendUrl = `https://${backendUrl}`;
+    }
+  }
+
+  // Convert http(s) to ws(s)
+  const wsUrl = backendUrl.replace(/^http/, 'ws');
+  return `${wsUrl}/api/v1/voice/live`;
 };
 
 export function VoiceAgentModal({
