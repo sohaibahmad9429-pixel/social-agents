@@ -37,6 +37,8 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "imageio-ffmpeg>=0.6.0",
     "facebook-business>=24.0.1",
+    "google-adk>=1.0.0",
+    "pywin32>=311; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

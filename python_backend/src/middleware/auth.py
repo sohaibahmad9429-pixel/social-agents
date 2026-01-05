@@ -80,6 +80,7 @@ PUBLIC_PATHS = [
     "/api/v1/cloudinary/",  # Allow public access to Cloudinary uploads
     "/api/v1/media-studio/",  # Media library uses workspace_id for access control
     "/api/v1/posts",  # Posts use user_id for access control
+    "/api/v1/voice/",  # Voice Live API - public WebSocket endpoint
 ]
 
 OPTIONAL_AUTH_PATHS = [

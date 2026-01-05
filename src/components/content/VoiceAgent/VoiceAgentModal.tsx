@@ -1,17 +1,16 @@
 'use client';
 
 /**
- * VoiceAgentModal - Gemini Live API Voice Interface
+ * VoiceAgentModal - ADK Voice Agent Interface
  * 
- * Connects directly to Gemini Live API via WebSocket from the browser.
- * Uses ephemeral token from backend to keep API key secure.
- * Supports real-time bidirectional audio streaming and tool calling.
+ * Connects to Python backend ADK WebSocket for real-time voice conversations.
+ * Uses LiveRequestQueue + Runner.run_live() pattern for audio streaming.
+ * Supports bidirectional audio, transcriptions, and image sharing.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Mic, MicOff, Loader2, Volume2, Settings, ChevronDown, Video, VideoOff, Monitor, Camera, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { GoogleGenAI, Modality } from '@google/genai';
 
 // Available voices for Gemini Live API - Optimized for Social Media Strategist
 export const VOICE_OPTIONS = [
@@ -77,18 +76,21 @@ class AudioProcessor extends AudioWorkletProcessor {
 registerProcessor('audio-processor', AudioProcessor);
 `;
 
-// Gemini Live WebSocket URL (Fallback if SDK not used directly)
-const GEMINI_WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
 
-// Session resumption storage key
-const SESSION_HANDLE_KEY = 'gemini-live-session-handle';
 
 // Retry configuration
 const MAX_RETRY_ATTEMPTS = 3;
 const INITIAL_RETRY_DELAY_MS = 1000;
 
-// Preferred model for native audio
-const PREFERRED_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
+// Python backend WebSocket URL
+const getWebSocketUrl = () => {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // In development, connect to Python backend on port 8000
+  const host = process.env.NODE_ENV === 'development'
+    ? 'localhost:8000'
+    : window.location.host;
+  return `${protocol}//${host}/api/v1/voice/live`;
+};
 
 export function VoiceAgentModal({
   isOpen,
@@ -119,8 +121,7 @@ export function VoiceAgentModal({
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
 
   // Refs for WebSocket and audio
-  const sdkRef = useRef<any>(null);
-  const sessionRef = useRef<any>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -132,9 +133,7 @@ export function VoiceAgentModal({
   const isPlayingRef = useRef(false);
   const nextPlayTimeRef = useRef(0); // For seamless audio scheduling
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]); // Track active audio sources for interruption
-  const sessionHandleRef = useRef<string | null>(null); // For session resumption
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null); // For retry scheduling
-  const shouldResumeRef = useRef(false); // Whether to attempt session resumption
 
   // Video sharing refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -157,13 +156,6 @@ export function VoiceAgentModal({
       setStatusText('');
       setRetryCount(0);
       setShowRetryButton(false);
-
-      // Try to load existing session handle for resumption
-      const storedHandle = localStorage.getItem(SESSION_HANDLE_KEY);
-      if (storedHandle) {
-        sessionHandleRef.current = storedHandle;
-        shouldResumeRef.current = true;
-      }
     }
   }, [isOpen]);
 
@@ -177,186 +169,138 @@ export function VoiceAgentModal({
   }, []);
 
   /**
-   * Start Gemini Live session
+   * Start voice session via Python WebSocket backend
    */
   const startSession = useCallback(async (isRetry: boolean = false) => {
+    // Guard: Close any existing connection first
+    if (wsRef.current) {
+      wsRef.current.onclose = null; // Prevent error callback on intentional close
+      wsRef.current.onerror = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
     setVoiceState('connecting');
     setError(null);
     setShowRetryButton(false);
-    setStatusText(isRetry ? `Reconnecting (attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})...` : 'Getting credentials...');
+    setStatusText(isRetry ? `Reconnecting (attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})...` : 'Connecting...');
     isActiveRef.current = true;
 
     try {
-      // Get API credentials and config from backend
-      const tokenResponse = await fetch('/api/ai/content/strategist/voice/token', {
-        method: 'POST',
-      });
-      const tokenData = await tokenResponse.json();
+      // Connect to Python backend WebSocket
+      const wsUrl = getWebSocketUrl();
+      console.log('[Voice Live] Connecting to:', wsUrl);
 
-      if (!tokenData.success) {
-        throw new Error(tokenData.error || 'Failed to get credentials');
-      }
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-      const { apiKey, config } = tokenData;
-      // Use preferred native audio model
-      const model = PREFERRED_MODEL;
-      setStatusText(shouldResumeRef.current ? 'Resuming session...' : 'Connecting to Gemini...');
-
-      // Initialize Google Gen AI SDK with v1alpha for native audio features
-      const genAI = new GoogleGenAI({
-        apiKey,
-        httpOptions: { apiVersion: 'v1alpha' }
-      });
-      sdkRef.current = genAI;
-
-      // Extract system instruction text
-      const systemInstruction = config.systemInstruction?.parts?.[0]?.text || '';
-
-      // Prepare Live API configuration using official SDK format
-      const liveConfig = {
-        model: `models/${model}`,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: selectedVoice
-              }
-            },
-          },
-          systemInstruction: {
-            parts: [{ text: systemInstruction }]
-          },
-          tools: config.tools || [],
-          // Enable Native Audio capabilities
-          enableAffectiveDialog: true,
-          // Enable Proactive Audio for smarter VAD and response timing
-          enableProactiveAudio: true,
-        },
-        // Session resumption config (if we have a previous handle)
-        ...(shouldResumeRef.current && sessionHandleRef.current ? {
-          sessionResumptionConfig: {
-            handle: sessionHandleRef.current
-          }
-        } : {})
+      ws.onopen = () => {
+        console.log('[Voice Live] WebSocket connected');
+        // Send initial config with selected voice
+        ws.send(JSON.stringify({
+          type: 'config',
+          voice: selectedVoice
+        }));
+        setStatusText('Ready');
+        startAudioCapture();
+        setVoiceState('listening');
       };
 
-      // Connect using the SDK
-      const session = await genAI.live.connect({
-        model: liveConfig.model,
-        config: liveConfig.config,
-        callbacks: {
-          onopen: () => {
-            console.log('[Gemini Live] Connected via SDK');
-            setStatusText('Ready');
-            startAudioCapture();
+      ws.onmessage = async (event) => {
+        try {
+          // Parse ADK Event format
+          const adkEvent = JSON.parse(event.data);
+          console.log('[Voice Live] ADK Event:', Object.keys(adkEvent));
+
+          // Handle turn complete
+          if (adkEvent.turnComplete) {
+            console.log('[Voice Live] Turn complete');
             setVoiceState('listening');
-          },
-          onmessage: async (message: any) => {
-            console.log('[Gemini Live] Message:', message);
+            return;
+          }
 
-            // Handle server content (audio/text response)
-            if (message.serverContent) {
-              const content = message.serverContent;
+          // Handle interruption (VAD detected user speech)
+          if (adkEvent.interrupted) {
+            console.log('[Voice Live] Interrupted - stopping playback');
+            stopAudioPlayback();
+            setVoiceState('listening');
+            return;
+          }
 
-              // Handle VAD interruption - user started speaking, stop playback
-              if (content.interrupted) {
-                console.log('[Gemini Live] VAD interrupted - stopping playback');
-                stopAudioPlayback();
-                setVoiceState('listening');
-              }
-
-              if (content.modelTurn?.parts) {
-                for (const part of content.modelTurn.parts) {
-                  // Handle audio response - stream immediately
-                  if (part.inlineData?.data) {
-                    const audioData = base64ToArrayBuffer(part.inlineData.data);
-                    scheduleAudioChunk(audioData);
-                  }
-
-                  // Handle text response
-                  if (part.text) {
-                    setTranscripts(prev => [
-                      ...prev,
-                      { id: `ai_${Date.now()}`, text: part.text, isUser: false }
-                    ]);
-                  }
-                }
-              }
-
-              // Handle user transcript
-              if (content.inputTranscript) {
-                setTranscripts(prev => [
-                  ...prev,
-                  { id: `user_${Date.now()}`, text: content.inputTranscript, isUser: true }
-                ]);
-              }
-
-              // Handle turn complete
-              if (content.turnComplete) {
-                if (!isPlayingRef.current) {
-                  setVoiceState('listening');
-                }
-              }
-            }
-
-            // Handle tool calls
-            if (message.toolCall) {
-              await handleToolCall(message.toolCall);
-            }
-
-            // Handle session resumption update - persist to localStorage
-            if (message.sessionResumptionUpdate) {
-              const update = message.sessionResumptionUpdate;
-              if (update.resumable && update.newHandle) {
-                sessionHandleRef.current = update.newHandle;
-                localStorage.setItem(SESSION_HANDLE_KEY, update.newHandle);
-                console.log('[Gemini Live] Session handle saved for resumption');
-              }
-            }
-
-            // Handle proactive audio events (when model decides to speak unsolicited)
-            if (message.serverContent?.proactiveAudio) {
-              console.log('[Gemini Live] Proactive audio received');
-              // The audio data will come through the normal audio handling path
-            }
-          },
-          onerror: (e: any) => {
-            console.error('[Gemini Live] SDK Error:', e);
-            handleConnectionError(e.message || 'SDK connection failed');
-          },
-          onclose: (e: any) => {
-            console.log('[Gemini Live] SDK Closed:', e);
-            if (isActiveRef.current) {
-              // Attempt auto-reconnect if unexpectedly closed
-              handleConnectionError('Connection closed unexpectedly');
+          // Handle input transcription (user's spoken words)
+          if (adkEvent.inputTranscription?.text) {
+            const text = adkEvent.inputTranscription.text;
+            const isFinished = adkEvent.inputTranscription.finished;
+            if (text && isFinished) {
+              setTranscripts(prev => [
+                ...prev,
+                { id: `user_${Date.now()}`, text, isUser: true }
+              ]);
             }
           }
-        }
-      });
 
-      sessionRef.current = session;
+          // Handle output transcription (agent's spoken words)
+          if (adkEvent.outputTranscription?.text) {
+            const text = adkEvent.outputTranscription.text;
+            const isFinished = adkEvent.outputTranscription.finished;
+            if (text && isFinished) {
+              setTranscripts(prev => [
+                ...prev,
+                { id: `ai_${Date.now()}`, text, isUser: false }
+              ]);
+            }
+          }
+
+          // Handle content (audio, text responses)
+          if (adkEvent.content?.parts) {
+            setVoiceState('speaking');
+            for (const part of adkEvent.content.parts) {
+              // Handle audio data
+              if (part.inlineData?.mimeType?.startsWith('audio/pcm')) {
+                const audioData = base64ToArrayBuffer(part.inlineData.data);
+                scheduleAudioChunk(audioData);
+              }
+              // Handle text (if model returns text instead of audio)
+              if (part.text) {
+                console.log('[Voice Live] Text response:', part.text);
+              }
+            }
+          }
+
+        } catch (e) {
+          console.error('[Voice Live] Error parsing ADK event:', e);
+        }
+      };
+
+      ws.onerror = (e) => {
+        // Only handle errors for the current connection
+        if (wsRef.current !== ws) return;
+        console.error('[Voice Live] WebSocket error:', e);
+        handleConnectionError('WebSocket connection failed');
+      };
+
+      ws.onclose = (e) => {
+        // Only handle close for the current connection
+        if (wsRef.current !== ws) return;
+        console.log('[Voice Live] WebSocket closed:', e.code, e.reason);
+        if (isActiveRef.current) {
+          handleConnectionError('Connection closed unexpectedly');
+        }
+      };
 
     } catch (err: any) {
-      console.error('[Gemini Live] Error starting session:', err);
+      console.error('[Voice Live] Error starting session:', err);
       handleConnectionError(err.message || 'Failed to connect');
     }
-  }, [selectedVoice, selectedLanguage, retryCount]);
+  }, [selectedVoice, retryCount]);
 
   /**
    * Handle connection errors with exponential backoff retry
    */
   const handleConnectionError = useCallback((errorMessage: string) => {
-    // Clear session handle if connection failed (might be stale)
-    if (shouldResumeRef.current) {
-      shouldResumeRef.current = false;
-      localStorage.removeItem(SESSION_HANDLE_KEY);
-      sessionHandleRef.current = null;
-    }
-
     if (retryCount < MAX_RETRY_ATTEMPTS && isActiveRef.current) {
       const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCount);
-      console.log(`[Gemini Live] Retry attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`);
+      console.log(`[Voice Live] Retry attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS} in ${delay}ms`);
 
       setIsRetrying(true);
       setError(`Connection failed. Retrying in ${delay / 1000}s...`);
@@ -382,7 +326,6 @@ export function VoiceAgentModal({
    */
   const handleManualRetry = useCallback(() => {
     setRetryCount(0);
-    shouldResumeRef.current = false;
     startSession(false);
   }, [startSession]);
 
@@ -420,18 +363,13 @@ export function VoiceAgentModal({
       workletNodeRef.current = workletNode;
 
       workletNode.port.onmessage = (event) => {
-        if (!isActiveRef.current || !sessionRef.current) return;
+        if (!isActiveRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
         const pcmBuffer = event.data;
-        const base64Audio = arrayBufferToBase64(pcmBuffer);
 
-        // Send audio to Gemini via SDK
-        sessionRef.current.sendRealtimeInput({
-          audio: {
-            mimeType: 'audio/pcm;rate=16000',
-            data: base64Audio,
-          },
-        });
+        // Send audio as binary WebSocket frame (more efficient than base64 JSON)
+        // ADK backend expects raw PCM bytes
+        wsRef.current.send(pcmBuffer);
       };
 
       source.connect(workletNode);
@@ -444,68 +382,7 @@ export function VoiceAgentModal({
     }
   };
 
-  /**
-   * Handle tool calls from Gemini
-   */
-  const handleToolCall = async (toolCall: any) => {
-    console.log('[Gemini Live] Tool call:', toolCall);
-    setVoiceState('processing');
-
-    const functionCalls = toolCall.functionCalls || [];
-    const functionResponses: any[] = [];
-
-    for (const fc of functionCalls) {
-      try {
-        // Execute tool via backend
-        const response = await fetch('/api/ai/content/strategist/voice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            toolName: fc.name,
-            args: fc.args,
-            userId,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          functionResponses.push({
-            id: fc.id,
-            name: fc.name,
-            response: { result: JSON.stringify(data.result) },
-          });
-
-          // Notify parent of generated content
-          if (data.result) {
-            onContentGenerated(data.result);
-            setHasGeneratedContent(true);
-          }
-        } else {
-          functionResponses.push({
-            id: fc.id,
-            name: fc.name,
-            response: { error: data.error },
-          });
-        }
-      } catch (err: any) {
-        functionResponses.push({
-          id: fc.id,
-          name: fc.name,
-          response: { error: err.message },
-        });
-      }
-    }
-
-    // Send tool responses back to Gemini via SDK
-    if (sessionRef.current) {
-      sessionRef.current.sendToolResponse({
-        functionResponses,
-      });
-    }
-
-    setVoiceState('listening');
-  };
+  // Note: Tool calls are now handled by ADK backend (google_search tool)
 
   /**
    * Stop audio playback immediately (for VAD interruption)
@@ -627,11 +504,10 @@ export function VoiceAgentModal({
       animationFrameRef.current = null;
     }
 
-    if (sessionRef.current) {
-      sessionRef.current.close();
-      sessionRef.current = null;
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
     }
-    sdkRef.current = null;
 
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => { });
@@ -790,9 +666,9 @@ export function VoiceAgentModal({
     videoFrameIntervalRef.current = window.setInterval(() => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      const session = sessionRef.current;
+      const ws = wsRef.current;
 
-      if (!video || !canvas || !session) {
+      if (!video || !canvas || !ws || ws.readyState !== WebSocket.OPEN) {
         return;
       }
 
@@ -825,23 +701,31 @@ export function VoiceAgentModal({
         const base64 = canvas.toDataURL('image/jpeg', 0.85);
         const data = base64.slice(base64.indexOf(',') + 1);
 
-        // Send video frame to Gemini Live API via SDK - Using official mediaChunks format
-        if (sessionRef.current) {
-          sessionRef.current.sendRealtimeInput({
-            mediaChunks: [{
-              mimeType: 'image/jpeg',
-              data: data
-            }]
-          });
-          console.log(`[Video] Frame sent via SDK (${width}x${height} @ 1 FPS)`);
+        // Send video frame via WebSocket as JSON image message
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'image',
+            data: data,
+            mimeType: 'image/jpeg'
+          }));
+          console.log(`[Video] Frame sent via WebSocket (${width}x${height} @ 1 FPS)`);
         }
       }
     }, 1000); // 1 FPS as per ADK recommendation
   }, []);
 
-  // Helper: Base64 to ArrayBuffer
+  // Helper: Base64 to ArrayBuffer (handles both standard base64 and base64url)
   const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
-    const binary = atob(base64);
+    // Convert base64url to standard base64
+    // Replace URL-safe characters: - with +, _ with /
+    let standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+
+    // Add padding if needed
+    while (standardBase64.length % 4) {
+      standardBase64 += '=';
+    }
+
+    const binary = atob(standardBase64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
@@ -849,15 +733,7 @@ export function VoiceAgentModal({
     return bytes.buffer;
   };
 
-  // Helper: ArrayBuffer to Base64
-  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  };
+
 
   const handleClose = () => {
     stopSession();

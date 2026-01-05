@@ -20,6 +20,7 @@ from .rate_limits import router as rate_limits_router
 from .businesses import router as businesses_router
 from .ab_tests import router as ab_tests_router
 from .social import facebook_router, instagram_router, linkedin_router, twitter_router, tiktok_router, youtube_router
+from .voice_live import router as voice_live_router
 
 __all__ = [
     "content_router",
@@ -47,7 +48,8 @@ __all__ = [
     "youtube_router",
     "rate_limits_router",
     "businesses_router",
-    "ab_tests_router"
+    "ab_tests_router",
+    "voice_live_router"
 ]
 
 
