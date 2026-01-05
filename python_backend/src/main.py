@@ -11,6 +11,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from .config import settings
 from .middleware.auth import AuthMiddleware
+import sys
+import asyncio
+
+# Fix for Playwright on Windows: Ensure ProactorEventLoop is used
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Configure logging
 logging.basicConfig(

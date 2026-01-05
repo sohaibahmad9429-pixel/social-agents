@@ -236,6 +236,12 @@ class Settings(BaseSettings):
 # Global settings instance
 settings = Settings()
 
+# Inject into environment for libraries that rely on it (like google-genai)
+import os
+if settings.gemini_key:
+    # Ensure google-genai and other libraries can find the key
+    os.environ["GOOGLE_API_KEY"] = settings.gemini_key
+
 # Validate on startup
 _validation_errors = settings.validate_production_config()
 if _validation_errors:
