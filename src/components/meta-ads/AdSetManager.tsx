@@ -19,6 +19,7 @@ import {
   Globe,
   Smartphone,
   Monitor,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -431,32 +432,37 @@ function CreateAdSetModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden mx-4">
+      <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden mx-4 scrollbar-hide">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div>
-            <h2 className="text-xl font-bold">Create Ad Set</h2>
-            <p className="text-sm text-muted-foreground">Step {step} of 4 - {
-              step === 1 ? 'Basic Info' :
-                step === 2 ? 'Targeting' :
-                  step === 3 ? 'Placements' :
-                    'Budget & Schedule'
-            }</p>
+        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5" />
+              <div>
+                <h2 className="text-xl font-bold text-white">Create Ad Set</h2>
+                <p className="text-sm text-white/80">
+                  Step {step} of 4 - {
+                    step === 1 ? 'Basic Info' :
+                      step === 2 ? 'Targeting' :
+                        step === 3 ? 'Placements' :
+                          'Budget & Schedule'
+                  }
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+              <X className="w-5 h-5" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
 
-        {/* Progress */}
-        <div className="px-6 pt-4">
-          <div className="flex gap-2">
+          {/* Progress Bar inside Header */}
+          <div className="flex gap-2 mt-4">
             {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
                 className={cn(
                   "h-1 flex-1 rounded-full transition-colors",
-                  s <= step ? "bg-primary" : "bg-muted"
+                  s <= step ? "bg-white" : "bg-white/30"
                 )}
               />
             ))}
@@ -545,15 +551,15 @@ function CreateAdSetModal({
           {step === 2 && (
             <div className="space-y-6">
               {/* v25.0+ Advantage+ Audience Toggle */}
-              <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
-                      <Target className="w-5 h-5 text-white" />
+                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
+                      <Target className="w-5 h-5 text-orange-500" />
                     </div>
                     <div>
-                      <p className="font-semibold text-blue-900 dark:text-blue-100">Advantage+ Audience</p>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <p className="font-semibold text-foreground">Advantage+ Audience</p>
+                      <p className="text-sm text-muted-foreground">
                         Let Meta's AI find the best audience. Targeting becomes advisory.
                       </p>
                     </div>
@@ -562,19 +568,20 @@ function CreateAdSetModal({
                     onClick={() => setFormData(prev => ({ ...prev, advantage_audience: !prev.advantage_audience }))}
                     className={cn(
                       "w-12 h-6 rounded-full transition-colors relative",
-                      formData.advantage_audience ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gray-300 dark:bg-gray-600"
+                      formData.advantage_audience ? "bg-orange-500" : "bg-muted"
                     )}
                   >
                     <div className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform",
+                      "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform",
                       formData.advantage_audience ? "translate-x-7" : "translate-x-1"
                     )} />
                   </button>
                 </div>
                 {formData.advantage_audience && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                    ✓ Advantage+ Audience is active. Targeting (Age, Location, Interests) is used as advisory signals to find more people.
-                  </p>
+                  <div className="mt-3 pl-12 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    Advantage+ Audience is active. Targeting is used as advisory signals.
+                  </div>
                 )}
               </div>
 
@@ -683,15 +690,15 @@ function CreateAdSetModal({
           {step === 3 && (
             <div className="space-y-6">
               {/* v25.0+ Advantage+ Placements Toggle */}
-              <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
-                      <Globe className="w-5 h-5 text-white" />
+                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
+                      <Globe className="w-5 h-5 text-orange-500" />
                     </div>
                     <div>
-                      <p className="font-semibold text-blue-900 dark:text-blue-100">Advantage+ Placements</p>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <p className="font-semibold text-foreground">Advantage+ Placements</p>
+                      <p className="text-sm text-muted-foreground">
                         Maximize your budget across all Meta platforms.
                       </p>
                     </div>
@@ -700,19 +707,20 @@ function CreateAdSetModal({
                     onClick={() => setFormData(prev => ({ ...prev, advantage_placements: !prev.advantage_placements }))}
                     className={cn(
                       "w-12 h-6 rounded-full transition-colors relative",
-                      formData.advantage_placements ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gray-300 dark:bg-gray-600"
+                      formData.advantage_placements ? "bg-orange-500" : "bg-muted"
                     )}
                   >
                     <div className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform",
+                      "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform",
                       formData.advantage_placements ? "translate-x-7" : "translate-x-1"
                     )} />
                   </button>
                 </div>
                 {formData.advantage_placements && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                    ✓ Recommended. Meta's AI will automatically allocate budget to best performing placements.
-                  </p>
+                  <div className="mt-3 pl-12 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    Recommended. Meta's AI will automatically allocate budget.
+                  </div>
                 )}
               </div>
 
@@ -829,12 +837,14 @@ function CreateAdSetModal({
             <div className="space-y-6">
               {/* CBO Notice */}
               {campaignUsesCBO && (
-                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-start gap-3">
-                    <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm mt-0.5 border border-orange-100 dark:border-orange-900">
+                      <DollarSign className="w-5 h-5 text-orange-500" />
+                    </div>
                     <div>
-                      <p className="font-medium text-blue-900 dark:text-blue-100">Campaign Budget Optimization Enabled</p>
-                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      <p className="font-semibold text-foreground">Campaign Budget Optimization Enabled</p>
+                      <p className="text-sm text-muted-foreground mt-1">
                         This campaign uses a campaign-level budget (${((selectedCampaign?.daily_budget || selectedCampaign?.lifetime_budget || 0) / 100).toFixed(2)}/day).
                         The budget will be automatically distributed across ad sets.
                       </p>
@@ -947,12 +957,14 @@ function CreateAdSetModal({
 
               {/* Show campaign bid strategy info when CBO is used */}
               {campaignUsesCBO && (
-                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
+                  <p className="text-sm font-semibold text-foreground mb-1">
                     Campaign Budget Optimization Active
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Bid strategy is managed at campaign level: <strong>{selectedCampaign?.bid_strategy?.replace(/_/g, ' ') || 'Lowest Cost'}</strong>
+                  <p className="text-xs text-muted-foreground">
+                    Bid strategy is managed at campaign level: <span className="font-semibold text-orange-500">
+                      {selectedCampaign?.bid_strategy?.replace(/_/g, ' ') || 'Lowest Cost'}
+                    </span>
                   </p>
                 </div>
               )}

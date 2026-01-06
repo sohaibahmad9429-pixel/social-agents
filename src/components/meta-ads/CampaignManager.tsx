@@ -284,7 +284,7 @@ export default function CampaignManager({ campaigns = [], adSets = [], ads = [],
         <Button
           onClick={() => handleWizardChange(true)}
           size="sm"
-          className="h-9 gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+          className="h-9 gap-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-md"
         >
           <Sparkles className="w-4 h-4" />
           Create Campaign
@@ -413,7 +413,7 @@ export default function CampaignManager({ campaigns = [], adSets = [], ads = [],
                       <p className="text-sm text-muted-foreground mb-4">
                         {searchQuery ? 'Try adjusting your search' : 'Create your first campaign to get started'}
                       </p>
-                      <Button onClick={() => handleWizardChange(true)} size="sm" className="h-9 gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                      <Button onClick={() => handleWizardChange(true)} size="sm" className="h-9 gap-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-md">
                         <Sparkles className="w-4 h-4" />
                         Create Campaign
                       </Button>
@@ -488,10 +488,10 @@ function CampaignRow({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const statusColors: Record<string, string> = {
-    ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    PAUSED: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    DELETED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    ARCHIVED: 'bg-gray-100 text-gray-700 dark:bg-gray-800/30 dark:text-gray-400',
+    ACTIVE: 'bg-emerald-500 text-white',
+    PAUSED: 'bg-slate-500 text-white',
+    DELETED: 'bg-red-500 text-white',
+    ARCHIVED: 'bg-slate-400 text-white',
   };
 
   const ctr = campaign.insights?.impressions
@@ -549,8 +549,14 @@ function CampaignRow({
           </div>
         </td>
         <td className="p-3">
-          <span className={cn("px-2 py-0.5 rounded text-xs font-medium", statusColors[campaign.status])}>
-            {campaign.status}
+          <span className={cn(
+            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold",
+            statusColors[campaign.status]
+          )}>
+            {campaign.status === 'ACTIVE' ? 'Active' :
+              campaign.status === 'PAUSED' ? 'Paused' :
+                campaign.status === 'DELETED' ? 'Deleted' :
+                  campaign.status === 'ARCHIVED' ? 'Archived' : campaign.status}
           </span>
         </td>
         <td className="p-3 text-right text-sm">
@@ -690,10 +696,10 @@ function CampaignDetailView({
   onCreateAd?: (adSetId: string) => void;
 }) {
   const statusColors: Record<string, string> = {
-    ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    PAUSED: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    DELETED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    ARCHIVED: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
+    ACTIVE: 'bg-emerald-500 text-white',
+    PAUSED: 'bg-slate-500 text-white',
+    DELETED: 'bg-red-500 text-white',
+    ARCHIVED: 'bg-slate-400 text-white',
   };
 
   // Calculate campaign totals

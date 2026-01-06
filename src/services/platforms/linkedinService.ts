@@ -392,8 +392,7 @@ export async function postToLinkedIn(
     const result = await createPost({
       text: options.text,
       visibility: options.visibility as 'PUBLIC' | 'CONNECTIONS',
-      mediaUrn: options.mediaUrn,
-      postToPage: options.postToPage,
+      imageUrl: options.mediaUrn, // mediaUrn is used as imageUrl for uploaded media
     });
 
     return {
@@ -429,7 +428,6 @@ export async function postCarouselToLinkedIn(
       text: options.text,
       imageUrls: options.imageUrls,
       visibility: (options.visibility || 'PUBLIC') as 'PUBLIC' | 'CONNECTIONS',
-      postToPage: options.postToPage,
     });
 
     return {
@@ -460,7 +458,7 @@ export async function uploadLinkedInMedia(
     const { uploadMedia } = await import('@/lib/python-backend/api/social/linkedin');
 
     const result = await uploadMedia({
-      mediaUrl: mediaUrl,
+      mediaData: mediaUrl, // Pass the URL or base64 data as mediaData
       mediaType: (mediaType || 'image') as 'image' | 'video',
     });
 

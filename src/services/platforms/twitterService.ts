@@ -468,7 +468,7 @@ export async function uploadTwitterMedia(
     const { uploadMedia } = await import('@/lib/python-backend/api/social/twitter');
 
     const result = await uploadMedia({
-      mediaUrl: mediaUrl,
+      mediaData: mediaUrl,
       mediaType: mediaType,
     });
 

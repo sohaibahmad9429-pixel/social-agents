@@ -436,19 +436,19 @@ export default function AdsAnalytics({ campaigns = [], adSets = [], ads = [], on
                           <div className="flex items-center gap-2">
                             <div className={cn(
                               "w-2 h-2 rounded-full",
-                              campaign.status === 'ACTIVE' ? "bg-green-500" : "bg-yellow-500"
+                              campaign.status === 'ACTIVE' ? "bg-emerald-500" : "bg-gray-400"
                             )} />
                             <span className="font-medium">{campaign.name}</span>
                           </div>
                         </td>
                         <td className="p-3 text-right">
                           <span className={cn(
-                            "px-2 py-1 rounded-full text-xs font-medium",
+                            "px-2.5 py-0.5 rounded-full text-xs font-semibold",
                             campaign.status === 'ACTIVE'
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-500 text-white"
                           )}>
-                            {campaign.status}
+                            {campaign.status === 'ACTIVE' ? 'Active' : 'Paused'}
                           </span>
                         </td>
                         <td className="p-3 text-right font-medium">
@@ -704,8 +704,8 @@ function MetricCard({
             <Icon className="w-2.5 h-2.5" />
           </div>
           <div className={cn(
-            "flex items-center gap-0.5 text-[9px] font-medium px-1 py-0.5 rounded",
-            isPositive ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            "flex items-center gap-0.5 text-[9px] font-medium",
+            isPositive ? "text-green-600" : "text-red-500"
           )}>
             {isPositive ? (
               <ArrowUpRight className="w-2.5 h-2.5" />

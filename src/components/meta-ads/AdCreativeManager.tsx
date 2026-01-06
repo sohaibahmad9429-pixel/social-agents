@@ -23,6 +23,9 @@ import {
   FolderOpen,
   ImagePlus,
   Layers,
+  Zap,
+  Globe,
+  MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -487,27 +490,30 @@ function CreateAdModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] mx-4 flex flex-col">
+      <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] mx-4 flex flex-col overflow-hidden scrollbar-hide">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b shrink-0">
-          <div>
-            <h2 className="text-xl font-bold">Create Ad</h2>
-            <p className="text-sm text-muted-foreground">Step {step} of 3</p>
+        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 pb-4 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5" />
+              <div>
+                <h2 className="text-xl font-bold text-white">Create Ad</h2>
+                <p className="text-sm text-white/80">Step {step} of 3</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+              <X className="w-5 h-5" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
 
-        {/* Progress */}
-        <div className="px-6 pt-4 shrink-0">
-          <div className="flex gap-2">
+          {/* Progress Bar inside Header */}
+          <div className="flex gap-2 mt-4">
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
                 className={cn(
                   "h-1 flex-1 rounded-full transition-colors",
-                  s <= step ? "bg-primary" : "bg-muted"
+                  s <= step ? "bg-white" : "bg-white/30"
                 )}
               />
             ))}
@@ -586,15 +592,15 @@ function CreateAdModal({
               {/* Creative Form */}
               <div className="space-y-4">
                 {/* Advantage+ Creative Toggle (v25.0+) */}
-                <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800">
+                <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
-                        <Sparkles className="w-5 h-5 text-white" />
+                      <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
+                        <Sparkles className="w-5 h-5 text-orange-500" />
                       </div>
                       <div>
-                        <p className="font-semibold text-blue-900 dark:text-blue-100">Advantage+ Creative</p>
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                        <p className="font-semibold text-foreground">Advantage+ Creative</p>
+                        <p className="text-sm text-muted-foreground">
                           AI-powered Standard Enhancements.
                         </p>
                       </div>
@@ -603,11 +609,11 @@ function CreateAdModal({
                       onClick={() => updateCreative({ advantage_plus_creative: !formData.creative.advantage_plus_creative })}
                       className={cn(
                         "w-12 h-6 rounded-full transition-colors relative",
-                        formData.creative.advantage_plus_creative ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gray-300 dark:bg-gray-600"
+                        formData.creative.advantage_plus_creative ? "bg-orange-500" : "bg-muted"
                       )}
                     >
                       <div className={cn(
-                        "absolute top-1 w-4 h-4 rounded-full bg-white transition-transform",
+                        "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform",
                         formData.creative.advantage_plus_creative ? "translate-x-7" : "translate-x-1"
                       )} />
                     </button>
@@ -665,7 +671,7 @@ function CreateAdModal({
                             className={cn(
                               "w-8 h-4 rounded-full transition-colors relative",
                               formData.creative.degrees_of_freedom_spec?.creative_features_spec?.[item.key as keyof typeof formData.creative.degrees_of_freedom_spec.creative_features_spec]?.enroll_status === 'OPT_IN'
-                                ? "bg-blue-500" : "bg-gray-300 dark:bg-gray-600"
+                                ? "bg-orange-500" : "bg-gray-300 dark:bg-gray-600"
                             )}
                           >
                             <div className={cn(
@@ -681,19 +687,21 @@ function CreateAdModal({
                 )}
 
                 {/* Ad Disclaimer Spec (v25.0+) */}
-                <div className="space-y-4 p-4 border rounded-xl bg-orange-50/10 border-orange-200 dark:border-orange-900">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-orange-600" />
-                    <Label className="font-semibold text-orange-900 dark:text-orange-100">Ad Disclaimer (Legal/Political)</Label>
+                <div className="space-y-4 p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
+                      <FileText className="w-4 h-4 text-orange-500" />
+                    </div>
+                    <Label className="font-semibold text-foreground">Ad Disclaimer (Legal/Political)</Label>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-3 pl-11">
                     <Input
                       placeholder="Disclaimer Title"
                       value={formData.creative.ad_disclaimer_spec?.title || ''}
                       onChange={(e) => updateCreative({
                         ad_disclaimer_spec: { ...formData.creative.ad_disclaimer_spec!, title: e.target.value }
                       })}
-                      className="text-sm bg-background"
+                      className="text-sm bg-background border-orange-100 dark:border-orange-900/50"
                     />
                     <Textarea
                       placeholder="Disclaimer Body"
@@ -701,7 +709,7 @@ function CreateAdModal({
                       onChange={(e) => updateCreative({
                         ad_disclaimer_spec: { ...formData.creative.ad_disclaimer_spec!, body: e.target.value }
                       })}
-                      className="text-sm bg-background"
+                      className="text-sm bg-background border-orange-100 dark:border-orange-900/50"
                       rows={2}
                     />
                     <div className="flex items-center gap-2">
@@ -712,7 +720,7 @@ function CreateAdModal({
                           ad_disclaimer_spec: { ...formData.creative.ad_disclaimer_spec!, is_fully_enforced: checked === true }
                         })}
                       />
-                      <Label htmlFor="disclaimer-enforcement" className="text-xs text-muted-foreground">
+                      <Label htmlFor="disclaimer-enforcement" className="text-[11px] text-muted-foreground">
                         Enforce disclaimer display in all placements
                       </Label>
                     </div>
@@ -896,20 +904,36 @@ function CreateAdModal({
               </div>
 
               {/* Preview */}
-              <div>
-                <Label className="mb-2 block">Preview</Label>
-                <div className="border rounded-xl overflow-hidden bg-white dark:bg-gray-900">
-                  {/* Facebook Post Preview */}
-                  <div className="p-3 border-b flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600" />
-                    <div>
-                      <p className="font-semibold text-sm">Your Page Name</p>
-                      <p className="text-xs text-muted-foreground">Sponsored</p>
-                    </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="p-1 rounded bg-orange-500/10">
+                    <Eye className="w-4 h-4 text-orange-500" />
                   </div>
-                  {formData.creative.body && (
-                    <p className="px-3 py-2 text-sm">{formData.creative.body}</p>
-                  )}
+                  <Label className="font-bold text-base">Ad Preview</Label>
+                </div>
+                <div className="border rounded-xl overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+                  {/* Facebook Post Preview Styling */}
+                  <div className="p-3 border-b flex items-center justify-between bg-muted/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm flex items-center justify-center text-white">
+                        <Zap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">Your Page Name</p>
+                        <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                          Sponsored • <Globe className="w-3 h-3" />
+                        </p>
+                      </div>
+                    </div>
+                    <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div className="px-3 py-2 text-sm">
+                    {formData.creative.body ? (
+                      <p>{formData.creative.body}</p>
+                    ) : (
+                      <p className="text-muted-foreground italic">Add primary text to see it here...</p>
+                    )}
+                  </div>
                   <div className="aspect-video bg-muted flex items-center justify-center">
                     {formData.creative.image_url ? (
                       <img
@@ -927,22 +951,28 @@ function CreateAdModal({
                       </div>
                     )}
                   </div>
-                  <div className="p-3 bg-muted/50">
-                    <p className="text-xs text-muted-foreground uppercase mb-1">
+                  <div className="p-3 bg-muted/40 backdrop-blur-sm">
+                    <p className="text-[10px] text-orange-600/80 dark:text-orange-400/80 font-bold uppercase tracking-wider mb-1">
                       {(() => {
+                        const url = formData.creative.link_url;
+                        if (!url) return 'YOUR-WEBSITE.COM';
                         try {
-                          return formData.creative.link_url ? new URL(formData.creative.link_url).hostname : 'example.com';
+                          // Handle cases like "google.com" by prepending https if no protocol
+                          const urlToParse = url.includes('://') ? url : `https://${url}`;
+                          return new URL(urlToParse).hostname;
                         } catch {
-                          return 'example.com';
+                          return url.toUpperCase();
                         }
                       })()}
                     </p>
-                    <p className="font-semibold text-sm">
-                      {formData.creative.title || 'Your headline here'}
+                    <p className="font-bold text-sm text-foreground">
+                      {formData.creative.title || 'YOUR COMPELLING HEADLINE'}
                     </p>
                   </div>
-                  <div className="p-3 border-t">
-                    <Button size="sm" className="w-full">
+                  <div className="border-t bg-white dark:bg-gray-950">
+                    <Button
+                      className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-none border-none shadow-none transition-all active:scale-[0.99]"
+                    >
                       {CTA_OPTIONS.find(c => c.value === formData.creative.call_to_action_type)?.label || 'Learn More'}
                     </Button>
                   </div>
@@ -990,9 +1020,9 @@ function CreateAdModal({
                 </CardContent>
               </Card>
 
-              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Note:</strong> Your ad will be submitted for review. This usually takes less than 24 hours.
+              <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-900/50">
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">Note:</strong> Your ad will be submitted for review. This usually takes less than 24 hours.
                   You'll be notified once your ad is approved.
                 </p>
               </div>

@@ -469,9 +469,8 @@ export async function postToInstagram(
     const result = await createPost({
       caption: options.caption,
       imageUrl: options.imageUrl,
-      mediaType: mediaType,
-      postType: options.postType,
-      carouselUrls: options.carouselUrls,
+      mediaType: mediaType as 'image' | 'video' | 'carousel' | 'reel' | 'story',
+      carouselImages: options.carouselUrls,
     });
 
     return {
@@ -549,7 +548,8 @@ export async function postCarouselToInstagram(
 
     const result = await createPost({
       caption: options.caption || '',
-      carouselUrls: options.mediaUrls,
+      carouselImages: options.mediaUrls,
+      mediaType: 'carousel',
     });
 
     return {

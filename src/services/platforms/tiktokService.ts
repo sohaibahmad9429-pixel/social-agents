@@ -330,6 +330,7 @@ export async function uploadTikTokVideo(
 ): Promise<{ success: boolean; videoUrl?: string; videoSize?: number; error?: string }> {
   try {
     // If it's already a public URL, return it directly
+    // TikTok API module doesn't have uploadMedia, so we just pass through URLs
     if (videoData.startsWith('http')) {
       return {
         success: true,
@@ -338,15 +339,11 @@ export async function uploadTikTokVideo(
       };
     }
 
-    // Use Python backend client for TikTok media upload
-    const { uploadMedia } = await import('@/lib/python-backend/api/social/tiktok');
-
-    const result = await uploadMedia({ videoData });
-
+    // For base64 data, we need to upload to storage first
+    // This would typically be handled by a storage upload API
     return {
-      success: result.success,
-      videoUrl: result.videoUrl,
-      videoSize: result.videoSize || 0
+      success: false,
+      error: 'Base64 upload not supported. Please provide a public URL.'
     };
   } catch (error) {
     return {
@@ -375,10 +372,10 @@ export async function getTikTokAccountInfo(
     return {
       success: result.success,
       accountInfo: {
-        username: result.username,
-        displayName: result.displayName,
-        avatarUrl: result.avatarUrl,
-        connectedAt: result.connectedAt
+        accountId: result.accountId,
+        accountName: result.accountName,
+        connected: result.connected,
+        expiresAt: result.expiresAt
       }
     };
   } catch (error) {
@@ -405,13 +402,12 @@ export async function postToTikTok(
     const result = await createPost({
       caption: options.caption,
       videoUrl: options.videoUrl,
-      videoSize: options.videoSize,
     });
 
     return {
       success: result.success,
-      videoId: result.data?.videoId,
-      url: result.data?.shareUrl
+      videoId: result.publishId,
+      url: undefined // TikTok API doesn't return a direct URL
     };
   } catch (error) {
     return {

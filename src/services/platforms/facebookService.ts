@@ -425,8 +425,8 @@ export async function postToFacebook(
     const result = await createPost({
       message: options.message,
       imageUrl: options.imageUrl,
-      mediaType: options.mediaType,
-      postType: options.postType,
+      mediaType: options.mediaType as 'image' | 'video' | undefined,
+      postType: options.postType as 'post' | 'reel' | 'story' | undefined,
     });
 
     return {

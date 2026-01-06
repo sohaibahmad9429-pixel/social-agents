@@ -1077,16 +1077,16 @@ export const BREAKDOWNS: { value: Breakdown; label: string; category: string }[]
 
 export function getDeliveryStatusColor(status?: DeliveryStatus): string {
   const colors: Record<DeliveryStatus, string> = {
-    delivering: 'bg-green-500',
-    learning: 'bg-blue-500',
-    learning_limited: 'bg-yellow-500',
-    not_delivering: 'bg-gray-500',
-    inactive: 'bg-gray-400',
-    scheduled: 'bg-purple-500',
-    completed: 'bg-gray-600',
-    error: 'bg-red-500',
+    delivering: 'bg-teal-500',
+    learning: 'bg-cyan-500',
+    learning_limited: 'bg-amber-500',
+    not_delivering: 'bg-slate-500',
+    inactive: 'bg-slate-400',
+    scheduled: 'bg-violet-500',
+    completed: 'bg-slate-600',
+    error: 'bg-rose-500',
   };
-  return status ? colors[status] : 'bg-gray-400';
+  return status ? colors[status] : 'bg-slate-400';
 }
 
 export function getDeliveryStatusLabel(status?: DeliveryStatus): string {

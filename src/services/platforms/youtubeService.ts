@@ -389,8 +389,8 @@ export async function uploadToYouTube(
 
     return {
       success: result.success,
-      videoId: result.data?.videoId,
-      url: result.data?.videoUrl
+      videoId: result.videoId,
+      url: result.videoUrl
     };
   } catch (error) {
     return {

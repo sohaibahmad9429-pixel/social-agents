@@ -88,8 +88,8 @@ function getNestedValue(obj: any, path: string): any {
 function DeliveryStatusBadge({ status, itemStatus }: { status?: DeliveryStatus; itemStatus: string }) {
   if (itemStatus === 'PAUSED') {
     return (
-      <Badge variant="secondary" className="gap-1 font-normal">
-        <div className="w-2 h-2 rounded-full bg-gray-400" />
+      <Badge variant="outline" className="gap-1.5 font-medium text-slate-500 border-slate-300 bg-slate-50">
+        <div className="w-2 h-2 rounded-full bg-slate-400" />
         Paused
       </Badge>
     );
@@ -98,8 +98,26 @@ function DeliveryStatusBadge({ status, itemStatus }: { status?: DeliveryStatus; 
   const color = getDeliveryStatusColor(status);
   const label = getDeliveryStatusLabel(status);
 
+  // Map status to appropriate badge styles
+  const getBadgeStyles = () => {
+    switch (status) {
+      case 'delivering':
+        return 'bg-teal-500/10 text-teal-700 border-teal-200';
+      case 'learning':
+        return 'bg-cyan-500/10 text-cyan-700 border-cyan-200';
+      case 'learning_limited':
+        return 'bg-amber-500/10 text-amber-700 border-amber-200';
+      case 'scheduled':
+        return 'bg-violet-500/10 text-violet-700 border-violet-200';
+      case 'error':
+        return 'bg-rose-500/10 text-rose-700 border-rose-200';
+      default:
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+  };
+
   return (
-    <Badge variant="secondary" className="gap-1 font-normal">
+    <Badge variant="outline" className={cn("gap-1.5 font-medium", getBadgeStyles())}>
       <div className={cn("w-2 h-2 rounded-full", color)} />
       {label}
     </Badge>

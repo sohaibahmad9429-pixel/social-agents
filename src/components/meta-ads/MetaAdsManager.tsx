@@ -776,10 +776,10 @@ function MetricCard({
 
 function CampaignRow({ campaign }: { campaign: Campaign }) {
   const statusColors = {
-    ACTIVE: 'bg-green-500',
-    PAUSED: 'bg-amber-500',
-    DELETED: 'bg-red-500',
-    ARCHIVED: 'bg-gray-400',
+    ACTIVE: 'bg-teal-500',
+    PAUSED: 'bg-slate-400',
+    DELETED: 'bg-rose-500',
+    ARCHIVED: 'bg-slate-400',
   };
 
   return (
