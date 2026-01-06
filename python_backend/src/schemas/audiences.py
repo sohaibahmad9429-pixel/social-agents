@@ -286,9 +286,10 @@ class UploadUsersRequest(BaseModel):
     Data is automatically normalized and SHA256 hashed by the backend
     before being sent to Meta's API.
     """
-    schema: List[CustomerDataField] = Field(
+    schema_: List[CustomerDataField] = Field(
         ...,
         min_length=1,
+        alias="schema",
         description="List of field types in order (e.g., ['EMAIL', 'PHONE', 'FN', 'LN'])"
     )
     data: List[List[str]] = Field(

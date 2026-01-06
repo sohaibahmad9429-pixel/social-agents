@@ -134,7 +134,7 @@ export default function CommentsPage() {
   ] as const;
 
   const actionButtonBase =
-    'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-[0.98]';
+    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-[0.98]';
   const replyButtonStyles = `${actionButtonBase} bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/40`;
   const deleteButtonStyles = `${actionButtonBase} bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/40`;
   const neutralButtonStyles = `${actionButtonBase} border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-muted-foreground/30 shadow-none`;
@@ -278,7 +278,7 @@ export default function CommentsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -357,7 +357,7 @@ export default function CommentsPage() {
         </div>
 
         {/* Comments List */}
-        <div className="space-y-4">
+        <div className={comments.length === 0 ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-2 gap-4"}>
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="p-4 bg-primary/10 rounded-full mb-4">

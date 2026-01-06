@@ -146,8 +146,8 @@ export default function WorkspaceSettingsTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="flex items-center gap-3 text-gray-600">
-          <Loader2 className="animate-spin" size={20} />
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="animate-spin text-teal-500" size={20} />
           <span>Loading workspace settings...</span>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function WorkspaceSettingsTab() {
 
   if (!isAdmin) {
     return (
-      <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+      <div className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl flex items-start gap-3 shadow-sm">
         <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
         <div>
           <h3 className="font-semibold text-yellow-900">Access Denied</h3>
@@ -167,10 +167,10 @@ export default function WorkspaceSettingsTab() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="max-w-2xl space-y-6">
       {/* Workspace Name */}
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-2">
+        <label htmlFor="name" className="block text-sm font-semibold text-foreground mb-2">
           Workspace Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -180,21 +180,24 @@ export default function WorkspaceSettingsTab() {
           value={formData.name}
           onChange={handleInputChange}
           placeholder="My Workspace"
-          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getFieldError('name')
-              ? 'border-red-300 bg-red-50'
-              : 'border-gray-300'
+          className={`w-full px-4 py-3 bg-background border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all ${getFieldError('name')
+            ? 'border-red-300 bg-red-50/50'
+            : 'border-border hover:border-teal-400'
             }`}
           disabled={saving}
         />
         {getFieldError('name') && (
-          <p className="text-xs text-red-600 mt-1">{getFieldError('name')}</p>
+          <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+            <AlertCircle size={12} />
+            {getFieldError('name')}
+          </p>
         )}
-        <p className="text-xs text-gray-500 mt-1">The name of your workspace</p>
+        <p className="text-xs text-muted-foreground mt-1.5">The name of your workspace</p>
       </div>
 
       {/* Description */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-900 mb-2">
+        <label htmlFor="description" className="block text-sm font-semibold text-foreground mb-2">
           Description
         </label>
         <textarea
@@ -203,24 +206,27 @@ export default function WorkspaceSettingsTab() {
           value={formData.description}
           onChange={handleInputChange}
           placeholder="Describe your workspace..."
-          rows={3}
-          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none ${getFieldError('description')
-              ? 'border-red-300 bg-red-50'
-              : 'border-gray-300'
+          rows={4}
+          className={`w-full px-4 py-3 bg-background border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none transition-all ${getFieldError('description')
+            ? 'border-red-300 bg-red-50/50'
+            : 'border-border hover:border-teal-400'
             }`}
           disabled={saving}
         />
         {getFieldError('description') && (
-          <p className="text-xs text-red-600 mt-1">{getFieldError('description')}</p>
+          <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+            <AlertCircle size={12} />
+            {getFieldError('description')}
+          </p>
         )}
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1.5">
           Optional description of your workspace ({formData.description.length}/1000 characters)
         </p>
       </div>
 
       {/* Max Users */}
       <div>
-        <label htmlFor="max_users" className="block text-sm font-medium text-gray-900 mb-2">
+        <label htmlFor="max_users" className="block text-sm font-semibold text-foreground mb-2">
           Maximum Members <span className="text-red-500">*</span>
         </label>
         <input
@@ -231,42 +237,48 @@ export default function WorkspaceSettingsTab() {
           max="100"
           value={formData.max_users}
           onChange={handleInputChange}
-          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getFieldError('max_users')
-              ? 'border-red-300 bg-red-50'
-              : 'border-gray-300'
+          className={`w-full px-4 py-3 bg-background border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all ${getFieldError('max_users')
+            ? 'border-red-300 bg-red-50/50'
+            : 'border-border hover:border-teal-400'
             }`}
           disabled={saving}
         />
         {getFieldError('max_users') && (
-          <p className="text-xs text-red-600 mt-1">{getFieldError('max_users')}</p>
+          <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+            <AlertCircle size={12} />
+            {getFieldError('max_users')}
+          </p>
         )}
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1.5">
           Maximum number of members allowed in this workspace (1-100)
         </p>
       </div>
 
       {/* Current Stats */}
       {workspace && (
-        <div className="p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg border border-indigo-200">
-          <h3 className="font-semibold text-indigo-900 mb-4">Workspace Information</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-indigo-700 font-medium mb-1">Workspace ID</p>
-              <p className="text-indigo-900 font-mono text-xs">{workspace.id}</p>
+        <div className="p-6 bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 rounded-xl border border-teal-200/50 shadow-sm">
+          <h3 className="font-semibold text-teal-900 mb-5 text-base">Workspace Information</h3>
+          <div className="grid grid-cols-2 gap-5 text-sm">
+            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
+              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Workspace ID</p>
+              <p className="text-teal-900 font-mono text-xs break-all">{workspace.id}</p>
             </div>
-            <div>
-              <p className="text-indigo-700 font-medium mb-1">Status</p>
-              <p className="text-indigo-900">Active</p>
+            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
+              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Status</p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <p className="text-teal-900 font-medium">Active</p>
+              </div>
             </div>
-            <div>
-              <p className="text-indigo-700 font-medium mb-1">Created</p>
-              <p className="text-indigo-900">
+            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
+              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Created</p>
+              <p className="text-teal-900">
                 {formatDate(workspace.created_at)}
               </p>
             </div>
-            <div>
-              <p className="text-indigo-700 font-medium mb-1">Last Updated</p>
-              <p className="text-indigo-900">
+            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
+              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Last Updated</p>
+              <p className="text-teal-900">
                 {formatDate(workspace.updated_at)}
               </p>
             </div>
@@ -275,11 +287,11 @@ export default function WorkspaceSettingsTab() {
       )}
 
       {/* Save Button */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pt-2">
         <button
           onClick={handleSave}
           disabled={saving || !isAdmin}
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-md"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-lg shadow-teal-500/20 hover:shadow-xl hover:shadow-teal-500/30 font-medium"
         >
           {saving ? (
             <>
@@ -295,8 +307,8 @@ export default function WorkspaceSettingsTab() {
         </button>
 
         {saving && (
-          <span className="text-sm text-gray-600">
-            Please wait while we update your workspace...
+          <span className="text-sm text-muted-foreground animate-pulse">
+            Updating workspace...
           </span>
         )}
       </div>

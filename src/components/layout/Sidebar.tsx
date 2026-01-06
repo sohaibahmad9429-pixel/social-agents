@@ -29,6 +29,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 const sidebarItems = [
     { icon: Edit3, label: 'Create Content', href: '/dashboard/create' },
@@ -52,9 +53,9 @@ export function Sidebar() {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <div className="flex h-full w-[72px] flex-col items-center bg-gradient-to-b from-emerald-950 via-teal-950 to-slate-950 border-r border-emerald-900/30 py-5">
+            <div className="flex h-full w-[72px] flex-col items-center bg-gradient-to-b from-emerald-950 via-teal-950 to-slate-950 border-r border-emerald-900/30 pt-1 pb-2">
                 {/* Logo - Enterprise Style */}
-                <div className="mb-8">
+                <div className="mb-0">
                     <Link href="/dashboard" className="group">
                         <div className="flex h-11 w-11 items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-emerald-500/10 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-emerald-500/25 group-hover:scale-105 ring-1 ring-emerald-500/20">
                             <img
@@ -64,6 +65,23 @@ export function Sidebar() {
                             />
                         </div>
                     </Link>
+                </div>
+
+                {/* Notifications - Below Logo */}
+                <div className="mb-0">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200 text-emerald-400/50 hover:text-emerald-100 hover:bg-emerald-500/10 -translate-x-0.5">
+                                <NotificationBell
+                                    side="right"
+                                    className="p-0 text-inherit hover:text-inherit hover:bg-transparent"
+                                />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" sideOffset={8} className="bg-emerald-950 border-emerald-800 text-emerald-50 shadow-xl px-3 py-2">
+                            <p className="font-medium text-[13px]">Notifications</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
 
                 {/* Main Navigation - Enterprise Standard */}
@@ -156,6 +174,7 @@ export function Sidebar() {
                         </TooltipContent>
                     </Tooltip>
 
+
                     {/* User Avatar - Enterprise Style */}
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -174,6 +193,6 @@ export function Sidebar() {
                     </Tooltip>
                 </div>
             </div>
-        </TooltipProvider>
+        </TooltipProvider >
     );
 }

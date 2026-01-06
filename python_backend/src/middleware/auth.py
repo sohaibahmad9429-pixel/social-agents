@@ -83,6 +83,7 @@ PUBLIC_PATHS = [
     "/api/v1/voice/",  # Voice Live API - public WebSocket endpoint
     "/api/v1/content/",  # Content Strategist - uses thread_id for access
     "/api/v1/canva/",  # Canva API uses user_id for access control
+    "/api/v1/comments/",  # Comments API uses workspace_id for access control
 ]
 
 OPTIONAL_AUTH_PATHS = [

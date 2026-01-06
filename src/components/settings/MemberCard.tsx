@@ -46,26 +46,26 @@ export default function MemberCard({
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Crown size={16} className="text-yellow-600" />
+        return <Crown size={16} className="text-amber-600" />
       case 'editor':
-        return <Edit size={16} className="text-blue-600" />
+        return <Edit size={16} className="text-teal-600" />
       case 'viewer':
-        return <Eye size={16} className="text-gray-600" />
+        return <Eye size={16} className="text-slate-600" />
       default:
-        return <Shield size={16} className="text-gray-600" />
+        return <Shield size={16} className="text-slate-600" />
     }
   }
 
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+        return 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 border-amber-200'
       case 'editor':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-gradient-to-r from-teal-50 to-cyan-50 text-teal-800 border-teal-200'
       case 'viewer':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-700 border-slate-200'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-700 border-slate-200'
     }
   }
 
@@ -79,21 +79,21 @@ export default function MemberCard({
   }
 
   return (
-    <div className="p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+    <div className="p-5 bg-card border border-border rounded-xl hover:border-teal-300 hover:shadow-md transition-all">
       <div className="flex items-center justify-between gap-4">
         {/* User Info */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           {/* Avatar */}
           <div className="flex-shrink-0">
             {member.avatar_url ? (
               <img
                 src={member.avatar_url}
                 alt={member.full_name || member.email}
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-12 h-12 rounded-full object-cover border-2 border-teal-100"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-500 flex items-center justify-center shadow-md">
+                <span className="text-white font-semibold text-base">
                   {(member.full_name || member.email || 'U').charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -103,19 +103,19 @@ export default function MemberCard({
           {/* Name & Email */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="font-medium text-gray-900 truncate">
+              <p className="font-semibold text-foreground truncate">
                 {member.full_name || member.email}
               </p>
               {isCurrentUser && (
-                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                <span className="px-2.5 py-0.5 bg-gradient-to-r from-teal-100 to-cyan-100 text-teal-700 text-xs font-medium rounded-full">
                   You
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-600 truncate">{member.email}</p>
+            <p className="text-sm text-muted-foreground truncate">{member.email}</p>
             {member.created_at && (
-              <p className="text-xs text-gray-500 mt-1">
-                Joined {formatDate(member.created_at)}
+              <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                <span className="text-teal-500">•</span> Joined {formatDate(member.created_at)}
               </p>
             )}
           </div>
@@ -128,12 +128,12 @@ export default function MemberCard({
             <button
               onClick={() => isAdmin && !isCurrentUser && setShowRoleMenu(!showRoleMenu)}
               disabled={!isAdmin || isCurrentUser || changingRole}
-              className={`px-3 py-1.5 border rounded-full flex items-center gap-2 text-sm font-medium ${getRoleColor(
+              className={`px-3.5 py-2 border rounded-xl flex items-center gap-2 text-sm font-semibold shadow-sm ${getRoleColor(
                 member.role
               )} ${isAdmin && !isCurrentUser
-                ? 'cursor-pointer hover:opacity-80'
+                ? 'cursor-pointer hover:scale-105 hover:shadow-md'
                 : 'cursor-default'
-                } disabled:opacity-50`}
+                } disabled:opacity-50 transition-all`}
             >
               {changingRole ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -150,30 +150,30 @@ export default function MemberCard({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowRoleMenu(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-xl shadow-xl z-20 py-2 overflow-hidden">
                   <button
                     onClick={() => handleRoleChange('admin')}
                     disabled={changingRole}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-amber-50 hover:text-amber-900 flex items-center gap-2.5 disabled:opacity-50 transition-colors"
                   >
-                    <Crown size={16} className="text-yellow-600" />
-                    <span>Admin</span>
+                    <Crown size={16} className="text-amber-600" />
+                    <span className="font-medium">Admin</span>
                   </button>
                   <button
                     onClick={() => handleRoleChange('editor')}
                     disabled={changingRole}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-teal-50 hover:text-teal-900 flex items-center gap-2.5 disabled:opacity-50 transition-colors"
                   >
-                    <Edit size={16} className="text-blue-600" />
-                    <span>Editor</span>
+                    <Edit size={16} className="text-teal-600" />
+                    <span className="font-medium">Editor</span>
                   </button>
                   <button
                     onClick={() => handleRoleChange('viewer')}
                     disabled={changingRole}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2.5 disabled:opacity-50 transition-colors"
                   >
-                    <Eye size={16} className="text-gray-600" />
-                    <span>Viewer</span>
+                    <Eye size={16} className="text-slate-600" />
+                    <span className="font-medium">Viewer</span>
                   </button>
                 </div>
               </>
@@ -185,7 +185,7 @@ export default function MemberCard({
             <button
               onClick={onRemove}
               disabled={isRemoving}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-all hover:scale-110 disabled:opacity-50"
               title="Remove member"
             >
               {isRemoving ? (

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
-import { Plus, Trash2, Mail, Link as LinkIcon, Copy, Check } from 'lucide-react'
+import { Plus, Trash2, Mail, Link as LinkIcon, Copy, Check, Loader2 } from 'lucide-react'
 import { getMembers, getInvites, removeMember, updateMemberRole, deleteInvite } from '@/lib/python-backend/api/workspace'
 import type { WorkspaceMember, WorkspaceInvite } from '@/lib/python-backend/types'
 import MemberCard from './MemberCard'
@@ -124,7 +124,10 @@ export default function MembersTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500 dark:text-gray-400">Loading members...</div>
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 size={20} className="animate-spin text-teal-500" />
+          <span>Loading members...</span>
+        </div>
       </div>
     )
   }
@@ -135,15 +138,16 @@ export default function MembersTab() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Workspace Members</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {members.length} member{members.length !== 1 ? 's' : ''}
+            <h2 className="text-2xl font-bold text-foreground">Workspace Members</h2>
+            <p className="text-sm text-muted-foreground mt-1.5 flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center w-6 h-6 bg-teal-100 text-teal-700 text-xs font-semibold rounded-full">{members.length}</span>
+              <span>member{members.length !== 1 ? 's' : ''} in workspace</span>
             </p>
           </div>
           {isAdmin && (
             <button
               onClick={() => setIsInviteModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl hover:from-teal-700 hover:to-cyan-700 transition-all shadow-lg shadow-teal-500/20 hover:shadow-xl hover:shadow-teal-500/30 font-medium"
             >
               <Plus size={18} />
               Invite Member
@@ -153,8 +157,8 @@ export default function MembersTab() {
 
         <div className="space-y-3">
           {members.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="text-gray-500 dark:text-gray-400">No members yet</p>
+            <div className="text-center py-12 bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border">
+              <p className="text-muted-foreground">No members yet</p>
             </div>
           ) : (
             members.map(member => (
@@ -176,26 +180,29 @@ export default function MembersTab() {
       {/* Pending Invitations Section */}
       {isAdmin && pendingInvites.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Pending Invitations</h2>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-foreground">Pending Invitations</h2>
+            <p className="text-sm text-muted-foreground mt-1.5">{pendingInvites.length} pending invite{pendingInvites.length !== 1 ? 's' : ''}</p>
+          </div>
           <div className="space-y-3">
             {pendingInvites.map(invite => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                className="flex items-center justify-between p-5 bg-card rounded-xl border border-border hover:border-teal-200 hover:shadow-sm transition-all"
               >
                 <div className="flex items-center gap-4 flex-1">
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">
                     {invite.email ? (
-                      <Mail size={20} className="text-indigo-600 dark:text-indigo-400" />
+                      <Mail size={20} className="text-teal-600" />
                     ) : (
-                      <LinkIcon size={20} className="text-indigo-600 dark:text-indigo-400" />
+                      <LinkIcon size={20} className="text-cyan-600" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-semibold text-foreground">
                       {invite.email || 'Shareable Link'}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {invite.email ? 'Email invitation' : 'Anyone with link can join'}
                     </p>
                   </div>
@@ -204,24 +211,24 @@ export default function MembersTab() {
 
                 <div className="flex items-center gap-2">
                   {invite.expires_at && new Date(invite.expires_at).getTime() < new Date().getTime() && (
-                    <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded">
+                    <span className="text-xs px-2.5 py-1 bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200 rounded-full font-medium">
                       Expired
                     </span>
                   )}
                   <button
                     onClick={() => handleCopyLink(invite)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2.5 hover:bg-teal-50 rounded-xl transition-all hover:scale-110"
                     title="Copy invite link"
                   >
                     {copiedInviteId === invite.id ? (
                       <Check size={18} className="text-green-600" />
                     ) : (
-                      <Copy size={18} className="text-blue-600" />
+                      <Copy size={18} className="text-teal-600" />
                     )}
                   </button>
                   <button
                     onClick={() => handleRevokeInvite(invite.id)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2.5 hover:bg-red-50 rounded-xl transition-all hover:scale-110"
                     title="Revoke invitation"
                   >
                     <Trash2 size={18} className="text-red-600" />
