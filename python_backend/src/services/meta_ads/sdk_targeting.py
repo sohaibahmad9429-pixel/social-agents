@@ -26,7 +26,7 @@ class TargetingService:
     
     def _init_api(self):
         from facebook_business.api import FacebookAdsApi
-        FacebookAdsApi.init(access_token=self.access_token, api_version="v25.0")
+        FacebookAdsApi.init(access_token=self.access_token, api_version="v24.0")
     
     def _search_targeting_sync(
         self,
