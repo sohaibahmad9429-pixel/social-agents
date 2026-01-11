@@ -328,7 +328,9 @@ class MetaSDKClient:
         campaigns = account.get_campaigns(fields=[
             'id', 'name', 'objective', 'status', 'effective_status',
             'daily_budget', 'lifetime_budget', 'special_ad_categories',
-            'created_time', 'updated_time', 'configured_status'
+            'created_time', 'updated_time', 'configured_status',
+            'bid_strategy', 'adset_bid_amounts',
+            'promoted_object'
         ])
         return [self._serialize_sdk_object(dict(c)) for c in campaigns]
     

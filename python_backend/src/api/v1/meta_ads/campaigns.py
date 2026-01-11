@@ -121,8 +121,6 @@ async def create_advantage_plus_campaign(
             daily_budget=body.daily_budget,
             lifetime_budget=body.lifetime_budget,
             bid_strategy=body.bid_strategy.value if body.bid_strategy else None,
-            bid_amount=body.bid_amount,
-            roas_average_floor=body.roas_average_floor,
             geo_locations=body.geo_locations.model_dump() if body.geo_locations else None,
             promoted_object=body.promoted_object.model_dump() if body.promoted_object else None,
             start_time=start_time_str,

@@ -157,14 +157,14 @@ export default function AdSetManager({ adSets, campaigns, onRefresh, showCreate,
       // Check if campaign uses CBO - if so, don't send budget fields
       const selectedCampaign = campaigns.find(c => c.id === formData.campaign_id);
       const campaignUsesCBO = !!(selectedCampaign?.daily_budget || selectedCampaign?.lifetime_budget);
-      
+
       // Prepare form data - exclude budget if CBO is active
-      const submitData = { ...formData };
+      const submitData: any = { ...formData };
       if (campaignUsesCBO) {
         delete submitData.budget_type;
         delete submitData.budget_amount;
       }
-      
+
       const response = await fetch('/api/v1/meta-ads/adsets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -483,9 +483,9 @@ function AdSetCard({
               Activate
             </Button>
           )}
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="flex-1 gap-2"
             onClick={() => onEdit?.(adSet)}
           >
@@ -526,8 +526,8 @@ function CreateAdSetModal({
   const selectedCampaign = campaigns.find(c => c.id === formData.campaign_id);
   const campaignUsesCBO = !!(selectedCampaign?.daily_budget || selectedCampaign?.lifetime_budget);
 
-  // Check if campaign's bid_strategy requires bid_amount
-  const strategiesRequiringBidAmount = ['LOWEST_COST_WITH_BID_CAP', 'COST_CAP', 'LOWEST_COST_WITH_MIN_ROAS'];
+  // Check if campaign's bid_strategy requires bid_amount (v24.0 2026)
+  const strategiesRequiringBidAmount = ['LOWEST_COST_WITH_BID_CAP', 'COST_CAP', 'TARGET_COST'];
   const campaignRequiresBidAmount = selectedCampaign?.bid_strategy &&
     strategiesRequiringBidAmount.includes(selectedCampaign.bid_strategy);
 
@@ -593,29 +593,36 @@ function CreateAdSetModal({
                   onValueChange={(value) => {
                     // Find the selected campaign and set objective-specific defaults
                     const selectedCampaign = campaigns.find(c => c.id === value);
-                    const objectiveConfig = selectedCampaign?.objective 
+                    const objectiveConfig = selectedCampaign?.objective
                       ? OBJECTIVE_CONFIGS[selectedCampaign.objective]
                       : null;
-                    
+
                     // Check if campaign uses CBO
                     const campaignUsesCBO = !!(selectedCampaign?.daily_budget || selectedCampaign?.lifetime_budget);
-                    
+
                     // Set default optimization goal from objective config
                     const defaultGoals = selectedCampaign?.objective
                       ? (OBJECTIVE_OPTIMIZATION_GOALS[selectedCampaign.objective] || DEFAULT_OPTIMIZATION_GOALS)
                       : DEFAULT_OPTIMIZATION_GOALS;
                     const defaultGoal = objectiveConfig?.defaultOptimizationGoal || defaultGoals[0]?.value || 'LINK_CLICKS';
-                    
+
                     // Set default bid strategy from objective config
                     const defaultBidStrategy = objectiveConfig?.recommendedBidStrategy || 'LOWEST_COST_WITHOUT_CAP';
-                    
+
                     // v24.0 2026: Set default budget sharing for Advantage+ campaigns
-                    const isAdvantagePlus = selectedCampaign?.advantage_state_info && 
-                                            selectedCampaign.advantage_state_info.advantage_state !== 'DISABLED';
+                    const isAdvantagePlus = selectedCampaign?.advantage_state_info &&
+                      selectedCampaign.advantage_state_info.advantage_state !== 'DISABLED';
                     const defaultBudgetSharing = isAdvantagePlus ? true : (formData.is_adset_budget_sharing_enabled ?? true);
-                    
-                    // Set default placement_soft_opt_out based on objective (only for Sales/Leads)
-                    const defaultPlacementSoftOptOut = objectiveConfig?.supportsPlacementSoftOptOut ? false : undefined;
+
+                    // v24.0 2026: Check for attribution window restrictions
+                    const restrictedGoals = ['LANDING_PAGE_VIEWS', 'LINK_CLICKS', 'POST_ENGAGEMENT', 'REACH', 'IMPRESSIONS', 'THRUPLAY'];
+                    const isRestricted = restrictedGoals.includes(defaultGoal);
+                    const defaultAttribution = isRestricted
+                      ? [{ event_type: 'CLICK_THROUGH', window_days: 1 }]
+                      : [
+                        { event_type: 'CLICK_THROUGH', window_days: 7 },
+                        { event_type: 'VIEW_THROUGH', window_days: 1 },
+                      ];
 
                     setFormData(prev => ({
                       ...prev,
@@ -624,9 +631,11 @@ function CreateAdSetModal({
                       bid_strategy: defaultBidStrategy as BidStrategy,
                       // v24.0 2026: Enable budget sharing by default for Advantage+ campaigns
                       is_adset_budget_sharing_enabled: defaultBudgetSharing,
+                      // v24.0 2026: Apply attribution window defaults
+                      attribution_spec: defaultAttribution as any,
                       // Only set placement_soft_opt_out if supported by objective
                       ...(objectiveConfig?.supportsPlacementSoftOptOut !== undefined && {
-                        placement_soft_opt_out: defaultPlacementSoftOptOut
+                        placement_soft_opt_out: false
                       }),
                       // Clear budget if campaign uses CBO
                       ...(campaignUsesCBO ? {
@@ -663,7 +672,21 @@ function CreateAdSetModal({
                     return goals.map((goal: { value: string; label: string; description: string }) => (
                       <button
                         key={goal.value}
-                        onClick={() => setFormData(prev => ({ ...prev, optimization_goal: goal.value as OptimizationGoal }))}
+                        onClick={() => {
+                          const restrictedGoals = ['LANDING_PAGE_VIEWS', 'LINK_CLICKS', 'POST_ENGAGEMENT', 'REACH', 'IMPRESSIONS', 'THRUPLAY'];
+                          const isRestricted = restrictedGoals.includes(goal.value);
+                          setFormData(prev => ({
+                            ...prev,
+                            optimization_goal: goal.value as OptimizationGoal,
+                            // v24.0 2026: Automatically adjust attribution spec when goal changes
+                            attribution_spec: isRestricted
+                              ? [{ event_type: 'CLICK_THROUGH', window_days: 1 }]
+                              : [
+                                { event_type: 'CLICK_THROUGH', window_days: 7 },
+                                { event_type: 'VIEW_THROUGH', window_days: 1 },
+                              ] as any
+                          }));
+                        }}
                         className={cn(
                           "p-3 rounded-xl border-2 text-left transition-all",
                           formData.optimization_goal === goal.value
@@ -1059,12 +1082,12 @@ function CreateAdSetModal({
               {/* Bid Strategy - Only show if campaign doesn't use CBO */}
               {!campaignUsesCBO && (() => {
                 // Get objective-specific bid strategies
-                const objectiveConfig = selectedCampaign?.objective 
+                const objectiveConfig = selectedCampaign?.objective
                   ? OBJECTIVE_CONFIGS[selectedCampaign.objective]
                   : null;
                 const availableBidStrategies = objectiveConfig?.bidStrategies || BID_STRATEGIES.map(s => s.value);
                 const filteredStrategies = BID_STRATEGIES.filter(s => availableBidStrategies.includes(s.value));
-                
+
                 return (
                   <div>
                     <Label>Bid Strategy</Label>
@@ -1121,7 +1144,7 @@ function CreateAdSetModal({
                   <Label htmlFor="bid-amount">
                     {(selectedCampaign?.bid_strategy === 'LOWEST_COST_WITH_BID_CAP' || formData.bid_strategy === 'LOWEST_COST_WITH_BID_CAP')
                       ? 'Bid Cap'
-                      : 'Cost Cap'} (USD) <span className="text-red-500">*</span>
+                      : 'Cost Cap / Result Goal'} (USD) <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative mt-2">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1182,38 +1205,51 @@ function CreateAdSetModal({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Click-Through Window</Label>
-                    <Select
-                      value={formData.attribution_spec?.find(s => s.event_type === 'CLICK_THROUGH')?.window_days.toString() || '7'}
-                      onValueChange={(val) => {
-                        const days = parseInt(val) as 1 | 7 | 28;
-                        const others = formData.attribution_spec?.filter(s => s.event_type !== 'CLICK_THROUGH') || [];
-                        setFormData(prev => ({ ...prev, attribution_spec: [...others, { event_type: 'CLICK_THROUGH', window_days: days }] }));
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 Day</SelectItem>
-                        <SelectItem value="7">7 Days (Recommended)</SelectItem>
-                        <SelectItem value="28">28 Days</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground">
-                      Click-through attribution supports 1, 7, or 28 days
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">View-Through Window</Label>
-                    <div className="p-2 rounded border bg-muted/50 text-sm font-medium">
-                      1 Day (Required per 2026 standards)
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      ✓ v24.0 2026 Compliance: View-through limited to 1 day only (7-day and 28-day deprecated)
-                    </p>
-                  </div>
+                  {(() => {
+                    const restrictedGoals = ['LANDING_PAGE_VIEWS', 'LINK_CLICKS', 'POST_ENGAGEMENT', 'REACH', 'IMPRESSIONS', 'THRUPLAY'];
+                    const isRestricted = restrictedGoals.includes(formData.optimization_goal);
+
+                    if (isRestricted) {
+                      return (
+                        <div className="col-span-2 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-900/50">
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            <strong>Note:</strong> For {formData.optimization_goal.replace(/_/g, ' ')}, Meta restricts the attribution window to 1-day click-through only.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Click-Through Window</Label>
+                          <Select
+                            value={formData.attribution_spec?.find(s => s.event_type === 'CLICK_THROUGH')?.window_days.toString() || '7'}
+                            onValueChange={(val) => {
+                              const days = parseInt(val) as 1 | 7 | 28;
+                              const others = formData.attribution_spec?.filter(s => s.event_type !== 'CLICK_THROUGH') || [];
+                              setFormData(prev => ({ ...prev, attribution_spec: [...others, { event_type: 'CLICK_THROUGH', window_days: days }] }));
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1 Day</SelectItem>
+                              <SelectItem value="7">7 Days (Recommended)</SelectItem>
+                              <SelectItem value="28">28 Days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">View-Through Window</Label>
+                          <div className="p-2 rounded border bg-muted/50 text-sm font-medium">
+                            1 Day (Required per 2026 standards)
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

@@ -97,11 +97,29 @@ async def create_adset(request: Request, body: CreateAdSetRequest):
         )
         
         campaign_uses_cbo = False
+        campaign_bid_strategy = None
+        inherited_promoted_object = None
+        
         if campaigns_result.get("data"):
             campaign_data = next((c for c in campaigns_result["data"] if c.get("id") == body.campaign_id), None)
             if campaign_data:
                 campaign_uses_cbo = bool(campaign_data.get("daily_budget") or campaign_data.get("lifetime_budget"))
-                logger.info(f"Campaign {body.campaign_id} CBO check: {campaign_uses_cbo}, daily_budget={campaign_data.get('daily_budget')}, lifetime_budget={campaign_data.get('lifetime_budget')}")
+                campaign_bid_strategy = campaign_data.get("bid_strategy")
+                inherited_promoted_object = campaign_data.get("promoted_object")
+                logger.info(f"Campaign {body.campaign_id} info: CBO={campaign_uses_cbo}, bid_strategy={campaign_bid_strategy}, promoted_object={inherited_promoted_object}")
+        
+        # Use inherited promoted_object if not provided in body
+        promoted_object_dict = body.promoted_object.model_dump() if body.promoted_object else inherited_promoted_object
+        
+        # Validate bid_amount if campaign uses a bid strategy that requires it (v24.0 2026)
+        # Per Meta API: LOWEST_COST_WITH_BID_CAP, TARGET_COST, and COST_CAP require bid_amount at ad set level
+        BID_STRATEGIES_REQUIRING_AMOUNT = ["LOWEST_COST_WITH_BID_CAP", "TARGET_COST", "COST_CAP"]
+        if campaign_bid_strategy in BID_STRATEGIES_REQUIRING_AMOUNT and not body.bid_amount:
+            raise HTTPException(
+                status_code=400,
+                detail=f"bid_amount is required when campaign uses {campaign_bid_strategy} bid strategy. "
+                       f"Please provide a bid_amount (in dollars) for this ad set."
+            )
         
         # Calculate budget (convert to cents) - only if campaign doesn't use CBO
         daily_budget = None
@@ -138,7 +156,7 @@ async def create_adset(request: Request, body: CreateAdSetRequest):
             end_time=body.end_time,
             # bid_amount is expected in dollars by service layer (will be converted to cents)
             bid_amount=body.bid_amount,
-            promoted_object=body.promoted_object.model_dump() if body.promoted_object else None,
+            promoted_object=promoted_object_dict,
             destination_type=body.destination_type.value if body.destination_type else None,
             advantage_audience=body.advantage_audience if body.advantage_audience is not None else True,  # v24.0 2026 default
             # v24.0 2026 Required Parameters

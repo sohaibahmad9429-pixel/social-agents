@@ -96,8 +96,6 @@ interface WizardFormData {
     lifetimeBudget: number | null;
     budgetType: 'daily' | 'lifetime';
     bidStrategy: string;
-    bidAmount: number | null;
-    roasFloor: number | null;
     countries: string[];
     startTime: string | null;  // ISO datetime string for v24.0 2026
     endTime: string | null;    // ISO datetime string for v24.0 2026 (required for lifetime budget)
@@ -131,8 +129,6 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
         lifetimeBudget: null,
         budgetType: 'daily',
         bidStrategy: 'LOWEST_COST_WITHOUT_CAP',
-        bidAmount: null,
-        roasFloor: null,
         countries: ['US'],
         startTime: null,
         endTime: null,
@@ -205,8 +201,6 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                     ? formData.lifetimeBudget * 100
                     : null,
                 bid_strategy: formData.bidStrategy,
-                bid_amount: formData.bidAmount ? formData.bidAmount * 100 : null,
-                roas_average_floor: formData.roasFloor,
                 geo_locations: {
                     countries: formData.countries,
                 },
@@ -489,46 +483,7 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                     </div>
                                 </div>
 
-                                {(formData.bidStrategy === 'COST_CAP' || formData.bidStrategy === 'LOWEST_COST_WITH_BID_CAP') && (
-                                    <div>
-                                        <Label htmlFor="bidAmount">
-                                            {formData.bidStrategy === 'COST_CAP' ? 'Cost Cap Amount' : 'Bid Cap Amount'}
-                                        </Label>
-                                        <div className="relative mt-1">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                                            <Input
-                                                id="bidAmount"
-                                                type="number"
-                                                value={formData.bidAmount || ''}
-                                                onChange={(e) => setFormData({ ...formData, bidAmount: parseFloat(e.target.value) || null })}
-                                                className="pl-8"
-                                                placeholder="10.00"
-                                                required
-                                            />
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {formData.bidStrategy === 'COST_CAP' ? 'Target average cost per result' : 'Maximum bid across all auctions'}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {formData.bidStrategy === 'LOWEST_COST_WITH_MIN_ROAS' && (
-                                    <div>
-                                        <Label htmlFor="roasFloor">Minimum ROAS</Label>
-                                        <Input
-                                            id="roasFloor"
-                                            type="number"
-                                            value={formData.roasFloor || ''}
-                                            onChange={(e) => setFormData({ ...formData, roasFloor: parseFloat(e.target.value) || null })}
-                                            className="mt-1"
-                                            placeholder="2.0"
-                                            step="0.1"
-                                        />
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Target return on ad spend (e.g., 2.0 = $2 revenue per $1 spent)
-                                        </p>
-                                    </div>
-                                )}
+                                {/* Bidding Amount handled at Ad Set level (v24.0 2026) */}
 
                                 {/* Scheduling (v24.0 2026) - Optional for daily budget, required for lifetime budget */}
                                 <div className="pt-4 border-t">
@@ -536,7 +491,7 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                     <p className="text-xs text-muted-foreground mb-3">
                                         Set when your campaign should start and end. End date is required for lifetime budgets.
                                     </p>
-                                    
+
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <Label htmlFor="startTime">Start Date & Time</Label>
@@ -576,7 +531,7 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                     <p className="text-xs text-muted-foreground mb-3">
                                         Track conversions with Meta Pixel and custom events. Recommended for OUTCOME_SALES campaigns.
                                     </p>
-                                    
+
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <Label htmlFor="pixelId">Meta Pixel ID</Label>
@@ -692,7 +647,7 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Lever 2: Advantage+ Audience */}
                                         <div className="flex items-center gap-3 p-3 rounded-lg bg-white/50 dark:bg-black/20">
                                             <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -703,7 +658,7 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Lever 3: Advantage+ Placements */}
                                         <div className="flex items-center gap-3 p-3 rounded-lg bg-white/50 dark:bg-black/20">
                                             <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />

@@ -704,8 +704,8 @@ export interface AdSetFormData {
   billing_event: BillingEvent;
   bid_strategy?: BidStrategy;
   bid_amount?: number;
-  budget_type: 'daily' | 'lifetime';
-  budget_amount: number;
+  budget_type?: 'daily' | 'lifetime';
+  budget_amount?: number;
   start_time?: string;
   end_time?: string;
   targeting: TargetingSpec;

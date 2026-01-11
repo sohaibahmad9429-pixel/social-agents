@@ -258,17 +258,24 @@ class MetaAdsService:
         """
         try:
             # Adjust attribution_spec based on optimization_goal (v24.0 2026)
-            # Some optimization goals have restricted attribution window combinations
+            # Non-conversion goals often only support (1, 0) attribution: 1-day click, 0-day view
             if attribution_spec:
-                # Optimization goals that only support (1, 0) - click-through: 1 day, view-through: 0 (disabled)
-                RESTRICTED_ATTRIBUTION_GOALS = ["LANDING_PAGE_VIEWS"]
+                # Goals requiring (1, 0) attribution window based on 2026 standards
+                RESTRICTED_ATTRIBUTION_GOALS = [
+                    "LANDING_PAGE_VIEWS", 
+                    "LINK_CLICKS", 
+                    "POST_ENGAGEMENT", 
+                    "REACH", 
+                    "IMPRESSIONS",
+                    "THRUPLAY"
+                ]
                 
                 if optimization_goal in RESTRICTED_ATTRIBUTION_GOALS:
                     # For restricted goals, only allow click-through: 1 day, no view-through
                     attribution_spec = [
                         {"event_type": "CLICK_THROUGH", "window_days": 1}
                     ]
-                    logger.info(f"Attribution spec adjusted for {optimization_goal}: only click-through 1-day allowed")
+                    logger.info(f"Attribution spec adjusted for {optimization_goal}: only click-through 1-day allowed (v24.0 compliance)")
                 else:
                     # Validate attribution_spec for 2026 standards (view-through limited to 1 day)
                     for spec in attribution_spec:
@@ -1467,8 +1474,6 @@ class MetaAdsService:
         daily_budget: Optional[int] = None,
         lifetime_budget: Optional[int] = None,
         bid_strategy: str = "LOWEST_COST_WITHOUT_CAP",
-        bid_amount: Optional[int] = None,
-        roas_average_floor: Optional[float] = None,
         geo_locations: Optional[Dict] = None,
         promoted_object: Optional[Dict] = None,
         status: str = "PAUSED",
@@ -1496,8 +1501,6 @@ class MetaAdsService:
             daily_budget: Daily budget in cents (required if lifetime_budget not set)
             lifetime_budget: Lifetime budget in cents (requires end_time)
             bid_strategy: Bid strategy at campaign level
-            bid_amount: Bid amount in cents (required for COST_CAP, LOWEST_COST_WITH_BID_CAP)
-            roas_average_floor: Minimum ROAS floor (required for LOWEST_COST_WITH_MIN_ROAS)
             geo_locations: Geographic targeting dict with countries list
             promoted_object: Promoted object dict (required for conversion tracking)
             status: Campaign status (PAUSED, ACTIVE)
@@ -1522,12 +1525,8 @@ class MetaAdsService:
             if lifetime_budget and not end_time:
                 return {"success": False, "error": "end_time is required when lifetime_budget is set"}
             
-            # Validate bid_strategy requirements (v24.0 2026)
-            if bid_strategy in ["COST_CAP", "LOWEST_COST_WITH_BID_CAP"] and not bid_amount:
-                return {"success": False, "error": f"bid_amount is required for bid_strategy: {bid_strategy}"}
-            
-            if bid_strategy == "LOWEST_COST_WITH_MIN_ROAS" and not roas_average_floor:
-                return {"success": False, "error": "roas_average_floor is required for LOWEST_COST_WITH_MIN_ROAS bid_strategy"}
+            # Step 1: Create Campaign with campaign-level budget (Advantage+ Budget - Lever 1)
+            # v24.0 2026: Campaigns set the bidding STRATEGY, ad sets set the bidding AMOUNT
             
             client = self._get_sdk_client(access_token)
             clean_account_id = account_id.replace("act_", "")
@@ -1672,13 +1671,8 @@ class MetaAdsService:
                 if promoted_object:
                     adset_params["promoted_object"] = promoted_object
                 
-                # Bid controls at ad set level (v24.0 2026)
-                if bid_amount and bid_strategy in ["COST_CAP", "LOWEST_COST_WITH_BID_CAP"]:
-                    adset_params["bid_amount"] = int(bid_amount)
-                
-                if roas_average_floor and bid_strategy == "LOWEST_COST_WITH_MIN_ROAS":
-                    # ROAS floor is in basis points (10000 = 100%, 20000 = 200%)
-                    adset_params["bid_constraints"] = {"roas_average_floor": int(roas_average_floor * 10000)}
+                # Bid controls are now handled via the Ad Set Manager UI (v24.0 2026)
+                # The campaign creation endpoint no longer collects bid amounts.
                 
                 # v24.0 2026 Required Parameters for Ad Sets
                 # Ad Set Budget Sharing: Allow up to 20% budget sharing between ad sets for better optimization

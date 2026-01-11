@@ -254,17 +254,6 @@ class CreateAdvantagePlusCampaignRequest(BaseModel):
     # Bid Strategy (Campaign Level)
     bid_strategy: AdvantageBidStrategy = AdvantageBidStrategy.LOWEST_COST_WITHOUT_CAP
     
-    # Bid Parameters (passed to Ad Set if required by bid_strategy)
-    bid_amount: Optional[int] = Field(
-        default=None,
-        gt=0,
-        description="Bid amount in cents (required for COST_CAP/BID_CAP)"
-    )
-    roas_average_floor: Optional[float] = Field(
-        default=None,
-        description="Min ROAS floor (e.g., 2.0 = 200%)"
-    )
-    
     # Targeting & Conversion
     geo_locations: Optional[GeoLocations] = None
     promoted_object: Optional[PromotedObject] = None
