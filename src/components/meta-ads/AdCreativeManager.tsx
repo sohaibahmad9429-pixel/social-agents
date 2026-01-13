@@ -18,6 +18,7 @@ import {
   Upload,
   X,
   Sparkles,
+  ChevronRight,
   Link,
   Type,
   FolderOpen,
@@ -622,18 +623,24 @@ function CreateAdModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] mx-4 flex flex-col overflow-hidden scrollbar-hide">
+      <div className="relative bg-background/95 backdrop-blur-xl rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] mx-4 flex flex-col overflow-hidden scrollbar-hide border border-white/20">
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 pb-4 shrink-0">
+        <div className="bg-gradient-to-r from-[#5ce1e6] via-[#00c4cc] via-30% to-[#8b3dff] text-white p-6 pb-4 border-b border-white/10 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Zap className="w-5 h-5" />
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 shadow-sm">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Create Ad</h2>
-                <p className="text-sm text-white/80">Step {step} of 3</p>
+                <p className="text-sm text-white/80">Step {step} of 3 - {
+                  step === 1 ? 'Basic Info' :
+                    step === 2 ? 'Creative Assets' :
+                      'Review & Launch'
+                }</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 rounded-full">
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -644,8 +651,8 @@ function CreateAdModal({
               <div
                 key={s}
                 className={cn(
-                  "h-1 flex-1 rounded-full transition-colors",
-                  s <= step ? "bg-white" : "bg-white/30"
+                  "h-1.5 flex-1 rounded-full transition-all duration-300",
+                  s <= step ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]" : "bg-white/20"
                 )}
               />
             ))}
@@ -704,14 +711,20 @@ function CreateAdModal({
                       key={type.value}
                       onClick={() => setCreativeType(type.value as 'image' | 'video' | 'carousel')}
                       className={cn(
-                        "p-4 rounded-xl border-2 transition-all text-center",
+                        "p-4 rounded-xl border-2 transition-all text-center hover:shadow-md",
                         creativeType === type.value
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border/50 hover:border-primary/30 hover:bg-background/50"
                       )}
                     >
-                      <type.icon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="font-medium text-sm">{type.label}</p>
+                      <type.icon className={cn(
+                        "w-8 h-8 mx-auto mb-2 transition-colors",
+                        creativeType === type.value ? "text-primary" : "text-muted-foreground"
+                      )} />
+                      <p className={cn(
+                        "font-bold text-sm",
+                        creativeType === type.value ? "text-primary" : "text-foreground"
+                      )}>{type.label}</p>
                     </button>
                   ))}
                 </div>
@@ -724,14 +737,14 @@ function CreateAdModal({
               {/* Creative Form */}
               <div className="space-y-4">
                 {/* Advantage+ Creative Toggle (v24.0 2026) */}
-                <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 backdrop-blur-sm shadow-sm transition-all hover:shadow-md">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
-                        <Sparkles className="w-5 h-5 text-orange-500" />
+                      <div className="p-2 rounded-xl bg-white dark:bg-background shadow-sm border border-primary/10">
+                        <Sparkles className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-semibold text-foreground">Advantage+ Creative</p>
+                        <p className="font-bold text-primary">Advantage+ Creative</p>
                         <p className="text-sm text-muted-foreground">
                           AI-powered Standard Enhancements.
                         </p>
@@ -740,12 +753,12 @@ function CreateAdModal({
                     <button
                       onClick={() => updateCreative({ advantage_plus_creative: !formData.creative.advantage_plus_creative })}
                       className={cn(
-                        "w-12 h-6 rounded-full transition-colors relative",
-                        formData.creative.advantage_plus_creative ? "bg-orange-500" : "bg-muted"
+                        "w-12 h-6 rounded-full transition-all relative shadow-inner",
+                        formData.creative.advantage_plus_creative ? "bg-primary" : "bg-muted"
                       )}
                     >
                       <div className={cn(
-                        "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform",
+                        "absolute top-1 w-4 h-4 rounded-full bg-white shadow-md transition-transform",
                         formData.creative.advantage_plus_creative ? "translate-x-7" : "translate-x-1"
                       )} />
                     </button>
@@ -771,8 +784,11 @@ function CreateAdModal({
 
                 {/* Granular Advantage+ Enhancements (v25.0+) */}
                 {formData.creative.advantage_plus_creative && (
-                  <div className="ml-6 space-y-3 p-4 border-l-2 border-blue-200 dark:border-blue-900 bg-blue-50/10 rounded-r-xl">
-                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase">AI Enhancement Levers (v25.0 2026)</p>
+                  <div className="ml-6 space-y-3 p-4 border-l-2 border-[#00c4cc] bg-[#00c4cc]/5 rounded-r-xl">
+                    <p className="text-xs font-semibold text-[#00c4cc] uppercase flex items-center gap-2">
+                      <Sparkles className="w-3 h-3" />
+                      AI Enhancement Levers (v25.0 2026)
+                    </p>
                     <div className="grid grid-cols-2 gap-4">
                       {[
                         { key: 'standard_enhancements', label: 'Standard', description: 'Bundle of basic optimizations' },
@@ -803,7 +819,7 @@ function CreateAdModal({
                             className={cn(
                               "w-8 h-4 rounded-full transition-colors relative",
                               formData.creative.degrees_of_freedom_spec?.creative_features_spec?.[item.key as keyof typeof formData.creative.degrees_of_freedom_spec.creative_features_spec]?.enroll_status === 'OPT_IN'
-                                ? "bg-orange-500" : "bg-gray-300 dark:bg-gray-600"
+                                ? "bg-[#00c4cc]" : "bg-gray-300 dark:bg-gray-600"
                             )}
                           >
                             <div className={cn(
@@ -819,10 +835,10 @@ function CreateAdModal({
                 )}
 
                 {/* Ad Disclaimer Spec (v25.0+) */}
-                <div className="space-y-4 p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
+                <div className="space-y-4 p-4 rounded-xl bg-gradient-to-br from-[#5ce1e6]/10 via-[#00c4cc]/10 to-[#8b3dff]/10 border border-[#00c4cc]/20 backdrop-blur-sm shadow-sm ring-1 ring-[#00c4cc]/5">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
-                      <FileText className="w-4 h-4 text-orange-500" />
+                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-[#00c4cc]/20">
+                      <FileText className="w-4 h-4 text-[#00c4cc]" />
                     </div>
                     <Label className="font-semibold text-foreground">Ad Disclaimer (Legal/Political)</Label>
                   </div>
@@ -833,7 +849,7 @@ function CreateAdModal({
                       onChange={(e) => updateCreative({
                         ad_disclaimer_spec: { ...formData.creative.ad_disclaimer_spec!, title: e.target.value }
                       })}
-                      className="text-sm bg-background border-orange-100 dark:border-orange-900/50"
+                      className="text-sm bg-background border-[#00c4cc]/20 focus-visible:ring-[#00c4cc]/30"
                     />
                     <Textarea
                       placeholder="Disclaimer Body"
@@ -1121,16 +1137,16 @@ function CreateAdModal({
               {/* Preview */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
-                  <div className="p-1 rounded bg-orange-500/10">
-                    <Eye className="w-4 h-4 text-orange-500" />
+                  <div className="p-1 rounded bg-[#00c4cc]/10">
+                    <Eye className="w-4 h-4 text-[#00c4cc]" />
                   </div>
                   <Label className="font-bold text-base">Ad Preview</Label>
                 </div>
-                <div className="border rounded-xl overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+                <div className="border border-[#00c4cc]/20 rounded-xl overflow-hidden bg-gradient-to-br from-[#5ce1e6]/5 via-[#00c4cc]/5 to-[#8b3dff]/5 backdrop-blur-sm shadow-sm ring-1 ring-[#00c4cc]/5">
                   {/* Facebook Post Preview Styling */}
-                  <div className="p-3 border-b flex items-center justify-between bg-muted/20">
+                  <div className="p-3 border-b border-[#00c4cc]/10 flex items-center justify-between bg-white/40 dark:bg-black/20">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm flex items-center justify-center text-white">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5ce1e6] via-[#00c4cc] to-[#8b3dff] shadow-sm flex items-center justify-center text-white">
                         <Zap className="w-5 h-5" />
                       </div>
                       <div>
@@ -1216,27 +1232,27 @@ function CreateAdModal({
                       </div>
                     )}
                   </div>
-                  <div className="p-3 bg-muted/40 backdrop-blur-sm">
-                    <p className="text-[10px] text-orange-600/80 dark:text-orange-400/80 font-bold uppercase tracking-wider mb-1">
-                      {(() => {
-                        const url = formData.creative.link_url;
-                        if (!url) return 'YOUR-WEBSITE.COM';
-                        try {
-                          // Handle cases like "google.com" by prepending https if no protocol
-                          const urlToParse = url.includes('://') ? url : `https://${url}`;
-                          return new URL(urlToParse).hostname;
-                        } catch {
-                          return url.toUpperCase();
-                        }
-                      })()}
-                    </p>
-                    <p className="font-bold text-sm text-foreground">
-                      {formData.creative.title || 'YOUR COMPELLING HEADLINE'}
-                    </p>
-                  </div>
-                  <div className="border-t bg-white dark:bg-gray-950">
+                  <div className="p-3 bg-muted/30 backdrop-blur-sm flex items-center justify-between gap-4 border-t">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-[#00c4cc] font-bold uppercase tracking-wider mb-0.5 truncate">
+                        {(() => {
+                          const url = formData.creative.link_url;
+                          if (!url) return 'YOUR-WEBSITE.COM';
+                          try {
+                            const urlToParse = url.includes('://') ? url : `https://${url}`;
+                            return new URL(urlToParse).hostname;
+                          } catch {
+                            return url.toUpperCase();
+                          }
+                        })()}
+                      </p>
+                      <p className="font-bold text-sm text-foreground truncate">
+                        {formData.creative.title || 'YOUR COMPELLING HEADLINE'}
+                      </p>
+                    </div>
                     <Button
-                      className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-none border-none shadow-none transition-all active:scale-[0.99]"
+                      size="sm"
+                      className="h-9 bg-[#00c4cc] hover:bg-[#00b0b8] text-white font-bold text-xs px-5 rounded-md shadow-sm transition-all active:scale-[0.98] flex-shrink-0"
                     >
                       {CTA_OPTIONS.find(c => c.value === formData.creative.call_to_action_type)?.label || 'Learn More'}
                     </Button>
@@ -1300,10 +1316,12 @@ function CreateAdModal({
           <Button
             variant="outline"
             onClick={() => step > 1 ? setStep(step - 1) : onClose()}
+            className="rounded-xl border-primary/20 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
           >
             {step > 1 ? 'Back' : 'Cancel'}
           </Button>
           <Button
+            className="bg-[#00c4cc] hover:bg-[#00b0b8] text-white border-0 shadow-lg shadow-[#00c4cc]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold px-8 rounded-xl min-w-[140px] gap-2"
             onClick={() => {
               if (step < 3) {
                 setStep(step + 1);
@@ -1328,9 +1346,18 @@ function CreateAdModal({
               }
             }}
             disabled={isSubmitting || (step === 1 && (!formData.name || !formData.adset_id))}
-            className="gap-2"
           >
-            {step < 3 ? 'Continue' : isSubmitting ? 'Creating...' : 'Create Ad'}
+            {step < 3 ? (
+              <>
+                Continue
+                <ChevronRight className="w-4 h-4" />
+              </>
+            ) : isSubmitting ? (
+              <>
+                <Zap className="mr-2 h-4 w-4 animate-spin text-white" />
+                Please wait...
+              </>
+            ) : 'Create Ad'}
           </Button>
         </div>
       </div>

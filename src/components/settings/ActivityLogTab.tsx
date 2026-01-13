@@ -207,7 +207,7 @@ export default function ActivityLogTab() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg space-y-4">
+        <div className="p-6 bg-background/40 backdrop-blur-sm border border-border/50 rounded-xl space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label htmlFor="filterUser" className="block text-sm font-medium text-gray-700 mb-2">
@@ -295,7 +295,7 @@ export default function ActivityLogTab() {
           activities.map(activity => (
             <div
               key={activity.id}
-              className="p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+              className="p-4 bg-background/40 backdrop-blur-sm border border-border/50 rounded-xl hover:border-primary/30 transition-all shadow-sm group"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

@@ -70,19 +70,11 @@ export const VoiceButton = forwardRef<VoiceButtonRef, VoiceButtonProps>(
     // When inactive, show just the floating orb button to start with settings
     return (
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3">
-        {/* Voice Orb with rings */}
+        {/* Voice Orb */}
         <div className="relative">
-          <div
-            className="absolute -inset-3 rounded-full border-2 border-cyan-400/50 dark:border-cyan-300/40 animate-orb-ring"
-            style={{ '--ring-delay': '0ms', boxShadow: '0 0 25px rgba(221, 122, 94, 0.8), 0 0 50px rgba(195, 82, 48, 0.64)' } as any}
-          />
-          <div
-            className="absolute -inset-6 rounded-full border-2 border-blue-400/35 dark:border-blue-300/25 animate-orb-ring"
-            style={{ '--ring-delay': '800ms', boxShadow: '0 0 20px rgba(135, 202, 111, 0.89), 0 0 40px rgba(22, 199, 25, 0.85)' } as any}
-          />
           <button
             onClick={() => setIsModalOpen(true)}
-            className="relative w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 transition-all hover:scale-105 animate-glow-pulse"
+            className="relative w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 transition-all hover:scale-105 shadow-lg border border-white/20"
             title="Start voice agent"
           >
             <Mic className="h-9 w-9 text-white" />

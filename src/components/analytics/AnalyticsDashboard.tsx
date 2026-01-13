@@ -349,9 +349,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ posts }) => {
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-transparent">
             {/* Header - Matching Library Page Design */}
-            <div className="border-b bg-background">
+            <div className="sticky top-0 z-20 border-b bg-canva-gradient/95 backdrop-blur-sm shadow-sm">
                 <div className="relative px-6 py-4">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         {/* Left: Logo and Title */}
@@ -397,7 +397,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ posts }) => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 p-6 bg-gradient-to-b from-muted/30 to-background overflow-auto space-y-6">
+            <div className="flex-1 p-6 overflow-auto space-y-6">
                 {/* Production-ready: Handle empty state */}
                 {stats.totalPosts === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">

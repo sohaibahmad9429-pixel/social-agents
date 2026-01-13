@@ -409,7 +409,7 @@ const ContentStrategistView: React.FC<ContentStrategistViewProps> = ({ onPostCre
     }
 
     return (
-        <div ref={containerRef} className={`flex h-full ${!hasUserSentMessage ? 'bg-canva-gradient' : 'bg-background'}`}>
+        <div ref={containerRef} className="flex h-full bg-canva-gradient relative">
             {isHistoryVisible && (
                 <Suspense fallback={
                     <div className="w-64 bg-card border-r border-border animate-pulse">
@@ -473,15 +473,7 @@ const ContentStrategistView: React.FC<ContentStrategistViewProps> = ({ onPostCre
                             </div>
 
                             <div className="max-w-4xl mx-auto px-6 pt-8 pb-4">
-                                <Suspense fallback={
-                                    <div className="flex items-start gap-3 py-4 animate-pulse">
-                                        <div className="w-7 h-7 bg-gray-200 rounded-full"></div>
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                                        </div>
-                                    </div>
-                                }>
+                                <Suspense fallback={null}>
                                     {messages.map((msg, index) => (
                                         <MessageBubble
                                             key={index}
@@ -510,7 +502,7 @@ const ContentStrategistView: React.FC<ContentStrategistViewProps> = ({ onPostCre
                         {/* ChatInput - full width */}
                         {!isVoiceActive && (
                             <Suspense fallback={
-                                <div className="bg-background sticky bottom-0">
+                                <div className="bg-white sticky bottom-0">
                                     <div className="max-w-4xl mx-auto px-6 py-4">
                                         <div className="h-14 bg-card rounded-[20px] border border-border animate-pulse"></div>
                                     </div>

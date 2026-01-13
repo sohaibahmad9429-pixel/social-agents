@@ -315,9 +315,9 @@ export default function MetaAdsManager() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-canva-gradient">
+    <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-white/40 dark:border-gray-700/40">
+      <header className="sticky top-0 z-20 bg-canva-gradient/95 backdrop-blur-sm border-b shadow-sm">
         <div className="px-6 py-1.5">
           <div className="flex items-center justify-between">
             {/* Left: Title & Account */}
@@ -918,7 +918,7 @@ function ToolHeader({
   const Icon = tool.icon;
 
   return (
-    <header className="sticky top-0 z-20 bg-background border-b">
+    <header className="sticky top-0 z-20 bg-canva-gradient shadow-sm border-b">
       <div className="px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack} className="h-8 gap-2">

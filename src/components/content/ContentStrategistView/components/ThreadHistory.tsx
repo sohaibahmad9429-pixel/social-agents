@@ -116,8 +116,8 @@ const ThreadItem: React.FC<{
     return (
         <div
             className={`relative group flex items-center gap-2 py-2.5 px-3 rounded-lg transition-all cursor-pointer ${isActive
-                    ? 'bg-primary/10 border border-primary/20'
-                    : 'hover:bg-muted/60'
+                ? 'bg-primary/10 border border-primary/20'
+                : 'hover:bg-muted/60'
                 }`}
             onClick={() => !isEditing && onSelect()}
         >

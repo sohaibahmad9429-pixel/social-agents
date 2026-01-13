@@ -505,7 +505,16 @@
       /* Deep purple */
       /* Base white */
       #ffffff;
+    background-attachment: fixed;
   }
+
+  .bg-canva-dark {
+    background: linear-gradient(135deg,
+        rgba(0, 162, 168, 1) 0%,
+        rgba(107, 39, 214, 1) 50%,
+        rgba(93, 26, 186, 1) 100%);
+  }
+
 
   .dark .bg-canva-gradient {
     background:
@@ -519,6 +528,7 @@
         rgba(139, 61, 255, 0.12) 50%,
         rgba(125, 42, 232, 0.1) 100%),
       #0f0f14;
+    background-attachment: fixed;
   }
 
   /* Full Page Gradient Overlay - for Media Studio and other pages */

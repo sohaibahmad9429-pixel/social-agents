@@ -157,7 +157,7 @@ export default function MembersTab() {
 
         <div className="space-y-3">
           {members.length === 0 ? (
-            <div className="text-center py-12 bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border">
+            <div className="text-center py-12 bg-background/40 backdrop-blur-sm rounded-xl border border-border/50">
               <p className="text-muted-foreground">No members yet</p>
             </div>
           ) : (
@@ -188,7 +188,7 @@ export default function MembersTab() {
             {pendingInvites.map(invite => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between p-5 bg-card rounded-xl border border-border hover:border-teal-200 hover:shadow-sm transition-all"
+                className="flex items-center justify-between p-5 bg-background/40 backdrop-blur-sm rounded-xl border border-border/50 hover:border-primary/30 transition-all shadow-sm group"
               >
                 <div className="flex items-center gap-4 flex-1">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center">

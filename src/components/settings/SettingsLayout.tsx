@@ -45,51 +45,32 @@ export default function SettingsLayout({ children, activeTab }: SettingsLayoutPr
   const visibleTabs = userRole === 'admin' ? [...ADMIN_TABS, ...COMMON_TABS] : COMMON_TABS
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - Matching Library Page Design */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-teal-500/15 via-cyan-500/10 to-emerald-500/15 dark:from-teal-900 dark:via-cyan-900 dark:to-teal-900">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-teal-500/30 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/30 rounded-full blur-3xl animate-pulse"
-            style={{ animationDelay: '1s', animationDuration: '3s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-teal-600/20 rounded-full blur-3xl animate-pulse"
-            style={{ animationDelay: '1.5s', animationDuration: '4s' }} />
-          <div className="absolute top-10 right-1/4 w-32 h-32 bg-cyan-400/25 rounded-full blur-2xl animate-pulse"
-            style={{ animationDelay: '0.5s', animationDuration: '2.5s' }} />
-          <div className="absolute bottom-10 left-1/3 w-40 h-40 bg-teal-400/25 rounded-full blur-2xl animate-pulse"
-            style={{ animationDelay: '2s', animationDuration: '3.5s' }} />
-        </div>
-
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
-
-        <div className="relative px-6 py-5">
+    <div className="min-h-screen bg-canva-gradient">
+      {/* Header - Matching Canva Design */}
+      <div className="sticky top-0 z-30 border-b bg-canva-gradient/95 backdrop-blur-sm shadow-sm">
+        <div className="relative px-6 py-4">
           <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="p-2 rounded-xl bg-white/20 border border-white/30 text-teal-700 dark:text-white hover:bg-white/30 transition-all shadow-sm"
+              className="p-2 rounded-xl bg-background/50 border border-border text-foreground hover:bg-background/80 transition-all shadow-sm"
               title="Back to Dashboard"
             >
               <ChevronLeft size={20} />
             </Link>
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-500 rounded-xl blur-lg opacity-75 animate-pulse group-hover:opacity-100 transition-opacity" />
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-400 via-cyan-400 to-teal-400 rounded-xl blur-xl opacity-50 animate-pulse"
-                style={{ animationDelay: '0.5s' }} />
-              <div className="relative bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-500 p-3 rounded-xl shadow-xl transform transition-transform group-hover:scale-105">
-                <Settings className="w-6 h-6 text-white" />
-              </div>
+
+            <div className="p-2.5 bg-primary/10 rounded-xl">
+              <Settings className="w-6 h-6 text-primary" />
             </div>
 
             <div>
-              <h1 className="text-lg font-bold text-teal-900 dark:text-white flex items-center gap-3">
+              <h1 className="text-lg font-bold text-foreground flex items-center gap-3">
                 Workspace Settings
-                <span className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white border-0 text-[11px] px-2 py-0.5 h-6 shadow-lg rounded-full inline-flex items-center">
-                  <Zap className="w-3 h-3 mr-1 animate-pulse" />
+                <span className="bg-primary/10 text-primary border border-primary/20 text-[11px] px-2 py-0.5 h-6 shadow-sm rounded-full inline-flex items-center">
+                  <Zap className="w-3 h-3 mr-1" />
                   Admin
                 </span>
               </h1>
-              <p className="text-teal-700 dark:text-white/80 text-[13px] mt-0.5">
+              <p className="text-muted-foreground text-[13px] mt-0.5">
                 Manage your workspace, members, and activity
               </p>
             </div>
@@ -107,9 +88,9 @@ export default function SettingsLayout({ children, activeTab }: SettingsLayoutPr
                 <Link
                   key={tab.id}
                   href={`/settings?tab=${tab.id}`}
-                  className={`flex items-center gap-2 px-2 py-2 rounded-xl font-medium transition-all ${activeTab === tab.id
-                    ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-500/20'
-                    : 'text-foreground hover:bg-muted/80 hover:text-teal-600'
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all ${activeTab === tab.id
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-foreground hover:bg-background/50 hover:text-primary'
                     }`}
                 >
                   {tab.icon}
@@ -121,7 +102,7 @@ export default function SettingsLayout({ children, activeTab }: SettingsLayoutPr
 
           {/* Content */}
           <div className="lg:col-span-3">
-            <div className="bg-card rounded-2xl border border-border p-8 shadow-lg shadow-black/5">
+            <div className="bg-background/40 backdrop-blur-md rounded-2xl border border-border/50 p-8 shadow-sm">
               {children}
             </div>
           </div>

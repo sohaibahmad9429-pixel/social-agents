@@ -142,7 +142,7 @@ export function MediaStudioDashboard() {
   const currentTab = tabs.find(t => t.id === activeTab);
 
   return (
-    <div className="flex flex-col h-full bg-canva-gradient">
+    <div className="flex flex-col h-full bg-transparent">
 
       {/* Main Content */}
       <div className="flex-1 pt-2 px-6 pb-6">

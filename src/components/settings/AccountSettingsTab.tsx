@@ -562,10 +562,10 @@ const AccountSettingsTab: React.FC = () => {
     <div>
       <h2 className="text-2xl font-bold mb-6 text-gray-900">Connected Accounts</h2>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex gap-3">
-        <Settings className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-800">
-          <p className="font-semibold mb-1">Production-Ready Integration</p>
+      <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mb-6 flex gap-3 backdrop-blur-sm">
+        <Settings className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-foreground/80">
+          <p className="font-semibold mb-1 text-foreground">Production-Ready Integration</p>
           <p>
             Connect your social media accounts securely. Your credentials are encrypted and
             stored on our servers. Never stored in your browser.
@@ -588,7 +588,7 @@ const AccountSettingsTab: React.FC = () => {
             const hasTimeout = timeoutWarnings.has(id)
 
             return (
-              <div key={id} className="bg-gray-50 rounded-lg overflow-hidden">
+              <div key={id} className="bg-background/40 backdrop-blur-sm rounded-xl border border-border/50 overflow-hidden shadow-sm">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-4 flex-1">
                     <Icon className="w-8 h-8 text-gray-700" />
@@ -751,7 +751,7 @@ const AccountSettingsTab: React.FC = () => {
           Connect design tools to create and edit media directly in your workspace.
         </p>
 
-        <div className="bg-gray-50 rounded-lg overflow-hidden">
+        <div className="bg-background/40 backdrop-blur-sm rounded-xl border border-border/50 overflow-hidden shadow-sm">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4 flex-1">
               <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">

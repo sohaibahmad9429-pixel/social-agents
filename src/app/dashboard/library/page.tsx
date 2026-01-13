@@ -148,9 +148,9 @@ export default function LibraryPage() {
   const totalItems = mediaItems.length;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="min-h-screen bg-transparent">
       {/* Header with Toolbar */}
-      <div className="border-b bg-background">
+      <div className="sticky top-0 z-20 border-b bg-canva-gradient/95 backdrop-blur-sm shadow-sm">
         <div className="relative px-6 py-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             {/* Left: Logo and Title */}
@@ -337,7 +337,7 @@ export default function LibraryPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-6 bg-gradient-to-b from-muted/30 to-background overflow-auto">
+      <div className="flex-1 p-6 overflow-auto">
         <MediaGallery
           images={[]}
           videos={[]}

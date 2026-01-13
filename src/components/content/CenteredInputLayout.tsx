@@ -93,7 +93,7 @@ export const CenteredInputLayout: React.FC<CenteredInputLayoutProps> = ({
                     <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center mx-auto bg-white/60 backdrop-blur-sm border border-white/40 shadow-lg">
                         <Image src={logoImage} alt="Content OS" width={48} height={48} className="object-cover" />
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#00c4cc] via-[#8b3dff] to-[#7d2ae8] bg-clip-text text-transparent">
+                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#00c4cc] via-[#8b3dff] to-[#b388ff] bg-clip-text text-transparent">
                         How can I help you today?
                     </h1>
                 </div>

@@ -20,6 +20,12 @@ from .schemas import ChatStrategistRequest, ContentBlock
 from .prompts import get_content_strategist_system_prompt
 from ...config import settings
 
+try:
+    from psycopg_pool import AsyncConnectionPool
+except ImportError:
+    AsyncConnectionPool = None
+    logger.warning("psycopg_pool not found. Connection pooling will be disabled.")
+
 logger = logging.getLogger(__name__)
 
 # Global references managed by lifespan
@@ -49,26 +55,43 @@ async def init_checkpointer():
         return _checkpointer
     
     try:
-        # Import psycopg for async connection
-        from psycopg import AsyncConnection
-        from psycopg.rows import dict_row
-        
-        # Create async connection with prepare_threshold=0 to disable prepared statements
-        # This is required for Supabase pooler (PgBouncer/Supavisor) which doesn't support prepared statements
-        conn = await AsyncConnection.connect(
-            db_uri,
-            autocommit=True,
-            prepare_threshold=0,  # Disable prepared statements for pooler compatibility
-            row_factory=dict_row,
-        )
-        
-        # Create checkpointer from the connection
-        _checkpointer = AsyncPostgresSaver(conn=conn)
-        _checkpointer_context = conn  # Store connection for cleanup
-        
-        # Run setup to create tables if needed
-        await _checkpointer.setup()
-        logger.info("AsyncPostgresSaver checkpointer initialized successfully (with pooler compatibility)")
+        if AsyncConnectionPool:
+            # Create async connection pool
+            # prepare_threshold=0 is required for Supabase pooler compatibility
+            _checkpointer_context = AsyncConnectionPool(
+                conninfo=db_uri,
+                max_size=10,
+                min_size=1,
+                kwargs={
+                    "autocommit": True,
+                    "prepare_threshold": 0,
+                }
+            )
+            # Open the pool
+            await _checkpointer_context.open()
+            
+            # Create checkpointer from the pool
+            _checkpointer = AsyncPostgresSaver(conn=_checkpointer_context)
+            
+            # Run setup to create tables if needed
+            await _checkpointer.setup()
+            logger.info("AsyncPostgresSaver checkpointer initialized with AsyncConnectionPool")
+        else:
+            # Fallback to single connection if pool not available
+            from psycopg import AsyncConnection
+            from psycopg.rows import dict_row
+            
+            conn = await AsyncConnection.connect(
+                db_uri,
+                autocommit=True,
+                prepare_threshold=0,
+                row_factory=dict_row,
+            )
+            _checkpointer = AsyncPostgresSaver(conn=conn)
+            _checkpointer_context = conn
+            await _checkpointer.setup()
+            logger.info("AsyncPostgresSaver checkpointer initialized with single connection (pool fallback)")
+            
         return _checkpointer
     except Exception as e:
         logger.error(f"Failed to initialize AsyncPostgresSaver: {e}")

@@ -262,19 +262,21 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto scrollbar-hide">
-                <CardHeader className="pb-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto scrollbar-hide bg-background/95 backdrop-blur-xl border-white/20 shadow-2xl">
+                <CardHeader className="pb-3 bg-gradient-to-r from-[#5ce1e6] via-[#00c4cc] via-30% to-[#8b3dff] text-white border-b border-white/10">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Zap className="w-5 h-5" />
+                            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 shadow-sm">
+                                <Zap className="w-5 h-5 text-white" />
+                            </div>
                             <div>
-                                <CardTitle className="text-lg text-white">Create Advantage+ Campaign</CardTitle>
+                                <CardTitle className="text-lg text-white font-bold">Create Advantage+ Campaign</CardTitle>
                                 <CardDescription className="text-white/80 text-sm">
                                     AI-powered campaign optimization
                                 </CardDescription>
                             </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+                        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 rounded-full">
                             ✕
                         </Button>
                     </div>
@@ -285,12 +287,12 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                             <React.Fragment key={s}>
                                 <div
                                     className={cn(
-                                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
+                                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shadow-sm",
                                         s < step
-                                            ? "bg-white text-amber-600"
+                                            ? "bg-white text-primary scale-110"
                                             : s === step
-                                                ? "bg-white text-amber-600"
-                                                : "bg-white/30 text-white/80"
+                                                ? "bg-white text-primary ring-2 ring-white/50 ring-offset-2 ring-offset-primary"
+                                                : "bg-white/20 text-white/80 border border-white/30"
                                     )}
                                 >
                                     {s < step ? <Check className="w-4 h-4" /> : s}
@@ -312,22 +314,22 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                     {/* Advantage+ Status Badge */}
                     {validation && (
                         <div className={cn(
-                            "flex items-center gap-2 p-3 rounded-lg mb-6",
+                            "flex items-center gap-2 p-3 rounded-xl mb-6 border backdrop-blur-sm shadow-sm",
                             validation.is_eligible
-                                ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900"
-                                : "bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900"
+                                ? "bg-primary/5 border-primary/20"
+                                : "bg-amber-500/5 border-amber-500/20"
                         )}>
                             {validation.is_eligible ? (
                                 <>
-                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                    <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                                        ✨ Advantage+ Eligible: {selectedObjective?.advantageLabel}
+                                    <Sparkles className="w-5 h-5 text-primary" />
+                                    <span className="text-sm font-semibold text-primary">
+                                        Advantage+ Eligible: {selectedObjective?.advantageLabel}
                                     </span>
                                 </>
                             ) : (
                                 <>
-                                    <Info className="w-5 h-5 text-yellow-600" />
-                                    <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
+                                    <Info className="w-5 h-5 text-amber-600" />
+                                    <span className="text-sm font-semibold text-amber-600">
                                         Some Advantage+ features may be limited
                                     </span>
                                 </>
@@ -363,10 +365,10 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                                 <div
                                                     key={obj.value}
                                                     className={cn(
-                                                        "p-4 rounded-lg border-2 cursor-pointer transition-all",
+                                                        "p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md",
                                                         formData.objective === obj.value
-                                                            ? "border-primary bg-primary/5"
-                                                            : "border-muted hover:border-primary/50"
+                                                            ? "border-primary bg-primary/5 shadow-sm"
+                                                            : "border-border/50 hover:border-primary/30 hover:bg-background/50"
                                                     )}
                                                     onClick={() => setFormData({ ...formData, objective: obj.value })}
                                                 >
@@ -455,10 +457,10 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                             <div
                                                 key={strategy.value}
                                                 className={cn(
-                                                    "p-3 rounded-lg border-2 cursor-pointer transition-all",
+                                                    "p-3 rounded-xl border-2 cursor-pointer transition-all hover:shadow-sm",
                                                     formData.bidStrategy === strategy.value
                                                         ? "border-primary bg-primary/5"
-                                                        : "border-muted hover:border-primary/50"
+                                                        : "border-border/50 hover:border-primary/30"
                                                 )}
                                                 onClick={() => setFormData({ ...formData, bidStrategy: strategy.value })}
                                             >
@@ -591,10 +593,10 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                                         <div
                                             key={country.code}
                                             className={cn(
-                                                "p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-2",
+                                                "p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-2 hover:shadow-sm",
                                                 formData.countries.includes(country.code)
                                                     ? "border-primary bg-primary/5"
-                                                    : "border-muted hover:border-primary/50"
+                                                    : "border-border/50 hover:border-primary/30 hover:bg-background/50"
                                             )}
                                             onClick={() => {
                                                 const countries = formData.countries.includes(country.code)
@@ -626,11 +628,11 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
 
                             {/* Advantage+ Three Automation Levers Visualization (v24.0 2026) */}
                             {selectedObjective?.supportsAdvantage && (
-                                <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-900">
-                                    <CardHeader>
-                                        <CardTitle className="text-base flex items-center gap-2">
-                                            <Sparkles className="w-5 h-5 text-amber-600" />
-                                            Advantage+ Automation Levers (v24.0 2026)
+                                <Card className="bg-canva-gradient/5 border-primary/20 shadow-sm overflow-hidden">
+                                    <CardHeader className="bg-primary/5 border-b border-primary/10">
+                                        <CardTitle className="text-base flex items-center gap-2 text-primary">
+                                            <Sparkles className="w-5 h-5" />
+                                            Advantage+ Automation Levers
                                         </CardTitle>
                                         <CardDescription>
                                             Three automation levers will be enabled for optimal performance
@@ -787,7 +789,7 @@ export default function AdvantagePlusWizard({ onClose, onSuccess }: AdvantagePlu
                         <Button
                             onClick={handleSubmit}
                             disabled={isSubmitting || !canProceed()}
-                            className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
+                            className="bg-[#00c4cc] hover:bg-[#00b0b8] text-white border-0 shadow-lg shadow-[#00c4cc]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold px-6"
                         >
                             {isSubmitting ? (
                                 <>

@@ -24,6 +24,8 @@ import {
     Copy,
     History,
     X,
+    Sparkles,
+    Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -413,19 +415,21 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
             {/* Header - Clean & Professional */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">
-                            <Zap className="w-4 h-4" />
+                    <h2 className="text-xl font-bold flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#5ce1e6] via-[#00c4cc] to-[#8b3dff] text-white shadow-lg shadow-primary/20">
+                            <Zap className="w-5 h-5" />
                         </div>
-                        Automation Rules
+                        <span className="bg-gradient-to-r from-[#00c4cc] via-[#00b0b8] to-[#8b3dff] bg-clip-text text-transparent">
+                            Automation Rules
+                        </span>
                     </h2>
-                    <p className="text-sm text-muted-foreground mt-1">Automate campaign management with rules</p>
+                    <p className="text-sm text-muted-foreground mt-1 font-medium">Automate campaign management with intelligent rules</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                     <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 gap-2"
+                        className="h-10 gap-2 rounded-xl border-primary/20 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
                         onClick={() => setShowTemplates(true)}
                     >
                         <Copy className="w-4 h-4" />
@@ -433,7 +437,7 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
                     </Button>
                     <Button
                         size="sm"
-                        className="h-9 gap-2 text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                        className="h-10 gap-2 text-white bg-[#00c4cc] hover:bg-[#00b0b8] border-0 shadow-lg shadow-[#00c4cc]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold px-4 rounded-xl"
                         onClick={() => setShowCreateModal(true)}
                     >
                         <Plus className="w-4 h-4" />
@@ -468,42 +472,48 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
                     </CardContent>
                 </Card>
             ) : (
-                <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-1">
                     {rules.map((rule) => (
-                        <Card key={rule.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 rounded-lg bg-muted">
+                        <Card key={rule.id} className="hover:shadow-xl transition-all duration-300 border-primary/5 bg-white/40 dark:bg-background/40 backdrop-blur-xl group overflow-hidden">
+                            <CardContent className="p-5">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-5">
+                                        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 group-hover:bg-primary/10 transition-colors">
                                             {getExecutionIcon(rule.execution_type)}
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold flex items-center gap-2">
-                                                {rule.name}
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="font-bold text-foreground">
+                                                    {rule.name}
+                                                </h3>
                                                 <span className={cn(
-                                                    "text-xs px-2 py-0.5 rounded-full",
+                                                    "text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider",
                                                     rule.status === 'ENABLED'
-                                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                                        : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200/50 dark:border-green-500/20"
+                                                        : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
                                                 )}>
                                                     {rule.status === 'ENABLED' ? 'Active' : 'Disabled'}
                                                 </span>
-                                            </h3>
-                                            <p className="text-sm text-muted-foreground">
+                                            </div>
+                                            <p className="text-sm text-muted-foreground font-medium mt-1">
                                                 {rule.description || `${rule.entity_type} • ${rule.conditions?.length || 0} condition(s)`}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <Switch
-                                            checked={rule.status === 'ENABLED'}
-                                            onCheckedChange={() => handleToggleRule(rule.id, rule.status)}
-                                            disabled={updatingRuleId === rule.id}
-                                        />
+                                    <div className="flex items-center gap-2">
+                                        <div className="mr-2">
+                                            <Switch
+                                                checked={rule.status === 'ENABLED'}
+                                                onCheckedChange={() => handleToggleRule(rule.id, rule.status)}
+                                                disabled={updatingRuleId === rule.id}
+                                                className="data-[state=checked]:bg-primary"
+                                            />
+                                        </div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => setHistoryRuleId(rule.id)}
+                                            className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
                                             title="View History"
                                         >
                                             <History className="w-4 h-4" />
@@ -512,6 +522,7 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => setEditingRule(rule)}
+                                            className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
                                             title="Edit Rule"
                                         >
                                             <Edit className="w-4 h-4" />
@@ -520,7 +531,8 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => handleDeleteRule(rule.id)}
-                                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                            className="rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                            title="Delete Rule"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
@@ -528,10 +540,10 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
                                 </div>
 
                                 {/* Conditions preview */}
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-4 flex flex-wrap gap-2 pl-[60px]">
                                     {rule.conditions?.map((condition, idx) => (
-                                        <span key={idx} className="text-xs bg-muted px-2 py-1 rounded">
-                                            {condition.field} {condition.operator.replace('_', ' ').toLowerCase()} {condition.value}
+                                        <span key={idx} className="text-[11px] font-semibold bg-primary/5 text-primary px-3 py-1 rounded-lg border border-primary/10 backdrop-blur-sm">
+                                            {condition.field.toUpperCase()} • {condition.operator.replace('_', ' ')} • {condition.value}
                                         </span>
                                     ))}
                                 </div>
@@ -543,18 +555,30 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
 
             {/* Templates Modal */}
             {showTemplates && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <Card className="w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border-0">
-                        <CardHeader className="pb-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white">
-                            <CardTitle className="flex items-center gap-2 text-lg text-white">
-                                <Copy className="w-5 h-5" />
+                <div className="fixed inset-0 bg-background/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border-primary/10 bg-white/90 dark:bg-background/90 animate-in fade-in zoom-in duration-300">
+                        <CardHeader className="pb-6 bg-gradient-to-r from-[#5ce1e6] via-[#00c4cc] via-30% to-[#8b3dff] relative">
+                            <div className="absolute top-0 right-0 p-4">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowTemplates(false)}
+                                    className="text-white hover:bg-white/20 rounded-full"
+                                >
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
+                            <CardTitle className="flex items-center gap-3 text-xl text-white font-bold">
+                                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                                    <Sparkles className="w-6 h-6" />
+                                </div>
                                 Rule Templates
                             </CardTitle>
-                            <CardDescription className="text-sm text-white/80">
-                                Start with a pre-built template
+                            <CardDescription className="text-sm text-white/90 font-medium">
+                                Start with a collection of expert-curated automation rules
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="max-h-[50vh] overflow-y-auto scrollbar-hide p-3 space-y-2">
+                        <CardContent className="max-h-[60vh] overflow-y-auto scrollbar-hide p-6 space-y-3">
                             {templates.map((template, idx) => {
                                 const actionIcon = EXECUTION_TYPES.find(e => e.value === template.execution_type);
                                 const ActionIcon = actionIcon?.icon || Settings;
@@ -563,39 +587,45 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
                                 return (
                                     <div
                                         key={idx}
-                                        className="p-3 rounded-lg border bg-card cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
+                                        className="p-4 rounded-2xl border border-primary/5 bg-primary/5 cursor-pointer hover:border-primary/30 hover:bg-primary/10 hover:shadow-lg hover:scale-[1.01] transition-all group active:scale-[0.99]"
                                         onClick={() => handleUseTemplate(template)}
                                     >
-                                        <div className="flex items-start gap-3">
+                                        <div className="flex items-start gap-4">
                                             <div className={cn(
-                                                "p-2 rounded-lg shrink-0",
+                                                "p-3 rounded-xl shrink-0 shadow-sm",
                                                 template.execution_type === 'PAUSE' ? "bg-yellow-100 dark:bg-yellow-900/30" :
                                                     template.execution_type === 'SEND_NOTIFICATION' ? "bg-purple-100 dark:bg-purple-900/30" :
                                                         template.execution_type === 'CHANGE_BUDGET' ? "bg-blue-100 dark:bg-blue-900/30" :
-                                                            "bg-green-100 dark:bg-green-900/30"
+                                                            "bg-[#00c4cc]/20 dark:bg-[#00c4cc]/10"
                                             )}>
-                                                <ActionIcon className={cn("w-4 h-4", iconColor)} />
+                                                <ActionIcon className={cn("w-5 h-5", iconColor)} />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-medium text-sm">{template.name}</h4>
-                                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{template.description}</p>
-                                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-medium">
+                                                <h4 className="font-bold text-base text-foreground group-hover:text-primary transition-colors">{template.name}</h4>
+                                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{template.description}</p>
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    <span className="text-[10px] font-bold bg-white dark:bg-background border border-primary/10 px-2 py-1 rounded-lg uppercase tracking-wider shadow-sm">
                                                         {template.entity_type}
                                                     </span>
-                                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium dark:bg-amber-900/30 dark:text-amber-400">
+                                                    <span className="text-[10px] font-bold bg-[#8b3dff]/10 text-[#8b3dff] px-2 py-1 rounded-lg uppercase tracking-wider dark:bg-[#8b3dff]/20">
                                                         {template.execution_type.replace('_', ' ')}
                                                     </span>
                                                 </div>
                                             </div>
-                                            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
+                                            <div className="self-center p-2 rounded-full bg-primary/5 group-hover:bg-primary/20 transition-colors">
+                                                <ChevronRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition-transform" />
+                                            </div>
                                         </div>
                                     </div>
                                 );
                             })}
                         </CardContent>
-                        <CardFooter className="p-3 border-t bg-muted/30">
-                            <Button variant="outline" onClick={() => setShowTemplates(false)} className="w-full h-9">
+                        <CardFooter className="p-6 border-t bg-muted/30">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowTemplates(false)}
+                                className="w-full h-11 rounded-xl border-primary/20 hover:bg-primary/5 font-bold transition-all active:scale-95"
+                            >
                                 Cancel
                             </Button>
                         </CardFooter>
@@ -605,18 +635,30 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <Card className="w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border-0">
-                        <CardHeader className="pb-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white">
-                            <CardTitle className="flex items-center gap-2 text-lg text-white">
-                                <Zap className="w-5 h-5" />
+                <div className="fixed inset-0 bg-background/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border-primary/10 bg-white/90 dark:bg-background/90 animate-in fade-in zoom-in duration-300">
+                        <CardHeader className="pb-6 bg-gradient-to-r from-[#5ce1e6] via-[#00c4cc] via-30% to-[#8b3dff] relative">
+                            <div className="absolute top-0 right-0 p-4">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="text-white hover:bg-white/20 rounded-full"
+                                >
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
+                            <CardTitle className="flex items-center gap-3 text-xl text-white font-bold">
+                                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                                    <Zap className="w-6 h-6" />
+                                </div>
                                 Create Automation Rule
                             </CardTitle>
-                            <CardDescription className="text-white/80 text-sm">
+                            <CardDescription className="text-white/90 text-sm font-medium">
                                 Define conditions and actions for automatic campaign management
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="max-h-[60vh] overflow-y-auto scrollbar-hide p-4 space-y-4">
+                        <CardContent className="max-h-[60vh] overflow-y-auto scrollbar-hide p-6 space-y-5">
                             <div>
                                 <Label htmlFor="ruleName" className="text-xs font-medium">Rule Name</Label>
                                 <Input
@@ -747,23 +789,31 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
 
                             {/* Action */}
                             <div>
-                                <Label className="text-xs font-medium">Action</Label>
-                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                <Label className="text-sm font-bold text-foreground mb-3 block">Action to Perform</Label>
+                                <div className="grid grid-cols-2 gap-3 mt-2">
                                     {EXECUTION_TYPES.map((exec) => {
                                         const Icon = exec.icon;
                                         return (
                                             <div
                                                 key={exec.value}
                                                 className={cn(
-                                                    "p-2.5 rounded-lg border cursor-pointer transition-all flex items-center gap-2",
+                                                    "p-3 rounded-xl border-2 transition-all flex items-center gap-3 group cursor-pointer",
                                                     formData.execution_type === exec.value
-                                                        ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm"
-                                                        : "border-muted hover:border-amber-300 hover:bg-muted/50"
+                                                        ? "border-primary bg-primary/5 shadow-md shadow-primary/5"
+                                                        : "border-primary/5 hover:border-primary/20 hover:bg-primary/5"
                                                 )}
                                                 onClick={() => setFormData({ ...formData, execution_type: exec.value })}
                                             >
-                                                <Icon className={cn('w-4 h-4', exec.color)} />
-                                                <span className="font-medium text-xs">{exec.label}</span>
+                                                <div className={cn(
+                                                    "p-1.5 rounded-lg group-hover:scale-110 transition-transform",
+                                                    formData.execution_type === exec.value ? "bg-primary/10" : "bg-muted"
+                                                )}>
+                                                    <Icon className={cn('w-4 h-4', exec.color)} />
+                                                </div>
+                                                <span className={cn(
+                                                    "font-bold text-xs",
+                                                    formData.execution_type === exec.value ? "text-primary" : "text-muted-foreground"
+                                                )}>{exec.label}</span>
                                             </div>
                                         );
                                     })}
@@ -883,19 +933,24 @@ export default function AutomationRulesManager({ onRefresh }: AutomationRulesMan
                                 </div>
                             )}
                         </CardContent>
-                        <CardFooter className="flex justify-end gap-2 p-3 border-t bg-muted/30">
-                            <Button variant="outline" size="sm" className="h-9" onClick={() => setShowCreateModal(false)}>
+                        <CardFooter className="flex justify-end gap-3 p-6 border-t bg-muted/30">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-11 rounded-xl border-primary/20 px-6 font-bold hover:bg-primary/5 transition-all active:scale-95"
+                                onClick={() => setShowCreateModal(false)}
+                            >
                                 Cancel
                             </Button>
                             <Button
                                 size="sm"
-                                className="h-9 bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+                                className="h-11 bg-[#00c4cc] hover:bg-[#00b0b8] text-white border-0 shadow-lg shadow-[#00c4cc]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold px-8 rounded-xl min-w-[140px]"
                                 onClick={handleCreateRule}
                                 disabled={isCreating || !formData.name}
                             >
                                 {isCreating ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin text-white" />
                                         Creating...
                                     </>
                                 ) : (
@@ -960,20 +1015,22 @@ function RuleHistoryModal({ ruleId, onClose }: { ruleId: string; onClose: () => 
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border-0">
-                <CardHeader className="pb-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="flex items-center gap-2 text-lg text-white">
-                            <History className="w-5 h-5" />
-                            Rule Execution History
-                        </CardTitle>
-                        <CardDescription className="text-white/80 text-sm">
-                            Recent executions for this rule
-                        </CardDescription>
+            <Card className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border-primary/10 bg-white/90 dark:bg-background/90 animate-in fade-in zoom-in duration-300">
+                <CardHeader className="pb-6 bg-gradient-to-r from-[#5ce1e6] via-[#00c4cc] via-30% to-[#8b3dff] relative">
+                    <div className="absolute top-0 right-0 p-4">
+                        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 rounded-full">
+                            <X className="w-5 h-5" />
+                        </Button>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
-                        <X className="w-5 h-5" />
-                    </Button>
+                    <CardTitle className="flex items-center gap-3 text-xl text-white font-bold">
+                        <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                            <History className="w-6 h-6" />
+                        </div>
+                        Execution History
+                    </CardTitle>
+                    <CardDescription className="text-white/90 text-sm font-medium">
+                        Recent activities and performance adjustments
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="max-h-[50vh] overflow-y-auto p-4">
                     {isLoading ? (
@@ -1082,22 +1139,24 @@ function EditRuleModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border-0">
-                <CardHeader className="pb-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="flex items-center gap-2 text-lg text-white">
-                            <Edit className="w-5 h-5" />
-                            Edit Rule
-                        </CardTitle>
-                        <CardDescription className="text-white/80 text-sm">
-                            Modify rule settings
-                        </CardDescription>
+            <Card className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border-primary/10 bg-white/90 dark:bg-background/90 animate-in fade-in zoom-in duration-300">
+                <CardHeader className="pb-6 bg-gradient-to-r from-[#5ce1e6] via-[#00c4cc] via-30% to-[#8b3dff] relative">
+                    <div className="absolute top-0 right-0 p-4">
+                        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 rounded-full">
+                            <X className="w-5 h-5" />
+                        </Button>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
-                        <X className="w-5 h-5" />
-                    </Button>
+                    <CardTitle className="flex items-center gap-3 text-xl text-white font-bold">
+                        <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                            <Edit className="w-6 h-6" />
+                        </div>
+                        Edit Rule
+                    </CardTitle>
+                    <CardDescription className="text-white/90 text-sm font-medium">
+                        Modify automation parameters and execution logic
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 space-y-4">
+                <CardContent className="p-6 space-y-5 max-h-[60vh] overflow-y-auto scrollbar-hide">
                     <div>
                         <Label htmlFor="editRuleName" className="text-xs font-medium">Rule Name</Label>
                         <Input
@@ -1122,23 +1181,31 @@ function EditRuleModal({
                     </div>
 
                     <div>
-                        <Label className="text-xs font-medium">Action</Label>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
+                        <Label className="text-sm font-bold text-foreground mb-3 block">Action to Perform</Label>
+                        <div className="grid grid-cols-2 gap-3 mt-2">
                             {EXECUTION_TYPES.map((exec) => {
                                 const Icon = exec.icon;
                                 return (
                                     <div
                                         key={exec.value}
                                         className={cn(
-                                            "p-2.5 rounded-lg border cursor-pointer transition-all flex items-center gap-2",
+                                            "p-3 rounded-xl border-2 transition-all flex items-center gap-3 group cursor-pointer",
                                             executionType === exec.value
-                                                ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 shadow-sm"
-                                                : "border-muted hover:border-amber-300 hover:bg-muted/50"
+                                                ? "border-primary bg-primary/5 shadow-md shadow-primary/5"
+                                                : "border-primary/5 hover:border-primary/20 hover:bg-primary/5"
                                         )}
                                         onClick={() => setExecutionType(exec.value)}
                                     >
-                                        <Icon className={cn('w-4 h-4', exec.color)} />
-                                        <span className="font-medium text-xs">{exec.label}</span>
+                                        <div className={cn(
+                                            "p-1.5 rounded-lg group-hover:scale-110 transition-transform",
+                                            executionType === exec.value ? "bg-primary/10" : "bg-muted"
+                                        )}>
+                                            <Icon className={cn('w-4 h-4', exec.color)} />
+                                        </div>
+                                        <span className={cn(
+                                            "font-bold text-xs",
+                                            executionType === exec.value ? "text-primary" : "text-muted-foreground"
+                                        )}>{exec.label}</span>
                                     </div>
                                 );
                             })}
@@ -1166,19 +1233,24 @@ function EditRuleModal({
                         </div>
                     )}
                 </CardContent>
-                <CardFooter className="flex justify-end gap-2 p-3 border-t bg-muted/30">
-                    <Button variant="outline" size="sm" className="h-9" onClick={onClose}>
+                <CardFooter className="flex justify-end gap-3 p-6 border-t bg-muted/30">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-11 rounded-xl border-primary/20 px-6 font-bold hover:bg-primary/5 transition-all active:scale-95"
+                        onClick={onClose}
+                    >
                         Cancel
                     </Button>
                     <Button
                         size="sm"
-                        className="h-9 bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+                        className="h-11 bg-[#00c4cc] hover:bg-[#00b0b8] text-white border-0 shadow-lg shadow-[#00c4cc]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold px-8 rounded-xl min-w-[140px]"
                         onClick={handleSave}
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
                             <>
-                                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin text-white" />
                                 Saving...
                             </>
                         ) : (

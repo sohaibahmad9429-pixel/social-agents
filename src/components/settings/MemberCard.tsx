@@ -59,13 +59,13 @@ export default function MemberCard({
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800 border-amber-200'
+        return 'bg-amber-500/10 text-amber-600 border-amber-200/50'
       case 'editor':
-        return 'bg-gradient-to-r from-teal-50 to-cyan-50 text-teal-800 border-teal-200'
+        return 'bg-primary/10 text-primary border-primary/20'
       case 'viewer':
-        return 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-700 border-slate-200'
+        return 'bg-muted text-muted-foreground border-border/50'
       default:
-        return 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-700 border-slate-200'
+        return 'bg-muted text-muted-foreground border-border/50'
     }
   }
 
@@ -79,7 +79,7 @@ export default function MemberCard({
   }
 
   return (
-    <div className="p-5 bg-card border border-border rounded-xl hover:border-teal-300 hover:shadow-md transition-all">
+    <div className="p-5 bg-background/40 backdrop-blur-sm border border-border/50 rounded-xl hover:border-primary/30 hover:shadow-sm transition-all group">
       <div className="flex items-center justify-between gap-4">
         {/* User Info */}
         <div className="flex items-center gap-4 flex-1 min-w-0">

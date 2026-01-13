@@ -129,9 +129,9 @@ const PublishedView: React.FC<PublishedViewProps> = ({ posts = [], onUpdatePost,
 
     if (postsForPublishing.length === 0 && !hasActiveFilters) {
         return (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full bg-transparent">
                 {/* Header - Library Style */}
-                <div className="border-b bg-background">
+                <div className="sticky top-0 z-20 border-b bg-canva-gradient/95 backdrop-blur-sm shadow-sm">
                     <div className="relative px-6 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -150,7 +150,7 @@ const PublishedView: React.FC<PublishedViewProps> = ({ posts = [], onUpdatePost,
                     </div>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center p-4 bg-background">
+                <div className="flex-1 flex items-center justify-center p-4">
                     <div className="text-center py-12 bg-card border border-dashed border-border rounded-lg px-6">
                         <h2 className="text-lg font-semibold text-foreground">Nothing to Publish</h2>
                         <p className="text-muted-foreground text-sm mt-1">Create content or send media from Library.</p>
@@ -161,9 +161,9 @@ const PublishedView: React.FC<PublishedViewProps> = ({ posts = [], onUpdatePost,
     }
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-transparent">
             {/* Header & Filters - Library Style */}
-            <div className="border-b bg-background">
+            <div className="sticky top-0 z-20 border-b bg-canva-gradient/95 backdrop-blur-sm shadow-sm">
                 <div className="relative px-6 py-4">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         {/* Left - Title */}
@@ -263,7 +263,7 @@ const PublishedView: React.FC<PublishedViewProps> = ({ posts = [], onUpdatePost,
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 p-2 bg-background overflow-auto">
+            <div className="flex-1 p-2 overflow-auto">
                 {postsForPublishing.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="text-center py-8">

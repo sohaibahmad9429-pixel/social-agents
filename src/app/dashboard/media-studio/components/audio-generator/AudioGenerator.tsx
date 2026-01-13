@@ -184,7 +184,7 @@ export function AudioGenerator() {
 
         setIsSaving(true);
         try {
-            const mediaId = await saveGeneratedMedia({
+            const { mediaId, success } = await saveGeneratedMedia({
                 type: 'audio',
                 source: 'generated',
                 url: audioUrl,
@@ -197,7 +197,7 @@ export function AudioGenerator() {
                 tags: ['audio', type]
             });
 
-            if (mediaId) {
+            if (success && mediaId) {
                 // Update local state immediately for instant feedback
                 const newAudio: MediaItem = {
                     id: mediaId,

@@ -256,29 +256,29 @@ export default function WorkspaceSettingsTab() {
 
       {/* Current Stats */}
       {workspace && (
-        <div className="p-6 bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 rounded-xl border border-teal-200/50 shadow-sm">
-          <h3 className="font-semibold text-teal-900 mb-5 text-base">Workspace Information</h3>
+        <div className="p-6 bg-background/40 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm">
+          <h3 className="font-semibold text-foreground mb-5 text-base">Workspace Information</h3>
           <div className="grid grid-cols-2 gap-5 text-sm">
-            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
-              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Workspace ID</p>
-              <p className="text-teal-900 font-mono text-xs break-all">{workspace.id}</p>
+            <div className="bg-background/50 p-3 rounded-lg border border-border/30">
+              <p className="text-muted-foreground font-medium mb-1.5 text-xs uppercase tracking-wide">Workspace ID</p>
+              <p className="text-foreground font-mono text-xs break-all">{workspace.id}</p>
             </div>
-            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
-              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Status</p>
+            <div className="bg-background/50 p-3 rounded-lg border border-border/30">
+              <p className="text-muted-foreground font-medium mb-1.5 text-xs uppercase tracking-wide">Status</p>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <p className="text-teal-900 font-medium">Active</p>
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <p className="text-foreground font-medium">Active</p>
               </div>
             </div>
-            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
-              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Created</p>
-              <p className="text-teal-900">
+            <div className="bg-background/50 p-3 rounded-lg border border-border/30">
+              <p className="text-muted-foreground font-medium mb-1.5 text-xs uppercase tracking-wide">Created</p>
+              <p className="text-foreground">
                 {formatDate(workspace.created_at)}
               </p>
             </div>
-            <div className="bg-white/60 backdrop-blur-sm p-3 rounded-lg">
-              <p className="text-teal-700 font-medium mb-1.5 text-xs uppercase tracking-wide">Last Updated</p>
-              <p className="text-teal-900">
+            <div className="bg-background/50 p-3 rounded-lg border border-border/30">
+              <p className="text-muted-foreground font-medium mb-1.5 text-xs uppercase tracking-wide">Last Updated</p>
+              <p className="text-foreground">
                 {formatDate(workspace.updated_at)}
               </p>
             </div>

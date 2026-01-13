@@ -22,6 +22,7 @@ import {
   Zap,
   AlertCircle,
   Info,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -534,12 +535,14 @@ function CreateAdSetModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden mx-4 scrollbar-hide">
+      <div className="relative bg-background/95 backdrop-blur-xl rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden mx-4 scrollbar-hide border border-white/20">
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-6 pb-4">
+        <div className="bg-gradient-to-r from-[#5ce1e6] via-[#00c4cc] via-30% to-[#8b3dff] text-white p-6 pb-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Zap className="w-5 h-5" />
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 shadow-sm">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Create Ad Set</h2>
                 <p className="text-sm text-white/80">
@@ -552,7 +555,7 @@ function CreateAdSetModal({
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20">
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/20 rounded-full">
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -563,8 +566,8 @@ function CreateAdSetModal({
               <div
                 key={s}
                 className={cn(
-                  "h-1 flex-1 rounded-full transition-colors",
-                  s <= step ? "bg-white" : "bg-white/30"
+                  "h-1.5 flex-1 rounded-full transition-all duration-300",
+                  s <= step ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]" : "bg-white/20"
                 )}
               />
             ))}
@@ -688,14 +691,14 @@ function CreateAdSetModal({
                           }));
                         }}
                         className={cn(
-                          "p-3 rounded-xl border-2 text-left transition-all",
+                          "p-4 rounded-xl border-2 text-left transition-all hover:shadow-md",
                           formData.optimization_goal === goal.value
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "border-border/50 hover:border-primary/30 hover:bg-background/50"
                         )}
                       >
-                        <p className="font-medium text-sm">{goal.label}</p>
-                        <p className="text-xs text-muted-foreground">{goal.description}</p>
+                        <p className="font-bold text-sm text-primary">{goal.label}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{goal.description}</p>
                       </button>
                     ));
                   })()}
@@ -707,14 +710,14 @@ function CreateAdSetModal({
           {step === 2 && (
             <div className="space-y-6">
               {/* v24.0 2026 Advantage+ Audience Toggle */}
-              <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 backdrop-blur-sm shadow-sm transition-all hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
-                      <Target className="w-5 h-5 text-orange-500" />
+                    <div className="p-2 rounded-xl bg-white dark:bg-background shadow-sm border border-primary/10">
+                      <Sparkles className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold text-foreground">Advantage+ Audience</p>
+                      <p className="font-bold text-primary">Advantage+ Audience</p>
                       <p className="text-sm text-muted-foreground">
                         Let Meta's AI find the best audience. Targeting becomes advisory.
                       </p>
@@ -723,19 +726,19 @@ function CreateAdSetModal({
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, advantage_audience: !prev.advantage_audience }))}
                     className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative",
-                      formData.advantage_audience ? "bg-orange-500" : "bg-muted"
+                      "w-12 h-6 rounded-full transition-all relative shadow-inner",
+                      formData.advantage_audience ? "bg-primary" : "bg-muted"
                     )}
                   >
                     <div className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform",
+                      "absolute top-1 w-4 h-4 rounded-full bg-white shadow-md transition-transform",
                       formData.advantage_audience ? "translate-x-7" : "translate-x-1"
                     )} />
                   </button>
                 </div>
                 {formData.advantage_audience && (
-                  <div className="mt-3 pl-12 flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  <div className="mt-3 pl-12 flex items-center gap-2 text-xs text-primary/70 font-medium">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     Advantage+ Audience is active. Targeting is used as advisory signals.
                   </div>
                 )}
@@ -846,14 +849,14 @@ function CreateAdSetModal({
           {step === 3 && (
             <div className="space-y-6">
               {/* v24.0 2026 Advantage+ Placements Toggle */}
-              <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 backdrop-blur-sm shadow-sm transition-all hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-white dark:bg-background shadow-sm border border-orange-100 dark:border-orange-900">
-                      <Globe className="w-5 h-5 text-orange-500" />
+                    <div className="p-2 rounded-xl bg-white dark:bg-background shadow-sm border border-primary/10">
+                      <Globe className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold text-foreground">Advantage+ Placements</p>
+                      <p className="font-bold text-primary">Advantage+ Placements</p>
                       <p className="text-sm text-muted-foreground">
                         Maximize your budget across all Meta platforms.
                       </p>
@@ -862,8 +865,8 @@ function CreateAdSetModal({
                   <button
                     onClick={() => setFormData(prev => ({ ...prev, advantage_placements: !prev.advantage_placements }))}
                     className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative",
-                      formData.advantage_placements ? "bg-orange-500" : "bg-muted"
+                      "w-12 h-6 rounded-full transition-all relative shadow-inner",
+                      formData.advantage_placements ? "bg-primary" : "bg-muted"
                     )}
                   >
                     <div className={cn(
@@ -874,7 +877,7 @@ function CreateAdSetModal({
                 </div>
                 {formData.advantage_placements && (
                   <div className="mt-3 pl-12 flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     Recommended. Meta's AI will automatically allocate budget.
                   </div>
                 )}
@@ -1126,12 +1129,12 @@ function CreateAdSetModal({
 
               {/* Show campaign bid strategy info when CBO is used */}
               {campaignUsesCBO && (
-                <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-900/50">
-                  <p className="text-sm font-semibold text-foreground mb-1">
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 backdrop-blur-sm shadow-sm">
+                  <p className="text-sm font-bold text-primary mb-1">
                     Campaign Budget Optimization Active
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Bid strategy is managed at campaign level: <span className="font-semibold text-orange-500">
+                    Bid strategy is managed at campaign level: <span className="font-bold text-primary">
                       {selectedCampaign?.bid_strategy?.replace(/_/g, ' ') || 'Lowest Cost'}
                     </span>
                   </p>
@@ -1189,69 +1192,7 @@ function CreateAdSetModal({
                 </div>
               </div>
 
-              {/* Attribution Settings (v24.0 2026) */}
-              <div className="pt-4 border-t space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-4 h-4" />
-                  <Label>Attribution Settings (v24.0 2026)</Label>
-                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-500/10 text-red-600 dark:text-red-400 rounded-full">UPDATED</span>
-                </div>
-                <div className="p-3 rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-200/50 dark:border-red-900/50 mb-4">
-                  <div className="flex items-start gap-2">
-                    <Info className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-red-700 dark:text-red-300">
-                      <strong>Jan 12, 2026 Update:</strong> 7-day and 28-day view-through windows are deprecated. Only 1-day view-through is allowed per v24.0 2026 standards.
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {(() => {
-                    const restrictedGoals = ['LANDING_PAGE_VIEWS', 'LINK_CLICKS', 'POST_ENGAGEMENT', 'REACH', 'IMPRESSIONS', 'THRUPLAY'];
-                    const isRestricted = restrictedGoals.includes(formData.optimization_goal);
 
-                    if (isRestricted) {
-                      return (
-                        <div className="col-span-2 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-900/50">
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            <strong>Note:</strong> For {formData.optimization_goal.replace(/_/g, ' ')}, Meta restricts the attribution window to 1-day click-through only.
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <>
-                        <div className="space-y-2">
-                          <Label className="text-xs">Click-Through Window</Label>
-                          <Select
-                            value={formData.attribution_spec?.find(s => s.event_type === 'CLICK_THROUGH')?.window_days.toString() || '7'}
-                            onValueChange={(val) => {
-                              const days = parseInt(val) as 1 | 7 | 28;
-                              const others = formData.attribution_spec?.filter(s => s.event_type !== 'CLICK_THROUGH') || [];
-                              setFormData(prev => ({ ...prev, attribution_spec: [...others, { event_type: 'CLICK_THROUGH', window_days: days }] }));
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">1 Day</SelectItem>
-                              <SelectItem value="7">7 Days (Recommended)</SelectItem>
-                              <SelectItem value="28">28 Days</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs">View-Through Window</Label>
-                          <div className="p-2 rounded border bg-muted/50 text-sm font-medium">
-                            1 Day (Required per 2026 standards)
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
 
               {/* v24.0 2026 Advanced Settings */}
               <div className="pt-4 border-t space-y-4">
@@ -1348,10 +1289,12 @@ function CreateAdSetModal({
           <Button
             variant="outline"
             onClick={() => step > 1 ? setStep(step - 1) : onClose()}
+            className="rounded-xl border-primary/20 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
           >
             {step > 1 ? 'Back' : 'Cancel'}
           </Button>
           <Button
+            className="bg-[#00c4cc] hover:bg-[#00b0b8] text-white border-0 shadow-lg shadow-[#00c4cc]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-bold px-8 rounded-xl min-w-[140px] gap-2"
             onClick={() => step < 4 ? setStep(step + 1) : onSubmit()}
             disabled={
               isSubmitting ||
@@ -1365,14 +1308,18 @@ function CreateAdSetModal({
                   !formData.bid_amount)
               ))
             }
-            className="gap-2"
           >
             {step < 4 ? (
               <>
                 Continue
                 <ChevronRight className="w-4 h-4" />
               </>
-            ) : isSubmitting ? 'Creating...' : 'Create Ad Set'}
+            ) : isSubmitting ? (
+              <>
+                <Zap className="mr-2 h-4 w-4 animate-spin text-white" />
+                Please wait...
+              </>
+            ) : 'Create Ad Set'}
           </Button>
         </div>
       </div>
@@ -1565,52 +1512,7 @@ function EditAdSetModal({
               </div>
             )}
 
-            {/* Attribution Settings (v24.0 2026) */}
-            <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4" />
-                <Label>Attribution Settings (v24.0 2026)</Label>
-              </div>
-              <div className="p-3 rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-200/50 dark:border-red-900/50 mb-4">
-                <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-red-700 dark:text-red-300">
-                    <strong>Jan 12, 2026 Update:</strong> View-through limited to 1 day only per v24.0 2026 standards.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Click-Through Window</Label>
-                  <Select
-                    value={formData.attribution_spec?.find(s => s.event_type === 'CLICK_THROUGH')?.window_days.toString() || '7'}
-                    onValueChange={(val) => {
-                      const days = parseInt(val) as 1 | 7 | 28;
-                      const others = formData.attribution_spec?.filter(s => s.event_type !== 'CLICK_THROUGH') || [];
-                      setFormData(prev => ({ ...prev, attribution_spec: [...others, { event_type: 'CLICK_THROUGH', window_days: days }] }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 Day</SelectItem>
-                      <SelectItem value="7">7 Days</SelectItem>
-                      <SelectItem value="28">28 Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">View-Through Window</Label>
-                  <div className="p-2 rounded border bg-muted/50 text-sm font-medium">
-                    1 Day (Required per 2026 standards)
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    ✓ v24.0 2026 Compliance: View-through limited to 1 day only
-                  </p>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 

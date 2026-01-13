@@ -109,8 +109,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 id="document-upload-input"
                 style={{ display: 'none' }}
             />
-            
-            <div className="bg-background sticky bottom-0">
+
+            <div className="bg-transparent sticky bottom-0">
                 <div className="max-w-4xl mx-auto px-6 py-4">
                     {error && (
                         <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-3">
@@ -121,7 +121,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                             </div>
                         </div>
                     )}
-                    
+
                     {/* Attached Files Preview */}
                     {attachedFiles.length > 0 && (
                         <div className="mb-3 flex flex-wrap gap-2">
@@ -153,84 +153,84 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                             ))}
                         </div>
                     )}
-                    
+
                     <form onSubmit={handleSubmit} className="relative">
                         <div className="flex items-center gap-2 bg-card rounded-[20px] px-3.5 py-2.5 shadow-sm border border-border hover:border-border/80 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                             {/* Plus Button with Dropdown Menu */}
-                        <div className="relative" ref={menuRef}>
-                            <button
-                                type="button"
-                                onClick={() => setLocalShowMenu(!localShowMenu)}
+                            <div className="relative" ref={menuRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setLocalShowMenu(!localShowMenu)}
+                                    disabled={isLoading || isCreatingNewChat}
+                                    className="p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                                    title="Attach files"
+                                >
+                                    <PlusCircle className="w-5 h-5" />
+                                </button>
+
+                                {/* Upload Menu Dropdown */}
+                                {localShowMenu && (
+                                    <div className="absolute bottom-full left-0 mb-2 bg-card rounded-xl shadow-lg border border-border py-1 min-w-[200px] z-50">
+                                        <div className="px-3 py-2 border-b border-border">
+                                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Upload Files</p>
+                                        </div>
+
+                                        {/* Images Option - using label */}
+                                        <label
+                                            htmlFor="image-upload-input"
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left cursor-pointer"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                <Image className="w-4 h-4 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-medium text-foreground block">Images</span>
+                                                <span className="text-xs text-muted-foreground">JPG, PNG, GIF, WebP, SVG</span>
+                                            </div>
+                                        </label>
+
+                                        {/* Documents Option - using label */}
+                                        <label
+                                            htmlFor="document-upload-input"
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left cursor-pointer"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                                <FileText className="w-4 h-4 text-orange-600" />
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-medium text-foreground block">Documents</span>
+                                                <span className="text-xs text-muted-foreground">PDF, DOC, PPT, TXT, CSV, JSON</span>
+                                            </div>
+                                        </label>
+
+                                        <div className="px-3 py-2 border-t border-border mt-1">
+                                            <p className="text-xs text-muted-foreground">Max 10MB per file • Up to 5 files</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Text Input */}
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={userInput}
+                                onChange={(e) => setUserInput(e.target.value)}
+                                placeholder={isCreatingNewChat ? "Creating new chat..." : isRecording ? "Listening..." : "How can I help you today?"}
+                                className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-foreground font-normal text-[15px] placeholder:text-muted-foreground/70 disabled:text-muted-foreground"
                                 disabled={isLoading || isCreatingNewChat}
-                                className="p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-                                title="Attach files"
+                                autoFocus
+                            />
+
+                            {/* Send Button */}
+                            <button
+                                type="submit"
+                                disabled={isLoading || isCreatingNewChat}
+                                className="p-2 rounded-lg text-white gradient-primary hover:shadow-md disabled:bg-muted disabled:cursor-not-allowed transition-all flex-shrink-0"
                             >
-                                <PlusCircle className="w-5 h-5" />
+                                <Send className="w-4 h-4" />
                             </button>
-                            
-                            {/* Upload Menu Dropdown */}
-                            {localShowMenu && (
-                                <div className="absolute bottom-full left-0 mb-2 bg-card rounded-xl shadow-lg border border-border py-1 min-w-[200px] z-50">
-                                    <div className="px-3 py-2 border-b border-border">
-                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Upload Files</p>
-                                    </div>
-                                    
-                                    {/* Images Option - using label */}
-                                    <label
-                                        htmlFor="image-upload-input"
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left cursor-pointer"
-                                    >
-                                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                                            <Image className="w-4 h-4 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <span className="text-sm font-medium text-foreground block">Images</span>
-                                            <span className="text-xs text-muted-foreground">JPG, PNG, GIF, WebP, SVG</span>
-                                        </div>
-                                    </label>
-                                    
-                                    {/* Documents Option - using label */}
-                                    <label
-                                        htmlFor="document-upload-input"
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors text-left cursor-pointer"
-                                    >
-                                        <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-                                            <FileText className="w-4 h-4 text-orange-600" />
-                                        </div>
-                                        <div>
-                                            <span className="text-sm font-medium text-foreground block">Documents</span>
-                                            <span className="text-xs text-muted-foreground">PDF, DOC, PPT, TXT, CSV, JSON</span>
-                                        </div>
-                                    </label>
-                                    
-                                    <div className="px-3 py-2 border-t border-border mt-1">
-                                        <p className="text-xs text-muted-foreground">Max 10MB per file • Up to 5 files</p>
-                                    </div>
-                                </div>
-                            )}
                         </div>
-                        
-                        {/* Text Input */}
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={userInput}
-                            onChange={(e) => setUserInput(e.target.value)}
-                            placeholder={isCreatingNewChat ? "Creating new chat..." : isRecording ? "Listening..." : "How can I help you today?"}
-                            className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-foreground font-normal text-[15px] placeholder:text-muted-foreground/70 disabled:text-muted-foreground"
-                            disabled={isLoading || isCreatingNewChat}
-                            autoFocus
-                        />
-                        
-                        {/* Send Button */}
-                        <button
-                            type="submit"
-                            disabled={isLoading || isCreatingNewChat}
-                            className="p-2 rounded-lg text-white gradient-primary hover:shadow-md disabled:bg-muted disabled:cursor-not-allowed transition-all flex-shrink-0"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
-                    </div>
                     </form>
 
                     <div className="mt-2 flex justify-end">

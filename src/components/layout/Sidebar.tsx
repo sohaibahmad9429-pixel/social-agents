@@ -48,11 +48,11 @@ export function Sidebar() {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <div className="flex h-full w-[72px] flex-col items-center bg-sky-100 border-r border-sky-200 pt-1 pb-2 shadow-sm">
+            <div className="flex h-full w-[72px] flex-col items-center bg-white/10 backdrop-blur-xl border-r border-white/20 pt-1 pb-2 shadow-sm z-40">
                 {/* Logo - Enterprise Style */}
                 <div className="mb-0">
                     <Link href="/dashboard" className="group">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-teal-500/10 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-teal-500/20 group-hover:scale-105 ring-1 ring-teal-500/20">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl overflow-hidden bg-white/20 border border-white/30 shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-105">
                             <img
                                 src="/frappe-framework-logo.svg"
                                 alt="Logo"
@@ -66,7 +66,7 @@ export function Sidebar() {
                 <div className="mb-0">
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200 text-teal-600 hover:text-teal-700 hover:bg-teal-50">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200 text-foreground/70 hover:text-foreground hover:bg-white/20">
                                 <ModeToggle />
                             </div>
                         </TooltipTrigger>
@@ -88,13 +88,13 @@ export function Sidebar() {
                                         className={cn(
                                             "relative flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200",
                                             isActive
-                                                ? "bg-gradient-to-br from-teal-500/15 via-cyan-500/10 to-emerald-500/15 text-teal-700 shadow-md shadow-teal-500/15 ring-1 ring-teal-400/40"
-                                                : "text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                                                ? "bg-white/30 text-primary shadow-sm border border-white/40"
+                                                : "text-foreground/60 hover:text-primary hover:bg-white/20"
                                         )}
                                     >
                                         {/* Active indicator bar */}
                                         {isActive && (
-                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-gradient-to-b from-teal-500 to-cyan-500 rounded-r-full" />
+                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
                                         )}
                                         <item.icon className="relative h-[22px] w-[22px] transition-all duration-200" />
                                     </Link>
@@ -133,8 +133,8 @@ export function Sidebar() {
                                 className={cn(
                                     "flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200",
                                     pathname?.startsWith('/settings')
-                                        ? "bg-teal-50 text-teal-700 ring-1 ring-teal-400/40"
-                                        : "text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                                        ? "bg-white/30 text-primary border border-white/40"
+                                        : "text-foreground/60 hover:text-primary hover:bg-white/20"
                                 )}
                             >
                                 <Settings className="h-5 w-5" />
