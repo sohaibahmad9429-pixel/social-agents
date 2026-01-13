@@ -197,7 +197,7 @@ export function MediaGallery({
   // Combine database items with in-memory items
   const allItems = workspaceId
     ? dbMediaItems.filter(item => {
-      if (filterType === 'all') return true;
+      if (filterType === 'all') return item.type !== 'audio';
       if (filterType === 'images') return item.type === 'image';
       if (filterType === 'videos') return item.type === 'video';
       if (filterType === 'audio') return item.type === 'audio';
