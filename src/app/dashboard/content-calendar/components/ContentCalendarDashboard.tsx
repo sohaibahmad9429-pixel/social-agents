@@ -61,7 +61,7 @@ export function ContentCalendarDashboard() {
             if (filters.status) params.append('status', filters.status);
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL}/api/v1/calendar?${params.toString()}`,
+                `/api/calendar?${params.toString()}`,
                 {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`,

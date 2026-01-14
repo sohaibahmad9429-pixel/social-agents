@@ -85,6 +85,16 @@ const nextConfig = {
         source: '/api/canva/:path*',
         destination: `${pythonBackendUrl}/api/v1/canva/:path*`,
       },
+      // Content Calendar API routes (base path)
+      {
+        source: '/api/calendar',
+        destination: `${pythonBackendUrl}/api/v1/calendar`,
+      },
+      // Content Calendar API routes (with path segments)
+      {
+        source: '/api/calendar/:path*',
+        destination: `${pythonBackendUrl}/api/v1/calendar/:path*`,
+      },
       // Meta Ads API routes
       {
         source: '/api/meta-ads/:path*',

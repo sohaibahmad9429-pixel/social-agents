@@ -117,8 +117,8 @@ export function EntryModal({ isOpen, onClose, entry, onSave }: EntryModalProps) 
             };
 
             const url = entry
-                ? `${process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL}/api/v1/calendar/${entry.id}`
-                : `${process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL}/api/v1/calendar`;
+                ? `/api/calendar/${entry.id}`
+                : `/api/calendar`;
 
             const response = await fetch(url, {
                 method: entry ? 'PUT' : 'POST',
@@ -147,7 +147,7 @@ export function EntryModal({ isOpen, onClose, entry, onSave }: EntryModalProps) 
         setDeleting(true);
         try {
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL}/api/v1/calendar/${entry.id}`,
+                `/api/calendar/${entry.id}`,
                 {
                     method: 'DELETE',
                     headers: {
