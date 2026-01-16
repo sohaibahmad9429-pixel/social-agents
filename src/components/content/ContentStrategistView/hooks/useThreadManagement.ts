@@ -11,7 +11,7 @@ export const useThreadManagement = () => {
     const startNewChat = useCallback(async () => {
         try {
             setIsCreatingNewChat(true);
-            
+
             // Generate new LangGraph thread ID
             const newLangThreadId = crypto.randomUUID();
 
@@ -19,7 +19,7 @@ export const useThreadManagement = () => {
             setActiveThreadId('new');
             setLangThreadId(newLangThreadId);
             setCurrentThreadId(null);
-            
+
             return newLangThreadId;
         } finally {
             setIsCreatingNewChat(false);
@@ -29,26 +29,26 @@ export const useThreadManagement = () => {
     const loadThread = useCallback(async (thread: ContentThread): Promise<Message[]> => {
         // Fetch messages from LangGraph checkpoints
         const messages = await ThreadService.getThreadMessages(thread.lang_thread_id);
-        
+
         // Convert to UI format
         const uiMessages = messages.map((msg: any) => {
             const message: Message = {
                 role: (msg.role === 'assistant' ? 'model' : msg.role) as 'user' | 'model' | 'system',
                 content: msg.content,
             };
-            
+
             // Include attachments if present
             if (msg.attachments && msg.attachments.length > 0) {
                 message.attachments = msg.attachments;
             }
-            
+
             return message;
         });
 
         setActiveThreadId(thread.id);
         setCurrentThreadId(thread.id);
         setLangThreadId(thread.lang_thread_id);
-        
+
         return uiMessages;
     }, []);
 
@@ -66,7 +66,7 @@ export const useThreadManagement = () => {
         );
         setCurrentThreadId(newThread.id);
         setActiveThreadId(newThread.id);
-        
+
         return newThread;
     }, []);
 
@@ -76,11 +76,11 @@ export const useThreadManagement = () => {
         messages: Message[]
     ) => {
         if (!threadId) return;
-        
+
         try {
             const lastMessage = messages[messages.length - 1];
             const preview = lastMessage?.content.substring(0, 100) || '';
-            
+
             await ThreadService.updateThreadMetadata(threadId, workspaceId, {
                 preview,
                 messageCount: messages.length,

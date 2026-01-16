@@ -50,10 +50,6 @@ async def lifespan(app: FastAPI):
     for error in validation_errors:
         logger.warning(f"Config warning: {error}")
     
-    # Initialize checkpointer for LangGraph memory persistence
-    from .agents.content_strategist_agent.service import init_checkpointer, close_checkpointer
-    await init_checkpointer()
-    
     # LLM models are created on-demand per request
     logger.info("Using on-demand LLM model creation")
     
@@ -73,16 +69,15 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("No AI provider API keys configured")
     
+    # Initialize deep_agents (uses in-memory checkpointer by default)
+    logger.info("Deep Agents initialized with in-memory checkpointer")
+    
     logger.info("Application startup complete")
     
     yield
     
     # Shutdown
     logger.info("Shutting down Content Creator Backend...")
-    
-    # Close checkpointer connection
-    await close_checkpointer()
-    
     logger.info("Application shutdown complete")
 
 
@@ -142,6 +137,9 @@ from .api import (
     voice_live_router,
     calendar_router
 )
+# Deep agents router (LangGraph-powered content strategist)
+from .agents.deep_agents.router import router as deep_agents_router
+
 app.include_router(content_router)
 app.include_router(content_improvement_router)
 app.include_router(improve_media_prompts_router)
@@ -170,6 +168,7 @@ app.include_router(businesses_router, prefix="/api/v1/meta-ads", tags=["Meta Ads
 app.include_router(ab_tests_router, prefix="/api/v1/meta-ads", tags=["Meta Ads - A/B Testing"])
 app.include_router(voice_live_router)
 app.include_router(calendar_router, prefix="/api/v1", tags=["Content Calendar"])
+app.include_router(deep_agents_router)
 
 
 @app.exception_handler(Exception)

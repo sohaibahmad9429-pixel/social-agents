@@ -1,12 +1,7 @@
 """Agents Module - AI Agents for Content Creation"""
 
-# Content Strategist Agent
-from .content_strategist_agent import (
-    content_strategist_chat,
-    ChatStrategistRequest,
-    ChatStrategistResponse,
-    ContentBlock,
-)
+# Deep Agents - LangGraph-powered content writer (replaces content_strategist_agent)
+from .deep_agents.agent import get_agent, create_content_writer
 
 # Content Improvement Agent
 from .content_improvement_agent import (
@@ -71,11 +66,9 @@ from .comment_agent import (
 )
 
 __all__ = [
-    # Content Strategist Agent
-    "content_strategist_chat",
-    "ChatStrategistRequest",
-    "ChatStrategistResponse",
-    "ContentBlock",
+    # Deep Agents (Content Writer)
+    "get_agent",
+    "create_content_writer",
     # Content Improvement Agent
     "improve_content_description",
     "ImproveContentRequest",

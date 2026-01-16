@@ -2,18 +2,32 @@
  * Content Strategist Global Store
  * 
  * Persists chat state across page navigation using Zustand.
- * This allows the Content Strategist UI to maintain its state
- * when the user navigates to other pages and returns.
  */
 
 import { create } from 'zustand';
 
-// Re-use types from ContentStrategistView
 interface AttachedFile {
     type: 'image' | 'file';
     name: string;
     url: string;
     size?: number;
+}
+
+interface ToolCall {
+    id: string;
+    name: string;
+    args: Record<string, unknown>;
+    status?: 'pending' | 'completed' | 'error' | 'interrupted';
+    result?: string;
+}
+
+interface SubAgent {
+    id: string;
+    name: string;
+    subAgentName: string;
+    input: Record<string, unknown>;
+    output?: Record<string, unknown>;
+    status: 'pending' | 'active' | 'completed' | 'error';
 }
 
 interface Message {
@@ -22,34 +36,27 @@ interface Message {
     attachments?: AttachedFile[];
     isStreaming?: boolean;
     suggestions?: string[];
-    // Thinking/reasoning (Gemini 2.5)
     thinking?: string;
     isThinking?: boolean;
-    // Media generation
+    tool_calls?: ToolCall[];
+    sub_agents?: SubAgent[];
+    files?: Array<{ path: string; name: string; type: string }>;
     generatedImage?: string;
     generatedVideo?: string;
     isGeneratingMedia?: boolean;
-    // Post creation (legacy)
-    postData?: any;
-    parameters?: any;
-    // Voice generated content
+    postData?: unknown;
+    parameters?: unknown;
     isVoiceGenerated?: boolean;
 }
 
 interface ContentStrategistState {
-    // Chat state
     messages: Message[];
     hasUserSentMessage: boolean;
     error: string | null;
-
-    // Thread state
     activeThreadId: string | null;
     langThreadId: string | null;
-
-    // Voice agent state
     isVoiceActive: boolean;
 
-    // Actions
     setMessages: (messages: Message[] | ((prev: Message[]) => Message[])) => void;
     addMessage: (message: Message) => void;
     setHasUserSentMessage: (value: boolean) => void;
@@ -57,13 +64,10 @@ interface ContentStrategistState {
     setActiveThreadId: (id: string | null) => void;
     setLangThreadId: (id: string | null) => void;
     setIsVoiceActive: (active: boolean) => void;
-
-    // Reset for new conversation
-    resetConversation: () => void;
+    clearChat: () => void;
 }
 
 export const useContentStrategistStore = create<ContentStrategistState>((set) => ({
-    // Initial state
     messages: [],
     hasUserSentMessage: false,
     error: null,
@@ -71,32 +75,21 @@ export const useContentStrategistStore = create<ContentStrategistState>((set) =>
     langThreadId: null,
     isVoiceActive: false,
 
-    // Actions
-    setMessages: (messagesOrUpdater) => set((state) => ({
-        messages: typeof messagesOrUpdater === 'function'
-            ? messagesOrUpdater(state.messages)
-            : messagesOrUpdater
-    })),
+    setMessages: (messages) =>
+        set((state) => ({
+            messages: typeof messages === 'function' ? messages(state.messages) : messages,
+        })),
 
-    addMessage: (message) => set((state) => ({
-        messages: [...state.messages, message]
-    })),
+    addMessage: (message) =>
+        set((state) => ({
+            messages: [...state.messages, message],
+            hasUserSentMessage: message.role === 'user' ? true : state.hasUserSentMessage,
+        })),
 
     setHasUserSentMessage: (value) => set({ hasUserSentMessage: value }),
-
     setError: (error) => set({ error }),
-
     setActiveThreadId: (id) => set({ activeThreadId: id }),
-
     setLangThreadId: (id) => set({ langThreadId: id }),
-
     setIsVoiceActive: (active) => set({ isVoiceActive: active }),
-
-    resetConversation: () => set({
-        messages: [],
-        hasUserSentMessage: false,
-        error: null,
-        activeThreadId: null,
-        langThreadId: null,
-    }),
+    clearChat: () => set({ messages: [], hasUserSentMessage: false, error: null }),
 }));

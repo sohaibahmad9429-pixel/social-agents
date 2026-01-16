@@ -1,79 +1,62 @@
-"""
-Content Agent API Routes
-"""
-import logging
-import json
-from typing import AsyncGenerator
+"""Content Strategist API Routes
 
-from fastapi import APIRouter, Query, HTTPException
+This router provides the Content Strategist chat endpoints.
+It uses the deep_agents implementation for the LangGraph-powered agent.
+"""
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import Optional, List
+import uuid
+import json
 
-from ...agents.content_strategist_agent import (
-    content_strategist_chat,
-    ChatStrategistRequest,
-    get_thread_history,
-)
-
-logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/api/v1/content", tags=["content"])
+router = APIRouter(prefix="/api/v1/content", tags=["Content Strategist"])
 
 
-@router.get("/strategist/history")
-async def get_history(threadId: str = Query(..., description="LangGraph thread ID")):
-    """
-    GET /api/v1/content/strategist/history
-    
-    Fetch conversation history from LangGraph checkpoints.
-    The history is automatically stored by LangGraph when using the checkpointer.
-    """
-    if not threadId:
-        raise HTTPException(status_code=400, detail="threadId query parameter is required")
-    
-    result = await get_thread_history(threadId)
-    
-    if not result.get("success", True) and "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
-    
-    return result
+# SSE helper - same as deep_agents router
+def format_sse(data: dict) -> str:
+    """Format data as SSE event."""
+    return f"data: {json.dumps(data)}\n\n"
+
+
+class ContentBlock(BaseModel):
+    """Multimodal content block."""
+    type: str
+    text: Optional[str] = None
+    data: Optional[str] = None
+    mimeType: Optional[str] = None
+
+
+class StrategistChatRequest(BaseModel):
+    """Chat request for content strategist."""
+    message: str
+    threadId: Optional[str] = None
+    workspaceId: Optional[str] = None
+    contentBlocks: Optional[List[ContentBlock]] = None
+    enableReasoning: Optional[bool] = True
 
 
 @router.post("/strategist/chat")
-async def chat_strategist(request_body: ChatStrategistRequest):
+async def chat_strategist(request: StrategistChatRequest):
     """
-    POST /api/v1/content/strategist/chat
-    
-    Stream chat with content strategist agent.
-    Memory handled automatically via thread_id.
+    Chat endpoint for the Content Strategist.
+    Forwards to the deep_agents implementation.
     """
+    from ...agents.deep_agents.router import stream_agent_response
     
-    async def generate_stream() -> AsyncGenerator[str, None]:
-        full_response = ""
-        full_thinking = ""
-        
-        async for chunk in content_strategist_chat(request_body):
-            step = chunk.get("step", "")
-            content = chunk.get("content", "")
-            
-            if step == "error":
-                yield f"data: {json.dumps({'type': 'error', 'message': content})}\n\n"
-                return
-            
-            # Handle thinking/reasoning stream
-            if step == "thinking" and content:
-                full_thinking = content
-                yield f"data: {json.dumps({'type': 'thinking', 'content': content})}\n\n"
-            
-            # Handle regular content stream
-            elif step == "streaming" and content:
-                full_response = content
-                yield f"data: {json.dumps({'type': 'update', 'step': step, 'content': content})}\n\n"
-        
-        # Include thinking in final response for persistence
-        yield f"data: {json.dumps({'type': 'done', 'response': full_response, 'thinking': full_thinking})}\n\n"
+    message = request.message
+    thread_id = request.threadId or str(uuid.uuid4())
+    
+    async def generate():
+        """Wrapper that formats events as SSE."""
+        try:
+            async for event in stream_agent_response(message, thread_id):
+                yield format_sse(event)
+        except Exception as e:
+            yield format_sse({"step": "error", "content": str(e)})
     
     return StreamingResponse(
-        generate_stream(),
+        generate(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -81,3 +64,9 @@ async def chat_strategist(request_body: ChatStrategistRequest):
             "X-Accel-Buffering": "no",
         }
     )
+
+
+@router.get("/strategist/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "content-strategist"}
