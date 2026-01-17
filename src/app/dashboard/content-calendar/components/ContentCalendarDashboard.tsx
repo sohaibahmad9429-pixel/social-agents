@@ -139,40 +139,43 @@ export function ContentCalendarDashboard() {
     const hasActiveFilters = filters.platform || filters.content_type || filters.status;
 
     return (
-        <div className="flex flex-col h-full gap-6 p-4 md:p-6">
+        <div className="flex flex-col h-full gap-4 p-3">
             {/* Header Section */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 shadow-lg shadow-purple-500/25">
-                        <Calendar className="w-6 h-6 text-white" />
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 shadow-lg shadow-purple-500/25">
+                        <Calendar className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-bold text-foreground">
+                        <h1 className="text-sm font-semibold text-foreground">
                             Content Calendar
                         </h1>
-                        <p className="text-muted-foreground mt-1">
+                        <p className="text-muted-foreground text-[11px]">
                             Plan, schedule, and manage your social media content
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
                     <Button
                         variant={hasActiveFilters ? "default" : "outline"}
                         size="sm"
                         onClick={() => setShowFilters(!showFilters)}
-                        className="gap-2"
+                        className="gap-1.5 h-7 px-2.5 text-[11px]"
                     >
-                        <Filter className="w-4 h-4" />
+                        <Filter className="w-3 h-3" />
                         Filters
                         {hasActiveFilters && (
-                            <Badge variant="secondary" className="ml-1 bg-white/20">
+                            <Badge variant="secondary" className="ml-1 bg-white/20 h-4 px-1.5 text-[9px]">
                                 Active
                             </Badge>
                         )}
                     </Button>
-                    <Button onClick={handleNewEntry} className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg shadow-purple-500/25">
-                        <Plus className="w-4 h-4" />
+                    <Button
+                        onClick={handleNewEntry}
+                        className="gap-1.5 h-7 px-2.5 text-[11px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg shadow-purple-500/25"
+                    >
+                        <Plus className="w-3 h-3" />
                         New Entry
                     </Button>
                 </div>
@@ -189,22 +192,22 @@ export function ContentCalendarDashboard() {
 
             {/* Calendar Card */}
             <Card className="flex-1 shadow-sm">
-                <CardHeader className="pb-4 border-b">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardHeader className="pb-3 border-b">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         {/* Date Navigation */}
                         <div className="flex items-center gap-2">
                             <Button
                                 variant="outline"
                                 size="icon"
                                 onClick={() => navigateDate('prev')}
-                                className="rounded-full h-9 w-9"
+                                className="rounded-full h-7 w-7"
                             >
-                                <ChevronLeft className="w-4 h-4" />
+                                <ChevronLeft className="w-3 h-3" />
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={() => setCurrentDate(new Date())}
-                                className="font-medium"
+                                className="h-7 px-2.5 text-[11px] font-medium"
                             >
                                 Today
                             </Button>
@@ -212,25 +215,25 @@ export function ContentCalendarDashboard() {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => navigateDate('next')}
-                                className="rounded-full h-9 w-9"
+                                className="rounded-full h-7 w-7"
                             >
-                                <ChevronRight className="w-4 h-4" />
+                                <ChevronRight className="w-3 h-3" />
                             </Button>
-                            <div className="ml-3 px-4 py-1.5 bg-muted/50 rounded-full">
-                                <span className="font-semibold text-lg">{formatDateRange()}</span>
+                            <div className="ml-2 px-2.5 py-0.5 bg-muted/50 rounded-full">
+                                <span className="font-semibold text-[12px]">{formatDateRange()}</span>
                             </div>
                         </div>
 
                         {/* View Toggle & Refresh */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                             <Tabs value={view} onValueChange={(v) => setView(v as 'week' | 'month')}>
-                                <TabsList className="h-10">
-                                    <TabsTrigger value="week" className="flex items-center gap-2 px-4">
-                                        <CalendarDays className="w-4 h-4" />
+                                <TabsList className="h-7">
+                                    <TabsTrigger value="week" className="flex items-center gap-1.5 px-2.5 text-[11px]">
+                                        <CalendarDays className="w-3 h-3" />
                                         Week
                                     </TabsTrigger>
-                                    <TabsTrigger value="month" className="flex items-center gap-2 px-4">
-                                        <Grid3X3 className="w-4 h-4" />
+                                    <TabsTrigger value="month" className="flex items-center gap-1.5 px-2.5 text-[11px]">
+                                        <Grid3X3 className="w-3 h-3" />
                                         Month
                                     </TabsTrigger>
                                 </TabsList>
@@ -240,15 +243,15 @@ export function ContentCalendarDashboard() {
                                 size="icon"
                                 onClick={fetchEntries}
                                 disabled={loading}
-                                className="rounded-full h-10 w-10"
+                                className="rounded-full h-7 w-7"
                             >
-                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                                <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                             </Button>
                         </div>
                     </div>
                 </CardHeader>
 
-                <CardContent className="pt-6">
+                <CardContent className="pt-4">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-[450px] gap-3">
                             <div className="relative">

@@ -198,7 +198,7 @@ export default function ContentStrategistView({ onPostCreated }: ContentStrategi
             </div>
 
             {/* Right Sidebar - Tasks & Files */}
-            <div className="w-72 border-l border-border/60 bg-background/70 flex-shrink-0 hidden lg:block mr-3 my-3 rounded-lg overflow-hidden shadow-sm">
+            <div className="w-72 border-l border-border/60 bg-background/70 flex-shrink-0 hidden lg:block mr-0 my-0 rounded-lg overflow-hidden shadow-sm">
                 <TasksFilesSidebar
                     todos={storeTodos}
                     files={storeFiles}
