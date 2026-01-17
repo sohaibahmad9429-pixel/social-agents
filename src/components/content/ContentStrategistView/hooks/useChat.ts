@@ -17,7 +17,8 @@ interface UseChatOptions {
     onThreadCreated?: (threadId: string) => void;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || 'http://localhost:8000';
+// Use relative path to leverage Next.js rewrites proxy (works in both dev and production)
+const API_BASE = '';
 
 /**
  * useChat - Streaming chat hook that works with Zustand store
@@ -79,7 +80,7 @@ export function useChat(options: UseChatOptions) {
         let finalThinking = '';
 
         try {
-            const response = await fetch(`${API_BASE}/api/v1/content/strategist/chat`, {
+            const response = await fetch(`${API_BASE}/py-api/content/strategist/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -90,7 +91,6 @@ export function useChat(options: UseChatOptions) {
                     threadId: currentThreadId,
                     workspaceId,
                     contentBlocks: options?.contentBlocks,
-                    modelId,
                     enableReasoning,
                 }),
                 signal: controller.signal,
@@ -328,7 +328,7 @@ export function useChat(options: UseChatOptions) {
         if (!threadId) return;
 
         try {
-            const response = await fetch(`${API_BASE}/api/v1/deep-agents/threads/${threadId}/resume`, {
+            const response = await fetch(`${API_BASE}/py-api/deep-agents/threads/${threadId}/resume`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -366,7 +366,7 @@ export function useChat(options: UseChatOptions) {
         if (!threadId) return null;
 
         try {
-            const response = await fetch(`${API_BASE}/api/v1/deep-agents/threads/${threadId}/state`);
+            const response = await fetch(`${API_BASE}/py-api/deep-agents/threads/${threadId}/state`);
             if (!response.ok) return null;
             return await response.json();
         } catch {
