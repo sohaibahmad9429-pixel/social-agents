@@ -160,9 +160,9 @@ if (IS_BROWSER && IS_PRODUCTION) {
     }
 }
 
-// Request timeout in milliseconds
-export const REQUEST_TIMEOUT =
-    parseInt(process.env.PYTHON_BACKEND_TIMEOUT || '30000', 10);
+// Request timeout in milliseconds (5 minutes for large YouTube video uploads)
+export const REQUEST_TIMEOUT = 300000
+
 
 // Retry configuration
 export const RETRY_CONFIG = {

@@ -189,7 +189,7 @@ class PagesService:
                 if scheduled_publish_time:
                     params['scheduled_publish_time'] = scheduled_publish_time
             
-            result = page.create_feed(**params)
+            result = page.create_feed(params=params)
             return {
                 "success": True,
                 'id': result.get('id'),
@@ -241,20 +241,25 @@ class PagesService:
         published: bool = True
     ) -> Dict[str, Any]:
         """
-        Post photo to Facebook Page.
-        Per docs: POST /page_id/photos with url param
+        Post photo to Facebook Page using SDK.
+        Per SDK docs: Page.create_photo(params={'url': ..., 'caption': ...})
         """
         try:
             self._init_api()
             
             page = Page(fbid=page_id)
-            params = {'url': photo_url}
+            
+            # Build params dict per SDK documentation
+            params = {
+                'url': photo_url,
+                'published': published
+            }
             if caption:
                 params['caption'] = caption
-            if not published:
-                params['published'] = False
-                
-            result = page.create_photo(**params)
+            
+            # SDK expects params as a dict argument
+            result = page.create_photo(params=params)
+            
             return {
                 "success": True,
                 'id': result.get('id'),
@@ -317,7 +322,7 @@ class PagesService:
             if title:
                 params['title'] = title
                 
-            result = page.create_video(**params)
+            result = page.create_video(params=params)
             return {
                 "success": True,
                 'id': result.get('id'),

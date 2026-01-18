@@ -30,12 +30,18 @@ class InstagramPostRequest(BaseModel):
     """Instagram post request"""
     caption: str = Field(default="", max_length=2200, description="Post caption (max 2,200 chars)")
     imageUrl: Optional[str] = Field(default=None, description="Image or video URL")
-    mediaType: Optional[Literal["image", "video", "reel", "reels"]] = Field(default=None, description="Media type")
-    carouselUrls: Optional[List[str]] = Field(default=None, min_items=2, max_items=10, description="2-10 URLs for carousel")
+    mediaType: Optional[Literal["image", "video", "reel", "reels", "carousel", "story"]] = Field(default=None, description="Media type")
+    carouselUrls: Optional[List[str]] = Field(default=None, description="2-10 URLs for carousel")
+    carouselImages: Optional[List[str]] = Field(default=None, description="Alias for carouselUrls (frontend compatibility)")
     postType: Optional[Literal["post", "reel", "story"]] = Field(default="post", description="Post type")
     workspaceId: Optional[str] = Field(default=None, description="Workspace ID (for cron)")
     userId: Optional[str] = Field(default=None, description="User ID (for cron)")
     scheduledPublish: Optional[bool] = Field(default=False, description="Is scheduled publish")
+    
+    def model_post_init(self, __context) -> None:
+        # Merge carouselImages into carouselUrls for compatibility
+        if self.carouselImages and not self.carouselUrls:
+            object.__setattr__(self, 'carouselUrls', self.carouselImages)
 
 
 class InstagramUploadMediaRequest(BaseModel):

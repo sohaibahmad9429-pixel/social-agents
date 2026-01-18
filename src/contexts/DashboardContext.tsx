@@ -251,11 +251,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
             // Only delete post if at least one platform succeeded
             await deletePost(post.id, post.topic);
 
+            // Refresh posts list after successful publish and delete
+            await loadData(true);
+
             addNotification('post_published', 'Post Published', `Posted to ${successCount}/${results.length} platforms`, post.id);
         } catch (error) {
             addNotification('error', 'Publishing Error', 'Failed to publish post');
         }
-    }, [user, workspaceId, deletePost, addNotification]);
+    }, [user, workspaceId, deletePost, addNotification, loadData]);
 
     // --- Polling Logic (Video & Schedule) ---
 

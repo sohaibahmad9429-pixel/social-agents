@@ -294,23 +294,25 @@ class SocialMediaService:
         caption: str
     ) -> Dict[str, Any]:
         """
-        Create Instagram media container for image using SDK
+        Create Instagram media container for image using InstagramService
         """
         try:
-            client = self._get_sdk_client(access_token)
-            result = await client.create_instagram_media_container(
+            from .platforms.ig_service import InstagramService
+            ig_service = InstagramService(access_token)
+            result = await ig_service.create_instagram_media_container(
                 ig_user_id=ig_user_id,
                 image_url=image_url,
                 caption=caption
             )
             
-            return {
-                'success': True,
-                'container_id': result.get('container_id') or result.get('id')
-            }
+            if result.get('success'):
+                return {
+                    'success': True,
+                    'container_id': result.get('container_id') or result.get('id')
+                }
+            else:
+                return {'success': False, 'error': result.get('error')}
             
-        except MetaSDKError as e:
-            return {'success': False, 'error': e.message}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
@@ -321,22 +323,24 @@ class SocialMediaService:
         container_id: str
     ) -> Dict[str, Any]:
         """
-        Publish Instagram media container using SDK
+        Publish Instagram media container using InstagramService
         """
         try:
-            client = self._get_sdk_client(access_token)
-            result = await client.publish_instagram_media(
+            from .platforms.ig_service import InstagramService
+            ig_service = InstagramService(access_token)
+            result = await ig_service.publish_instagram_media(
                 ig_user_id=ig_account_id,
                 creation_id=container_id
             )
             
-            return {
-                'success': True,
-                'post_id': result.get('media_id') or result.get('id')
-            }
+            if result.get('success'):
+                return {
+                    'success': True,
+                    'post_id': result.get('media_id') or result.get('id')
+                }
+            else:
+                return {'success': False, 'error': result.get('error')}
             
-        except MetaSDKError as e:
-            return {'success': False, 'error': e.message}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
@@ -349,11 +353,12 @@ class SocialMediaService:
         share_to_feed: bool = True
     ) -> Dict[str, Any]:
         """
-        Create Instagram Reels container using SDK
+        Create Instagram Reels container using InstagramService
         """
         try:
-            client = self._get_sdk_client(access_token)
-            result = await client.create_instagram_media_container(
+            from .platforms.ig_service import InstagramService
+            ig_service = InstagramService(access_token)
+            result = await ig_service.create_instagram_media_container(
                 ig_user_id=ig_user_id,
                 video_url=video_url,
                 caption=caption,
@@ -361,13 +366,14 @@ class SocialMediaService:
                 share_to_feed=share_to_feed
             )
             
-            return {
-                'success': True,
-                'container_id': result.get('container_id') or result.get('id')
-            }
+            if result.get('success'):
+                return {
+                    'success': True,
+                    'container_id': result.get('container_id') or result.get('id')
+                }
+            else:
+                return {'success': False, 'error': result.get('error')}
             
-        except MetaSDKError as e:
-            return {'success': False, 'error': e.message}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
@@ -379,30 +385,33 @@ class SocialMediaService:
         is_video: bool = False
     ) -> Dict[str, Any]:
         """
-        Create Instagram Story container using SDK
+        Create Instagram Story container using InstagramService
         """
         try:
-            client = self._get_sdk_client(access_token)
-            
-            params = {
-                'ig_user_id': ig_user_id,
-                'media_type': 'STORIES'
-            }
+            from .platforms.ig_service import InstagramService
+            ig_service = InstagramService(access_token)
             
             if is_video:
-                params['video_url'] = media_url
+                result = await ig_service.create_instagram_media_container(
+                    ig_user_id=ig_user_id,
+                    video_url=media_url,
+                    media_type='STORIES'
+                )
             else:
-                params['image_url'] = media_url
+                result = await ig_service.create_instagram_media_container(
+                    ig_user_id=ig_user_id,
+                    image_url=media_url,
+                    media_type='STORIES'
+                )
             
-            result = await client.create_instagram_media_container(**params)
+            if result.get('success'):
+                return {
+                    'success': True,
+                    'container_id': result.get('container_id') or result.get('id')
+                }
+            else:
+                return {'success': False, 'error': result.get('error')}
             
-            return {
-                'success': True,
-                'container_id': result.get('container_id') or result.get('id')
-            }
-            
-        except MetaSDKError as e:
-            return {'success': False, 'error': e.message}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
@@ -414,10 +423,11 @@ class SocialMediaService:
         caption: str
     ) -> Dict[str, Any]:
         """
-        Create Instagram carousel container (2-10 mixed images/videos) using SDK
+        Create Instagram carousel container (2-10 mixed images/videos) using InstagramService
         """
         try:
-            client = self._get_sdk_client(access_token)
+            from .platforms.ig_service import InstagramService
+            ig_service = InstagramService(access_token)
             
             # Step 1: Create individual item containers
             child_container_ids = []
@@ -426,18 +436,21 @@ class SocialMediaService:
                 is_video = any(ext in media_url.lower() for ext in ['.mp4', '.mov', '.m4v', '/video/', '/videos/'])
                 
                 if is_video:
-                    result = await client.create_instagram_media_container(
+                    result = await ig_service.create_instagram_media_container(
                         ig_user_id=ig_user_id,
                         video_url=media_url,
                         media_type='VIDEO',
                         is_carousel_item=True
                     )
                 else:
-                    result = await client.create_instagram_media_container(
+                    result = await ig_service.create_instagram_media_container(
                         ig_user_id=ig_user_id,
                         image_url=media_url,
                         is_carousel_item=True
                     )
+                
+                if not result.get('success'):
+                    return {'success': False, 'error': f"Failed to create carousel item: {result.get('error')}"}
                 
                 container_id = result.get('container_id') or result.get('id')
                 
@@ -448,19 +461,20 @@ class SocialMediaService:
                 child_container_ids.append(container_id)
             
             # Step 2: Create parent carousel container
-            result = await client.create_instagram_carousel_container(
+            result = await ig_service.create_instagram_carousel_container(
                 ig_user_id=ig_user_id,
                 children=child_container_ids,
                 caption=caption
             )
             
-            return {
-                'success': True,
-                'container_id': result.get('container_id') or result.get('id')
-            }
+            if result.get('success'):
+                return {
+                    'success': True,
+                    'container_id': result.get('container_id') or result.get('id')
+                }
+            else:
+                return {'success': False, 'error': result.get('error')}
             
-        except MetaSDKError as e:
-            return {'success': False, 'error': e.message}
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
@@ -470,8 +484,9 @@ class SocialMediaService:
         access_token: str,
         max_wait_seconds: int = 120
     ) -> bool:
-        """Wait for container to reach FINISHED status"""
-        client = self._get_sdk_client(access_token)
+        """Wait for container to reach FINISHED status using InstagramService"""
+        from .platforms.ig_service import InstagramService
+        ig_service = InstagramService(access_token)
         poll_interval = 3
         start_time = datetime.utcnow()
         
@@ -482,7 +497,7 @@ class SocialMediaService:
                 return False
             
             try:
-                status = await client.get_instagram_container_status(container_id)
+                status = await ig_service.get_instagram_container_status(container_id)
                 status_code = status.get('status_code') or status.get('status', '')
                 
                 if status_code == 'FINISHED':
@@ -533,32 +548,8 @@ social_service = SocialMediaService()
 # ============================================================================
 # ADDITIONAL OAUTH METHODS (for Twitter, LinkedIn, TikTok, YouTube)
 # These remain as direct API calls since they're not Meta platforms
+# Instagram is handled via InstagramService in platforms/ig_service.py
 # ============================================================================
-
-async def _instagram_get_accounts(self, access_token: str):
-    """Get Instagram Business Accounts connected to user's Facebook Pages"""
-    try:
-        client = self._get_sdk_client(access_token)
-        pages = await client.get_user_pages()
-        
-        accounts = []
-        for page in pages:
-            ig_account = page.get('instagram_business_account')
-            if ig_account:
-                accounts.append({
-                    'id': ig_account['id'],
-                    'username': ig_account.get('username'),
-                    'name': ig_account.get('name'),
-                    'profile_picture_url': ig_account.get('profile_picture_url'),
-                    'page_id': page['id'],
-                    'page_name': page.get('name')
-                })
-        
-        if not accounts:
-            return {'success': False, 'error': 'No Instagram Business accounts found'}
-        return {'success': True, 'accounts': accounts}
-    except Exception as e:
-        return {'success': False, 'error': str(e)}
 
 
 async def _twitter_exchange_code_for_token(self, code: str, redirect_uri: str, code_verifier: str):
@@ -710,9 +701,8 @@ async def _youtube_get_channel(self, access_token: str):
         return {'success': False, 'error': str(e)}
 
 
-# Bind methods to the singleton instance
+# Bind methods to the singleton instance (non-Meta platforms only)
 import types
-social_service.instagram_get_accounts = types.MethodType(_instagram_get_accounts, social_service)
 social_service.twitter_exchange_code_for_token = types.MethodType(_twitter_exchange_code_for_token, social_service)
 social_service.twitter_get_user = types.MethodType(_twitter_get_user, social_service)
 social_service.linkedin_exchange_code_for_token = types.MethodType(_linkedin_exchange_code_for_token, social_service)
